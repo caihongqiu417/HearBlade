@@ -24,20 +24,7 @@ public class HearBlade : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
-			"HearBlade",
-			"HearBlade/Variant_Platforming",
-			"HearBlade/Variant_Platforming/Animation",
-			"HearBlade/Variant_Combat",
-			"HearBlade/Variant_Combat/AI",
-			"HearBlade/Variant_Combat/Animation",
-			"HearBlade/Variant_Combat/Gameplay",
-			"HearBlade/Variant_Combat/Interfaces",
-			"HearBlade/Variant_Combat/UI",
-			"HearBlade/Variant_SideScrolling",
-			"HearBlade/Variant_SideScrolling/AI",
-			"HearBlade/Variant_SideScrolling/Gameplay",
-			"HearBlade/Variant_SideScrolling/Interfaces",
-			"HearBlade/Variant_SideScrolling/UI"
+			"HearBlade"
 		});
 
 		// Uncomment if you are using Slate UI
