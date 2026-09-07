@@ -63,6 +63,8 @@ public:
 	// 开始和结束
 	// ========================================================
 
+	// Unreal在关卡创建时自动调用
+	// 系统被创建时的准备工作
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 	
@@ -76,11 +78,11 @@ public:
 	// 启动和停止
 	// ========================================================
 
-	// 使用指定设置开始计算拍子。
+	// 开始计算拍子
 	UFUNCTION(BlueprintCallable, Category = "拍子时钟")
 	void StartClock(FBeatClockSettings InSettings);
 
-	// 停止计算拍子。
+	// 停止计算拍子
 	UFUNCTION(BlueprintCallable, Category = "拍子时钟")
 	void StopClock();
 
