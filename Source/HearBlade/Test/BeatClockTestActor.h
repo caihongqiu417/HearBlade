@@ -7,6 +7,9 @@
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "BeatClockTestActor.generated.h"
 
+class UAudioComponent;
+class USoundBase;
+
 // ============================================================
 // 拍子时钟测试对象
 // ============================================================
@@ -35,6 +38,17 @@ public:
 	// 可以在测试蓝图中修改拍子设置。
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试")
 	FBeatClockSettings ClockSettings;
+
+	// 指定音乐后，测试 Actor 会在启动拍子时钟时播放这首音乐。
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试")
+	TObjectPtr<USoundBase> Music;
+
+	// 原音乐文件开头约四秒无声；从有声段开始测试，并同步换算拍子相位。
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试", meta = (ClampMin = "0.0"))
+	float MusicStartTimeSeconds = 4.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试")
+	TObjectPtr<UAudioComponent> MusicComponent;
 
 private:
 	// ========================================================

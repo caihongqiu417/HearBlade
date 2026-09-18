@@ -38,6 +38,10 @@
 		{
 			"Name": "MCPClientToolset",
 			"Enabled": true
+		},
+		{
+			"Name": "EditorToolset",
+			"Enabled": true
 		}
 	]
 }

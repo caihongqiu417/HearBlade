@@ -6,6 +6,8 @@
 #include "Subsystems/WorldSubsystem.h"
 #include "BeatClockSubsystem.generated.h"
 
+class UAudioComponent;
+
 // ============================================================
 // 拍子事件
 // ============================================================
@@ -82,6 +84,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "拍子时钟")
 	void StartClock(FBeatClockSettings InSettings);
 
+	// 同时发出音乐播放命令并设定拍子原点。音乐未指定时只启动拍子时钟。
+	UFUNCTION(BlueprintCallable, Category = "拍子时钟")
+	void StartClockWithMusic(FBeatClockSettings InSettings, UAudioComponent* MusicComponent, float MusicStartTimeSeconds = 0.0f);
+
 	// 停止计算拍子
 	UFUNCTION(BlueprintCallable, Category = "拍子时钟")
 	void StopClock();
@@ -110,9 +116,16 @@ public:
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 	double GetBeatTimeSeconds(double BeatIndex) const;
 
+	// 与 GetBeatTimeSeconds 使用相同的时间轴，供攻击预定器比较。
+	UFUNCTION(BlueprintPure, Category = "拍子时钟")
+	double GetAudioNowSeconds() const;
+
 	// 返回一拍需要多少秒。
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 	double GetSecondsPerBeat() const;
+
+	UFUNCTION(BlueprintPure, Category = "拍子时钟")
+	int32 GetBeatsPerBar() const { return Settings.BeatsPerBar; }
 
 	// 返回当前小节编号，从 0 开始。
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
@@ -129,10 +142,6 @@ public:
 	// 当进入新的一拍时发出拍子事件
 	UPROPERTY(BlueprintAssignable, Category = "拍子时钟")
 	FOnBeatClockBeat OnBeat;
-
-private:
-	// 读取 Unreal 提供的音频时间，不使用每帧时间累加，避免画面卡顿影响拍子计算。
-	double GetAudioNowSeconds() const;
 
 private:
 

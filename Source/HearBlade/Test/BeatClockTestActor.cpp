@@ -1,6 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "BeatClockTestActor.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
 
 // ============================================================
 // 创建测试对象
@@ -10,12 +12,17 @@ ABeatClockTestActor::ABeatClockTestActor()
 {
 	// 测试对象自己不需要每帧运行，拍子时钟会负责检查拍子。
 	PrimaryActorTick.bCanEverTick = false;
+	MusicComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("MusicComponent"));
+	MusicComponent->bAutoActivate = false;
+	MusicComponent->bAllowSpatialization = false;
+	MusicComponent->bIsUISound = true;
 
 	// 配置第一步使用的拍子设置。
-	ClockSettings.BPM = 120.0;
+	ClockSettings.BPM = 104.0;
 	ClockSettings.BeatsPerBar = 4;
 	ClockSettings.BeatSubdivision = 1;
-	ClockSettings.StartOffsetSeconds = 0.0;
+	ClockSettings.StartOffsetSeconds = 0.204;
+	Music = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/Music/SW_AintItFun.SW_AintItFun"));
 }
 
 // ============================================================
@@ -32,9 +39,23 @@ void ABeatClockTestActor::BeginPlay()
 	// 监听进入新拍子时发出的拍子事件。
 	BeatClock->OnBeat.AddDynamic(this, &ABeatClockTestActor::HandleBeat);
 
-	// 启动拍子系统，开始计算拍子。
-	// TODO：真正播放音乐时，应在音乐开始播放的时刻调用这个函数。
-	BeatClock->StartClock(ClockSettings);
+	// 同一游戏线程调用音乐播放和拍子时钟启动；最终音频设备延迟仍需实测校准。
+	if (Music)
+	{
+		MusicComponent->SetSound(Music);
+		FBeatClockSettings MusicSettings = ClockSettings;
+		const double SecondsPerBeat = 60.0 / FMath::Max(MusicSettings.BPM, 1.0);
+		MusicSettings.StartOffsetSeconds = FMath::Fmod(MusicSettings.StartOffsetSeconds - MusicStartTimeSeconds, SecondsPerBeat);
+		if (MusicSettings.StartOffsetSeconds < 0.0)
+		{
+			MusicSettings.StartOffsetSeconds += SecondsPerBeat;
+		}
+		BeatClock->StartClockWithMusic(MusicSettings, MusicComponent, MusicStartTimeSeconds);
+	}
+	else
+	{
+		BeatClock->StartClock(ClockSettings);
+	}
 }
 
 void ABeatClockTestActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -45,6 +66,7 @@ void ABeatClockTestActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	BeatClock->OnBeat.RemoveDynamic(this, &ABeatClockTestActor::HandleBeat);
 
 	BeatClock->StopClock();
+	MusicComponent->Stop();
 
 	Super::EndPlay(EndPlayReason);
 }

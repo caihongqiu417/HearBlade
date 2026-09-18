@@ -2,7 +2,9 @@
 
 #include "BeatClockSubsystem.h"
 
+#include "Components/AudioComponent.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "Stats/Stats.h"
 
 /*
@@ -47,6 +49,19 @@ void UBeatClockSubsystem::StartClock(FBeatClockSettings InSettings)
 	ClockStartAudioSeconds = GetAudioNowSeconds();
 	LastEmittedBeat = -1;
 	bRunning = true;
+}
+
+void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAudioComponent* MusicComponent, float MusicStartTimeSeconds)
+{
+	if (IsValid(MusicComponent))
+	{
+		MusicComponent->Play(FMath::Max(0.0f, MusicStartTimeSeconds));
+	}
+	StartClock(InSettings);
+	UE_LOG(LogTemp, Log, TEXT("BeatClock music start: BPM=%.3f offset=%.3f sourceStart=%.3f sound=%s playing=%d"),
+		Settings.BPM, Settings.StartOffsetSeconds, MusicStartTimeSeconds,
+		MusicComponent && MusicComponent->GetSound() ? *MusicComponent->GetSound()->GetName() : TEXT("None"),
+		IsValid(MusicComponent) && MusicComponent->IsPlaying() ? 1 : 0);
 }
 
 void UBeatClockSubsystem::StopClock()
