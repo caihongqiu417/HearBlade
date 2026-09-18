@@ -1,0 +1,18 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "1.0",
+  "FriendlyName": "HearBlade Beat Combo Editor",
+  "Description": "Waveform timeline for aligning complete Boss combos to music beats.",
+  "Category": "Animation",
+  "CreatedBy": "HearBlade",
+  "CanContainContent": false,
+  "EnabledByDefault": false,
+  "Modules": [
+    {
+      "Name": "HearBladeBeatEditor",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

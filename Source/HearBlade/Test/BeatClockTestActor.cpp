@@ -3,6 +3,7 @@
 #include "BeatClockTestActor.h"
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
+#include "Combat/AttackData.h"
 
 // ============================================================
 // 创建测试对象
@@ -23,6 +24,8 @@ ABeatClockTestActor::ABeatClockTestActor()
 	ClockSettings.BeatSubdivision = 1;
 	ClockSettings.StartOffsetSeconds = 0.204;
 	Music = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/Music/SW_AintItFun.SW_AintItFun"));
+	SyncAttackData = LoadObject<UAttackDataAsset>(nullptr,
+		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/DA_DragonKnight_Combo01_Beat.DA_DragonKnight_Combo01_Beat"));
 }
 
 // ============================================================
@@ -44,13 +47,20 @@ void ABeatClockTestActor::BeginPlay()
 	{
 		MusicComponent->SetSound(Music);
 		FBeatClockSettings MusicSettings = ClockSettings;
+		float StartTime = MusicStartTimeSeconds;
+		if (IsValid(SyncAttackData))
+		{
+			MusicSettings.BPM = SyncAttackData->ReferenceBPM;
+			MusicSettings.StartOffsetSeconds = SyncAttackData->ReferenceBeatPhaseSeconds;
+			StartTime = static_cast<float>(SyncAttackData->ReferenceMusicStartSeconds);
+		}
 		const double SecondsPerBeat = 60.0 / FMath::Max(MusicSettings.BPM, 1.0);
-		MusicSettings.StartOffsetSeconds = FMath::Fmod(MusicSettings.StartOffsetSeconds - MusicStartTimeSeconds, SecondsPerBeat);
+		MusicSettings.StartOffsetSeconds = FMath::Fmod(MusicSettings.StartOffsetSeconds - StartTime, SecondsPerBeat);
 		if (MusicSettings.StartOffsetSeconds < 0.0)
 		{
 			MusicSettings.StartOffsetSeconds += SecondsPerBeat;
 		}
-		BeatClock->StartClockWithMusic(MusicSettings, MusicComponent, MusicStartTimeSeconds);
+		BeatClock->StartClockWithMusic(MusicSettings, MusicComponent, StartTime);
 	}
 	else
 	{

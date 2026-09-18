@@ -11,6 +11,10 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "HearBlade.h"
+#include "Combat/BossCombatCameraComponent.h"
+#include "InputAction.h"
+#include "InputMappingContext.h"
+#include "InputCoreTypes.h"
 
 AHearBladeCharacter::AHearBladeCharacter()
 {
@@ -45,6 +49,7 @@ AHearBladeCharacter::AHearBladeCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
+	CombatCamera = CreateDefaultSubobject<UBossCombatCameraComponent>(TEXT("BossCombatCamera"));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -65,6 +70,15 @@ void AHearBladeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHearBladeCharacter::Look);
+		LockOnAction = NewObject<UInputAction>(this, TEXT("BossLockOnAction"));
+		LockOnAction->ValueType = EInputActionValueType::Boolean;
+		LockOnMapping = NewObject<UInputMappingContext>(this, TEXT("BossLockOnMapping"));
+		LockOnMapping->MapKey(LockOnAction, EKeys::MiddleMouseButton);
+		LockOnMapping->MapKey(LockOnAction, EKeys::Gamepad_RightThumbstick);
+		EnhancedInputComponent->BindAction(LockOnAction, ETriggerEvent::Started, this, &AHearBladeCharacter::ToggleCombatLock);
+		if (const APlayerController* PC = Cast<APlayerController>(GetController()))
+			if (UEnhancedInputLocalPlayerSubsystem* Input = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+				Input->AddMappingContext(LockOnMapping, 1);
 	}
 	else
 	{
@@ -112,12 +126,22 @@ void AHearBladeCharacter::DoMove(float Right, float Forward)
 
 void AHearBladeCharacter::DoLook(float Yaw, float Pitch)
 {
+	if (CombatCamera && CombatCamera->IsLockedOn())
+	{
+		CombatCamera->AddLookInput(Yaw, Pitch);
+		return;
+	}
 	if (GetController() != nullptr)
 	{
 		// add yaw and pitch input to controller
 		AddControllerYawInput(Yaw);
 		AddControllerPitchInput(Pitch);
 	}
+}
+
+void AHearBladeCharacter::ToggleCombatLock()
+{
+	if (CombatCamera) CombatCamera->ToggleLockOn();
 }
 
 void AHearBladeCharacter::DoJumpStart()

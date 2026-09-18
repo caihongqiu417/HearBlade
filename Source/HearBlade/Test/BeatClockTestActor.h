@@ -9,6 +9,7 @@
 
 class UAudioComponent;
 class USoundBase;
+class UAttackDataAsset;
 
 // ============================================================
 // 拍子时钟测试对象
@@ -42,6 +43,10 @@ public:
 	// 指定音乐后，测试 Actor 会在启动拍子时钟时播放这首音乐。
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试")
 	TObjectPtr<USoundBase> Music;
+
+	// 读取节拍编辑器保存的 BPM、相位和音乐起点。
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试")
+	TObjectPtr<UAttackDataAsset> SyncAttackData;
 
 	// 原音乐文件开头约四秒无声；从有声段开始测试，并同步换算拍子相位。
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试", meta = (ClampMin = "0.0"))

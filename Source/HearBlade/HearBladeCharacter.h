@@ -10,6 +10,8 @@
 class USpringArmComponent;
 class UCameraComponent;
 class UInputAction;
+class UInputMappingContext;
+class UBossCombatCameraComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -30,6 +32,10 @@ class AHearBladeCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UBossCombatCameraComponent> CombatCamera;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> LockOnAction;
+	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> LockOnMapping;
 	
 protected:
 
@@ -66,6 +72,7 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+	void ToggleCombatLock();
 
 public:
 
