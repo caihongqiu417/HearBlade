@@ -7,6 +7,7 @@
 
 class UTexture2D;
 class UBeatSyncedComboComponent;
+class URhythmResponseVisualData;
 
 UCLASS()
 class HEARBLADE_API ARhythmCombatHUD : public AHUD
@@ -32,6 +33,10 @@ private:
 	void DrawJudgment(const UPlayerRhythmCombatComponent* State, float Scale, double Now);
 	void DrawAttackTimingCue(const UPlayerRhythmCombatComponent* State, float Scale);
 	void DrawLockMarker();
+	void DrawBossHealth(float Scale);
+	UPROPERTY() TObjectPtr<UTexture2D> BossHealthFrameTexture;
+	float BossHealthTrail = 1.f;
+	TWeakObjectPtr<UBeatSyncedComboComponent> HealthBarTarget;
 	UBeatSyncedComboComponent* FindCueCombo();
 	static FLinearColor GetJudgmentColor(ERhythmDodgeJudgment Grade);
 	static FString GetJudgmentText(ERhythmDodgeJudgment Grade);
@@ -51,12 +56,20 @@ private:
 	UPROPERTY() TObjectPtr<UTexture2D> ComboWordTexture;
 	UPROPERTY() TObjectPtr<UTexture2D> AttackTimingRailTexture;
 	UPROPERTY() TObjectPtr<UTexture2D> AttackSlashTexture;
+	UPROPERTY() TObjectPtr<UTexture2D> DodgeResponseTexture;
+	UPROPERTY() TObjectPtr<UTexture2D> BlockResponseTexture;
+	UPROPERTY() TObjectPtr<UTexture2D> CounterResponseTexture;
+	UPROPERTY() TObjectPtr<UTexture2D> HoldResponseTexture;
+	UPROPERTY() TObjectPtr<URhythmResponseVisualData> ResponseVisuals;
 	TArray<FJudgmentFeedEntry> JudgmentFeed;
 	FJudgmentFeedEntry OutgoingJudgment;
 	bool bHasOutgoingJudgment = false;
 	double QueueAnimationStartSeconds = -1000.0;
 	double ComboPunchStartSeconds = -1000.0;
 	int32 LastComboCount = INDEX_NONE;
+	int32 LastComboTier = 0;
+	double ComboTierUpWorldSeconds = -1000.0;
 	double LastCapturedJudgmentSeconds = -1000.0;
+	double LastPromptedImpactAudioSeconds = -1000.0;
 	TWeakObjectPtr<UBeatSyncedComboComponent> CachedCueCombo;
 };

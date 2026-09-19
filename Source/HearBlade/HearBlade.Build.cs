@@ -12,6 +12,7 @@ public class HearBlade : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"AnimGraphRuntime",
 			"InputCore",
 			"EnhancedInput",
 			"AIModule",
@@ -21,6 +22,7 @@ public class HearBlade : ModuleRules
 			"Slate",
 			"MotionWarping",
 			"Niagara"
+			,"DeveloperSettings"
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "SlateCore", "RenderCore" });

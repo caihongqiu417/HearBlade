@@ -20,7 +20,10 @@ public:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 private:
-	UFUNCTION() void HandlePerfectDodge(const FPerfectDodgeFeedbackData& Feedback);
+	UFUNCTION() void HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback);
+	void PlayPerfectFeedback(const FPerfectDodgeFeedbackData& Feedback, float TierScale, bool bKeyPerfect);
+	void StartImpactFrame();
+	void RestoreImpactFrame();
 	void SpawnRing(const FPerfectDodgeFeedbackData& Feedback, float DelaySeconds);
 	void SpawnGhosts(float Strength);
 	void ClearTransientVisuals();
@@ -32,4 +35,11 @@ private:
 	double EffectStartWorldSeconds = -1000.0;
 	float ActiveDuration = 0.15f;
 	float ActiveStrength = 1.0f;
+	double LastImpactFrameWorldSeconds = -1000.0;
+	double ImpactFrameEndWorldSeconds = -1000.0;
+	FVector4 SavedSaturation = FVector4(1,1,1,1);
+	FVector4 SavedContrast = FVector4(1,1,1,1);
+	bool bSavedSaturationOverride = false;
+	bool bSavedContrastOverride = false;
+	bool bImpactFrameActive = false;
 };

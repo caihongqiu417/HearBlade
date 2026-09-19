@@ -1,6 +1,8 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "HearBladeCharacter.h"
+#include "Combat/PlayerCombatAnimInstance.h"
+#include "Combat/RhythmCombatInputSettings.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -103,16 +105,32 @@ void AHearBladeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		DodgeAction = NewObject<UInputAction>(this, TEXT("RhythmDodgeAction"));
 		DodgeAction->ValueType = EInputActionValueType::Boolean;
 		DodgeMapping = NewObject<UInputMappingContext>(this, TEXT("RhythmDodgeMapping"));
-		DodgeMapping->MapKey(DodgeAction, EKeys::LeftShift);
-		DodgeMapping->MapKey(DodgeAction, EKeys::RightShift);
-		DodgeMapping->MapKey(DodgeAction, EKeys::Gamepad_FaceButton_Right);
+		const URhythmCombatInputSettings* RhythmKeys = GetDefault<URhythmCombatInputSettings>();
+		DodgeMapping->MapKey(DodgeAction, RhythmKeys->DodgePrimary);
+		DodgeMapping->MapKey(DodgeAction, RhythmKeys->DodgeSecondary);
+		DodgeMapping->MapKey(DodgeAction, RhythmKeys->DodgeGamepad);
 		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Started, this, &AHearBladeCharacter::Dodge);
+		BlockAction = NewObject<UInputAction>(this, TEXT("RhythmBlockAction"));
+		BlockAction->ValueType = EInputActionValueType::Boolean;
+		CounterAction = NewObject<UInputAction>(this, TEXT("RhythmCounterAction"));
+		CounterAction->ValueType = EInputActionValueType::Boolean;
+		DefenseMapping = NewObject<UInputMappingContext>(this, TEXT("RhythmDefenseMapping"));
+		DefenseMapping->MapKey(BlockAction, RhythmKeys->BlockKeyboardMouse);
+		DefenseMapping->MapKey(BlockAction, RhythmKeys->BlockGamepad);
+		DefenseMapping->MapKey(CounterAction, RhythmKeys->CounterPrimary);
+		DefenseMapping->MapKey(CounterAction, RhythmKeys->CounterSecondary);
+		DefenseMapping->MapKey(CounterAction, RhythmKeys->CounterGamepad);
+		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Started, this, &AHearBladeCharacter::BlockStarted);
+		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Completed, this, &AHearBladeCharacter::BlockEnded);
+		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Canceled, this, &AHearBladeCharacter::BlockEnded);
+		EnhancedInputComponent->BindAction(CounterAction, ETriggerEvent::Started, this, &AHearBladeCharacter::Counter);
 		if (const APlayerController* PC = Cast<APlayerController>(GetController()))
 		{
 			if (UEnhancedInputLocalPlayerSubsystem* Input = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 			{
 				Input->AddMappingContext(LockOnMapping, 1);
 				Input->AddMappingContext(DodgeMapping, 2);
+				Input->AddMappingContext(DefenseMapping, 2);
 			}
 		}
 	}
@@ -142,6 +160,7 @@ void AHearBladeCharacter::Look(const FInputActionValue& Value)
 
 void AHearBladeCharacter::DoMove(float Right, float Forward)
 {
+	if (RhythmCombat && RhythmCombat->IsPerformingAction()) return;
 	if (GetController() != nullptr)
 	{
 		// find out which way is forward
@@ -175,6 +194,14 @@ void AHearBladeCharacter::DoLook(float Yaw, float Pitch)
 	}
 }
 
+void AHearBladeCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	GetMesh()->SetAnimInstanceClass(UPlayerCombatAnimInstance::StaticClass());
+	if (auto* Animation = Cast<UPlayerCombatAnimInstance>(GetMesh()->GetAnimInstance()))
+		Animation->Locomotion = KnightLocomotionBlendSpace;
+}
+
 void AHearBladeCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -188,14 +215,28 @@ void AHearBladeCharacter::UpdateSwordDirection(float DeltaSeconds)
 {
 	if (!bSwordGripCalibrated || !EquippedSword) return;
 
-	const FVector CurrentDirection = EquippedSword->GetComponentTransform()
-		.TransformVectorNoScale(FVector::YAxisVector).GetSafeNormal();
-	const FVector DesiredDirection = GetActorForwardVector().GetSafeNormal();
-	if (CurrentDirection.IsNearlyZero() || DesiredDirection.IsNearlyZero()) return;
-
 	const FQuat CurrentRotation = EquippedSword->GetComponentQuat();
-	const FQuat TargetRotation = FQuat::FindBetweenNormals(CurrentDirection, DesiredDirection) * CurrentRotation;
-	const float Alpha = 1.0f - FMath::Exp(-SwordDirectionInterpSpeed * DeltaSeconds);
+	FQuat TargetRotation = CurrentRotation;
+	float InterpSpeed = SwordDirectionInterpSpeed;
+	if (RhythmCombat && RhythmCombat->IsInDefensePose() && GetMesh())
+	{
+		// Defense animations author the wrist and blade pose together. Reapply the calibrated
+		// grip offset in hand space so block, hold and counter can actually raise the sword.
+		const FQuat HandRotation = GetMesh()->GetSocketTransform(TEXT("hand_r"), RTS_World).GetRotation();
+		TargetRotation = (HandRotation * SwordGripRotationOffset).GetNormalized();
+		InterpSpeed *= 1.65f;
+	}
+	else
+	{
+		// Locomotion and roll clips disagree about wrist orientation. Keep the blade stable and
+		// forward there, which prevents the old backward-sword recovery snap.
+		const FVector CurrentDirection = EquippedSword->GetComponentTransform()
+			.TransformVectorNoScale(FVector::YAxisVector).GetSafeNormal();
+		const FVector DesiredDirection = GetActorForwardVector().GetSafeNormal();
+		if (CurrentDirection.IsNearlyZero() || DesiredDirection.IsNearlyZero()) return;
+		TargetRotation = (FQuat::FindBetweenNormals(CurrentDirection, DesiredDirection) * CurrentRotation).GetNormalized();
+	}
+	const float Alpha = 1.0f - FMath::Exp(-InterpSpeed * DeltaSeconds);
 	EquippedSword->SetWorldRotation(FQuat::Slerp(CurrentRotation, TargetRotation, Alpha).GetNormalized());
 }
 
@@ -235,6 +276,8 @@ void AHearBladeCharacter::CalibrateSwordGrip()
 	EquippedSword->SetWorldRotation(WorldCorrection * EquippedSword->GetComponentQuat());
 	EquippedSword->SetWorldLocation(EquippedSword->GetComponentLocation() +
 		FVector::UpVector * SwordGripVerticalOffsetCm);
+	const FQuat HandRotation = GetMesh()->GetSocketTransform(TEXT("hand_r"), RTS_World).GetRotation();
+	SwordGripRotationOffset = (HandRotation.Inverse() * EquippedSword->GetComponentQuat()).GetNormalized();
 	bSwordGripCalibrated = true;
 
 	const FVector CorrectedDirection = EquippedSword->GetComponentTransform()
@@ -245,7 +288,7 @@ void AHearBladeCharacter::CalibrateSwordGrip()
 
 void AHearBladeCharacter::UpdateKnightLocomotion(float DeltaSeconds)
 {
-	if (!GetMesh() || !KnightLocomotionBlendSpace || (RhythmCombat && RhythmCombat->IsDodging())) return;
+	if (!GetMesh() || !KnightLocomotionBlendSpace) return;
 
 	const bool bCombatLocked = CombatCamera && CombatCamera->IsLockedOn();
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
@@ -261,28 +304,10 @@ void AHearBladeCharacter::UpdateKnightLocomotion(float DeltaSeconds)
 	SmoothedLocomotionInput = FMath::Vector2DInterpTo(
 		SmoothedLocomotionInput, TargetInput, DeltaSeconds, 9.0f);
 
-	UAnimSingleNodeInstance* Instance = GetMesh()->GetSingleNodeInstance();
-	const bool bReturningFromAction = Instance && Instance->GetCurrentAsset() != KnightLocomotionBlendSpace;
-	if (bReturningFromAction)
+	if (auto* Instance = Cast<UPlayerCombatAnimInstance>(GetMesh()->GetAnimInstance()))
 	{
-		// Do not resume the Blend Space from the stale pre-dodge run input. Start
-		// from the character's real post-dodge velocity so the roll settles into
-		// alert idle or walk instead of popping into an old running pose.
-		SmoothedLocomotionInput = TargetInput;
-	}
-	if (ActiveKnightAnimation.Get() != KnightLocomotionBlendSpace ||
-		GetMesh()->GetAnimationMode() != EAnimationMode::AnimationSingleNode ||
-		!Instance || Instance->GetCurrentAsset() != KnightLocomotionBlendSpace)
-	{
-		GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
-		GetMesh()->PlayAnimation(KnightLocomotionBlendSpace, true);
-		ActiveKnightAnimation = KnightLocomotionBlendSpace;
-		Instance = GetMesh()->GetSingleNodeInstance();
-	}
-	if (Instance)
-	{
-		Instance->SetBlendSpacePosition(FVector(SmoothedLocomotionInput.X, SmoothedLocomotionInput.Y, 0.0f));
-		Instance->SetPlayRate(1.0f);
+		Instance->Locomotion = KnightLocomotionBlendSpace;
+		Instance->LocomotionPosition = FVector(SmoothedLocomotionInput.X, SmoothedLocomotionInput.Y, 0.0f);
 	}
 }
 
@@ -294,6 +319,21 @@ void AHearBladeCharacter::ToggleCombatLock()
 void AHearBladeCharacter::Dodge()
 {
 	DoDodge();
+}
+
+void AHearBladeCharacter::BlockStarted()
+{
+	if (RhythmCombat) RhythmCombat->TryBlockStart();
+}
+
+void AHearBladeCharacter::BlockEnded()
+{
+	if (RhythmCombat) RhythmCombat->EndBlock();
+}
+
+void AHearBladeCharacter::Counter()
+{
+	if (RhythmCombat) RhythmCombat->TryCounter();
 }
 
 void AHearBladeCharacter::DoDodge()

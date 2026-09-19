@@ -25,6 +25,9 @@ public:
 		FVector BladeWorldLocation, FVector AttackDirection, bool bStrongBeat,
 		float LateralShiftCm, float DollyShiftCm, float YawKickDegrees, float PitchKickDegrees,
 		float ReboundStrength);
+	void StartHoldFeedback(float ShakeDegrees);
+	void TriggerHoldImpact(float ShakeDegrees, float DurationSeconds);
+	void StopHoldFeedback(float FadeSeconds);
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;

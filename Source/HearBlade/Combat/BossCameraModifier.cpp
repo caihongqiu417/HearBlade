@@ -24,8 +24,11 @@ float UBossCameraModifier::GetReboundEnvelope() const
 bool UBossCameraModifier::ModifyCamera(float DeltaTime, FMinimalViewInfo& InOutPOV)
 {
 	Elapsed += DeltaTime;
+	HoldImpactElapsed += DeltaTime;
+	HoldShake = FMath::FInterpTo(HoldShake, HoldShakeTarget, DeltaTime, HoldShakeInterpSpeed);
 	InOutPOV.FOV = FMath::Max(55.f, InOutPOV.FOV - Kick * GetEnvelope());
-	const float Amplitude = Shake * GetShakeEnvelope();
+	const float HoldImpactEnvelope = FMath::Clamp(1.f - HoldImpactElapsed / FMath::Max(HoldImpactDuration, .001f), 0.f, 1.f);
+	const float Amplitude = Shake * GetShakeEnvelope() + HoldShake + HoldImpact * HoldImpactEnvelope;
 	InOutPOV.Rotation.Pitch += Amplitude * FMath::Sin(Elapsed * 75.f);
 	InOutPOV.Rotation.Yaw += Amplitude * .7f * FMath::Sin(Elapsed * 97.f);
 	const float CinematicEnvelope = GetReboundEnvelope();

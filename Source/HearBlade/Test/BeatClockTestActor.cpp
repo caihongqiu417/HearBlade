@@ -23,6 +23,18 @@ ABeatClockTestActor::ABeatClockTestActor()
 	CombatDrumComponent->bAutoActivate = false;
 	CombatDrumComponent->bAllowSpatialization = false;
 	CombatDrumComponent->bIsUISound = true;
+	auto CreateMusicLayer = [this](const TCHAR* Name)
+	{
+		UAudioComponent* Component = CreateDefaultSubobject<UAudioComponent>(Name);
+		Component->SetupAttachment(MusicComponent);
+		Component->bAutoActivate = false;
+		Component->bAllowSpatialization = false;
+		Component->bIsUISound = true;
+		return Component;
+	};
+	ComboLowComponent = CreateMusicLayer(TEXT("ComboLowComponent"));
+	ComboSnareComponent = CreateMusicLayer(TEXT("ComboSnareComponent"));
+	ComboHighComponent = CreateMusicLayer(TEXT("ComboHighComponent"));
 
 	// 配置第一步使用的拍子设置。
 	ClockSettings.BPM = 104.0;
@@ -36,6 +48,9 @@ ABeatClockTestActor::ABeatClockTestActor()
 	DrumTick = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_BossDrumTick.SW_BossDrumTick"));
 	CombatDrumLoop = LoadObject<USoundBase>(nullptr,
 		TEXT("/Game/Audio/SFX/SW_BossCombatDrumLoop.SW_BossCombatDrumLoop"));
+	ComboLowLoop = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_ComboTier1Low.SW_ComboTier1Low"));
+	ComboSnareLoop = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_ComboTier2Snare.SW_ComboTier2Snare"));
+	ComboHighLoop = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_ComboTier3High.SW_ComboTier3High"));
 }
 
 // ============================================================
@@ -55,6 +70,12 @@ void ABeatClockTestActor::BeginPlay()
 
 	// 监听进入新拍子时发出的拍子事件。
 	BeatClock->OnBeat.AddDynamic(this, &ABeatClockTestActor::HandleBeat);
+	if (APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0))
+	{
+		BoundCombat = Player->FindComponentByClass<UPlayerRhythmCombatComponent>();
+		if (BoundCombat.IsValid())
+			BoundCombat->OnRhythmSuccessFeedback.AddDynamic(this, &ABeatClockTestActor::HandleRhythmFeedback);
+	}
 
 	// 同一游戏线程调用音乐播放和拍子时钟启动；最终音频设备延迟仍需实测校准。
 	if (Music)
@@ -88,6 +109,7 @@ void ABeatClockTestActor::BeginPlay()
 			CombatDrumComponent->Play(static_cast<float>(DrumStartTime));
 			UE_LOG(LogTemp, Display, TEXT("CombatDrumStem: playing=%d sourceStart=%.6f bar=%.6f BPM=%.3f"),
 				CombatDrumComponent->IsPlaying() ? 1 : 0, DrumStartTime, BarSeconds, MusicSettings.BPM);
+			StartComboLayers(static_cast<float>(DrumStartTime));
 		}
 	}
 	else
@@ -102,10 +124,15 @@ void ABeatClockTestActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	// 测试对象结束前取消监听拍子事件。
 	BeatClock->OnBeat.RemoveDynamic(this, &ABeatClockTestActor::HandleBeat);
+	if (BoundCombat.IsValid())
+		BoundCombat->OnRhythmSuccessFeedback.RemoveDynamic(this, &ABeatClockTestActor::HandleRhythmFeedback);
 
 	BeatClock->StopClock();
 	MusicComponent->Stop();
 	if (CombatDrumComponent) CombatDrumComponent->Stop();
+	if (ComboLowComponent) ComboLowComponent->Stop();
+	if (ComboSnareComponent) ComboSnareComponent->Stop();
+	if (ComboHighComponent) ComboHighComponent->Stop();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -120,6 +147,7 @@ void ABeatClockTestActor::HandleBeat(int32 BeatIndex /* 全部拍子编号 */, i
 	// After a hitch, the clock can emit skipped beats together. Don't play old
 	// percussion on top of the current beat.
 	const bool bStemIsPlaying = CombatDrumComponent && CombatDrumComponent->IsPlaying();
+	if (BeatInBar == 0 && Clock && BeatIndex == Clock->GetCurrentBeatIndex()) ApplyComboTierAtBar();
 	if (bEnableCombatDrums && !bStemIsPlaying && Clock && BeatIndex == Clock->GetCurrentBeatIndex() &&
 		(!MusicComponent || MusicComponent->IsPlaying()))
 	{
@@ -135,4 +163,44 @@ void ABeatClockTestActor::HandleBeat(int32 BeatIndex /* 全部拍子编号 */, i
 	}
 	// BeatInBar 从 0 开始，输出时加 1，让日志从第 1 拍开始显示。
 	UE_LOG(LogTemp, Log, TEXT("[HearBlade 拍子时钟] 总拍子=%d，小节内拍子=%d"), BeatIndex, BeatInBar + 1);
+}
+
+void ABeatClockTestActor::StartComboLayers(float SourceStartTime)
+{
+	const auto StartLayer = [SourceStartTime](UAudioComponent* Component, USoundBase* Sound)
+	{
+		if (!Component || !Sound) return;
+		Component->SetSound(Sound);
+		Component->SetVolumeMultiplier(0.f);
+		Component->Play(SourceStartTime);
+	};
+	StartLayer(ComboLowComponent, ComboLowLoop);
+	StartLayer(ComboSnareComponent, ComboSnareLoop);
+	StartLayer(ComboHighComponent, ComboHighLoop);
+	UE_LOG(LogTemp, Display, TEXT("ComboMusic: synchronized layers started at %.6f low=%s snare=%s high=%s"),
+		SourceStartTime, *GetNameSafe(ComboLowLoop), *GetNameSafe(ComboSnareLoop), *GetNameSafe(ComboHighLoop));
+}
+
+void ABeatClockTestActor::HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback)
+{
+	PendingComboTier = Feedback.bSuccess ? FMath::Clamp(Feedback.FeedbackTier, 0, 3) : 0;
+	if (Feedback.bSuccess && Feedback.FeedbackTier > UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(Feedback.PreviousCombo))
+	{
+		UE_LOG(LogTemp, Display, TEXT("ComboMusic: tier-up requested combo=%d tier=%d event=%lld"),
+			Feedback.ComboCount, PendingComboTier, Feedback.EventId);
+	}
+}
+
+void ABeatClockTestActor::ApplyComboTierAtBar()
+{
+	if (CurrentComboTier == PendingComboTier) return;
+	CurrentComboTier = PendingComboTier;
+	const UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
+	const float FadeSeconds = Clock ? static_cast<float>(Clock->GetSecondsPerBeat() * 2.0) : 1.15f;
+	if (ComboLowComponent) ComboLowComponent->AdjustVolume(FadeSeconds, CurrentComboTier >= 1 ? ComboLowVolume : 0.f);
+	if (ComboSnareComponent) ComboSnareComponent->AdjustVolume(FadeSeconds, CurrentComboTier >= 2 ? ComboSnareVolume : 0.f);
+	if (ComboHighComponent) ComboHighComponent->AdjustVolume(FadeSeconds, CurrentComboTier >= 3 ? ComboHighVolume : 0.f);
+	UE_LOG(LogTemp, Display, TEXT("ComboMusic: applied tier=%d fade=%.3fs volumes=%.2f/%.2f/%.2f"), CurrentComboTier,
+		FadeSeconds, CurrentComboTier >= 1 ? ComboLowVolume : 0.f,
+		CurrentComboTier >= 2 ? ComboSnareVolume : 0.f, CurrentComboTier >= 3 ? ComboHighVolume : 0.f);
 }

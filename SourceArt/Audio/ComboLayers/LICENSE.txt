@@ -1,0 +1,2 @@
+Original procedural audio generated for HearBlade by Scripts/generate_combo_music_layers.py.
+No external samples or third-party source material are used.

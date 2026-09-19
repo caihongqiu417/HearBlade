@@ -71,6 +71,7 @@ public:
 	/** Constructor */
 	AHearBladeCharacter();	
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void BeginPlay() override;
 
 protected:
 
@@ -86,6 +87,9 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void ToggleCombatLock();
 	void Dodge();
+	void BlockStarted();
+	void BlockEnded();
+	void Counter();
 
 public:
 
@@ -115,6 +119,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Combat") void DoDodge();
 	UPROPERTY(Transient) TObjectPtr<UInputAction> DodgeAction;
 	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> DodgeMapping;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> BlockAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> CounterAction;
+	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> DefenseMapping;
 
 private:
 	void UpdateKnightLocomotion(float DeltaSeconds);
@@ -123,6 +130,7 @@ private:
 	void CalibrateSwordGrip();
 	int32 SwordCalibrationFrames = 0;
 	bool bSwordGripCalibrated = false;
+	FQuat SwordGripRotationOffset = FQuat::Identity;
 	UPROPERTY(EditAnywhere, Category="装备|武器", meta=(ClampMin="-20.0", ClampMax="20.0"))
 	float SwordGripVerticalOffsetCm = -6.0f;
 	UPROPERTY(EditAnywhere, Category="装备|武器", meta=(ClampMin="1.0", ClampMax="60.0"))

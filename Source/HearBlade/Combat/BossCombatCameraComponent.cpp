@@ -134,7 +134,10 @@ void UBossCombatCameraComponent::TriggerPerfectDodgeFeedback(float FOVExpansionD
 	}
 	const float BeatAccent = bStrongBeat ? 1.12f : 1.f;
 	const float FinalStrength = Strength * ObstructionScale * BeatAccent;
-	Modifier->TriggerPerfectDodge(-FOVExpansionDegrees * FinalStrength,
+	// Positive kick briefly narrows the lens, then the modifier's negative rebound
+	// opens past the baseline before settling. This makes success read as impact,
+	// release and recovery instead of a single generic zoom.
+	Modifier->TriggerPerfectDodge(FOVExpansionDegrees * FinalStrength,
 		ShakeDegrees * FinalStrength, LateralShiftCm * FinalStrength, DollyShiftCm * FinalStrength,
 		YawKickDegrees * FinalStrength, PitchKickDegrees * FinalStrength, SideSign, ReboundStrength,
 		.032f, .040f, bStrongBeat ? .19f : .16f);
@@ -147,6 +150,21 @@ void UBossCombatCameraComponent::HandleWarning(FVector Landing, double)
 	bWarning = true;
 	WarningLanding = Landing;
 	UE_LOG(LogTemp, Display, TEXT("CombatCamera: warning Landing=%s"), *Landing.ToString());
+}
+
+void UBossCombatCameraComponent::StartHoldFeedback(float ShakeDegrees)
+{
+	if (UBossCameraModifier* M = Modifier.Get()) M->StartHoldShake(ShakeDegrees);
+}
+
+void UBossCombatCameraComponent::TriggerHoldImpact(float ShakeDegrees, float DurationSeconds)
+{
+	if (UBossCameraModifier* M = Modifier.Get()) M->TriggerHoldImpact(ShakeDegrees, DurationSeconds);
+}
+
+void UBossCombatCameraComponent::StopHoldFeedback(float FadeSeconds)
+{
+	if (UBossCameraModifier* M = Modifier.Get()) M->StopHoldShake(FadeSeconds);
 }
 
 void UBossCombatCameraComponent::HandleBlink(FVector, double)

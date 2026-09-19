@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
+#include "Combat/PlayerRhythmCombatComponent.h"
 #include "BeatClockTestActor.generated.h"
 
 class UAudioComponent;
@@ -57,6 +58,12 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试|战斗鼓点")
 	TObjectPtr<UAudioComponent> CombatDrumComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试|连击音乐")
+	TObjectPtr<UAudioComponent> ComboLowComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试|连击音乐")
+	TObjectPtr<UAudioComponent> ComboSnareComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试|连击音乐")
+	TObjectPtr<UAudioComponent> ComboHighComponent;
 
 	// A quiet extra percussion layer makes the meter audible during the Boss fight.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
@@ -91,6 +98,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
 	TObjectPtr<USoundBase> DrumTick;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|连击音乐") TObjectPtr<USoundBase> ComboLowLoop;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|连击音乐") TObjectPtr<USoundBase> ComboSnareLoop;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|连击音乐") TObjectPtr<USoundBase> ComboHighLoop;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|连击音乐", meta=(ClampMin="0", ClampMax="1")) float ComboLowVolume = .30f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|连击音乐", meta=(ClampMin="0", ClampMax="1")) float ComboSnareVolume = .24f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|连击音乐", meta=(ClampMin="0", ClampMax="1")) float ComboHighVolume = .16f;
+
 private:
 	// ========================================================
 	// 拍子事件
@@ -99,4 +113,10 @@ private:
 	// 收到拍子事件后，把结果写入输出日志。
 	UFUNCTION()
 	void HandleBeat(int32 BeatIndex /* 全部拍子编号 */, int32 BeatInBar /* 当前小节内的拍子编号 */);
+	UFUNCTION() void HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback);
+	void StartComboLayers(float SourceStartTime);
+	void ApplyComboTierAtBar();
+	TWeakObjectPtr<UPlayerRhythmCombatComponent> BoundCombat;
+	int32 PendingComboTier = 0;
+	int32 CurrentComboTier = 0;
 };

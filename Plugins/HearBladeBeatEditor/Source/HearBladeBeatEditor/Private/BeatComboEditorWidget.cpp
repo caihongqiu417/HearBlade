@@ -1,6 +1,7 @@
 #include "BeatComboEditorWidget.h"
 
 #include "Combat/AttackData.h"
+#include "Combat/RhythmResponseVisualData.h"
 #include "AssetRegistry/AssetData.h"
 #include "DesktopPlatformModule.h"
 #include "Framework/Application/SlateApplication.h"
@@ -166,6 +167,9 @@ private:
 	void Pick(const FGeometry& Geometry, const FPointerEvent& Event);
 	TWeakPtr<SBeatComboEditorWidget> Owner;
 	bool bDragging = false;
+	bool bDraggingHoldEndpoint = false;
+	bool bDraggingHoldStart = false;
+	FName DraggedHoldGroup;
 };
 
 int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry,
@@ -245,6 +249,8 @@ int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geome
 			ESlateDrawEffect::None, FLinearColor(0.9f, 0.6f, 1.0f));
 	}
 	const UAttackDataAsset* Data = Editor->GetAttackData();
+	const URhythmResponseVisualData* ResponseVisuals = LoadObject<URhythmResponseVisualData>(nullptr,
+		TEXT("/Game/UI/RhythmCombat/Responses/DA_RhythmResponseVisuals.DA_RhythmResponseVisuals"));
 	if (Data && Data->AttackMontage && !Data->ImpactMarkers.IsEmpty() && Editor->GetSelectedBeat() >= 0)
 	{
 		const double MontageStart = Editor->GetMontageStartSourceSeconds();
@@ -273,15 +279,43 @@ int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geome
 				Editor->GetPreviewElapsedAtAnimationTime(Data->ClipStartSeconds);
 			if (Time < Start || Time > End) continue;
 			const float X = ToX(Time);
+			FLinearColor ResponseColor;
+			FString ResponseLabel;
+			switch (Data->ImpactMarkers[Index].RequiredResponse)
+			{
+			case ERhythmResponseType::Block: ResponseColor=FLinearColor(.15f,.72f,1.f); ResponseLabel=TEXT("格挡"); break;
+			case ERhythmResponseType::Counter: ResponseColor=FLinearColor(1.f,.32f,.10f); ResponseLabel=TEXT("反击"); break;
+			case ERhythmResponseType::HoldBlock: ResponseColor=FLinearColor(.12f,.95f,.78f); ResponseLabel=TEXT("长按"); break;
+			default: ResponseColor=FLinearColor(.75f,.38f,1.f); ResponseLabel=TEXT("闪避"); break;
+			}
+			if (!Editor->IsImpactResponseValid(Index))
+			{
+				ResponseColor = FLinearColor(1.0f, .03f, .03f);
+				ResponseLabel += TEXT(" 配置错误");
+			}
 			DrawLine(Elements, LayerId + 4, Geometry, X, 0, X, Height,
-				Index == 0 ? FLinearColor(1.0f, 0.30f, 0.22f) : FLinearColor(1.0f, 0.55f, 0.24f), 3.0f);
+				ResponseColor, 3.0f);
 			FSlateDrawElement::MakeText(Elements, LayerId + 5,
-				Geometry.ToPaintGeometry(FVector2D(38, 17), FSlateLayoutTransform(FVector2D(X + 4, 46))),
-				FText::FromString(FString::Printf(TEXT("击%d"), Index + 1)), SmallFont,
-				ESlateDrawEffect::None, FLinearColor(1.0f, 0.52f, 0.30f));
+				Geometry.ToPaintGeometry(FVector2D(70, 17), FSlateLayoutTransform(FVector2D(X + 4, 46))),
+				FText::FromString(FString::Printf(TEXT("击%d %s"), Index + 1, *ResponseLabel)), SmallFont,
+				ESlateDrawEffect::None, ResponseColor);
+			UTexture2D* Icon = Data->ImpactMarkers[Index].PromptIconOverride;
+			if (!Icon && ResponseVisuals) Icon = ResponseVisuals->Get(Data->ImpactMarkers[Index].RequiredResponse).Icon;
+			if (Icon)
+			{
+				FSlateBrush IconBrush;
+				IconBrush.SetResourceObject(Icon);
+				IconBrush.ImageSize = FVector2D(30.0f);
+				const float IconScale = FMath::Clamp(Data->ImpactMarkers[Index].PromptIconScale, .4f, 2.f);
+				const FVector2D IconSize(30.0f * IconScale);
+				FSlateDrawElement::MakeBox(Elements, LayerId + 6,
+					Geometry.ToPaintGeometry(IconSize, FSlateLayoutTransform(FVector2D(X - IconSize.X * .5f, Height - 58.f))),
+					&IconBrush, ESlateDrawEffect::None,
+					Data->ImpactMarkers[Index].PromptIconColor * ResponseColor);
+			}
 		}
 	}
-	return LayerId + 6;
+	return LayerId + 7;
 }
 
 void SBeatComboTimeline::Pick(const FGeometry& Geometry, const FPointerEvent& Event)
@@ -298,6 +332,18 @@ void SBeatComboTimeline::Pick(const FGeometry& Geometry, const FPointerEvent& Ev
 FReply SBeatComboTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	if (Event.GetEffectingButton() != EKeys::LeftMouseButton) return FReply::Unhandled();
+	if (const TSharedPtr<SBeatComboEditorWidget> Editor = Owner.Pin())
+	{
+		const float X = Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition()).X;
+		const double SourceTime = Editor->GetViewStart() +
+			FMath::Clamp(X / FMath::Max(Geometry.GetLocalSize().X, 1.0f), 0.0f, 1.0f) * Editor->GetViewDuration();
+		const double Tolerance = Editor->GetViewDuration() * 14.0 / FMath::Max(Geometry.GetLocalSize().X, 1.0f);
+		if (Editor->TryBeginHoldEndpointDrag(SourceTime, Tolerance, DraggedHoldGroup, bDraggingHoldStart))
+		{
+			bDraggingHoldEndpoint = true;
+			return FReply::Handled().CaptureMouse(AsShared());
+		}
+	}
 	bDragging = true;
 	Pick(Geometry, Event);
 	return FReply::Handled().CaptureMouse(AsShared());
@@ -307,11 +353,24 @@ FReply SBeatComboTimeline::OnMouseButtonUp(const FGeometry& Geometry, const FPoi
 {
 	if (Event.GetEffectingButton() != EKeys::LeftMouseButton) return FReply::Unhandled();
 	bDragging = false;
+	bDraggingHoldEndpoint = false;
+	DraggedHoldGroup = NAME_None;
 	return FReply::Handled().ReleaseMouseCapture();
 }
 
 FReply SBeatComboTimeline::OnMouseMove(const FGeometry& Geometry, const FPointerEvent& Event)
 {
+	if (bDraggingHoldEndpoint)
+	{
+		if (const TSharedPtr<SBeatComboEditorWidget> Editor = Owner.Pin())
+		{
+			const float X = Geometry.AbsoluteToLocal(Event.GetScreenSpacePosition()).X;
+			const double SourceTime = Editor->GetViewStart() +
+				FMath::Clamp(X / FMath::Max(Geometry.GetLocalSize().X, 1.0f), 0.0f, 1.0f) * Editor->GetViewDuration();
+			Editor->DragHoldEndpoint(DraggedHoldGroup, bDraggingHoldStart, SourceTime);
+		}
+		return FReply::Handled();
+	}
 	if (!bDragging) return FReply::Unhandled();
 	Pick(Geometry, Event);
 	return FReply::Handled();
@@ -487,6 +546,22 @@ void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 			]
 			+ SVerticalBox::Slot().AutoHeight().Padding(4)
 			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(STextBlock).Text(FText::FromString(TEXT("防御指令模板")))]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("全部闪避"))).OnClicked_Lambda([this](){ return ApplyResponseTemplate(0); })]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("全部格挡"))).OnClicked_Lambda([this](){ return ApplyResponseTemplate(1); })]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("闪避/格挡交替"))).OnClicked_Lambda([this](){ return ApplyResponseTemplate(2); })]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("最后一击反击"))).OnClicked_Lambda([this](){ return ApplyResponseTemplate(3); })]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("中段持续格挡"))).OnClicked_Lambda([this](){ return ApplyResponseTemplate(4); })]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("清除覆盖"))).OnClicked_Lambda([this](){ return ApplyResponseTemplate(5); })]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("检查配置"))).OnClicked(this, &SBeatComboEditorWidget::ValidateResponses)]
+			]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+			[
+				SAssignNew(ResponsesBox, SVerticalBox)
+			]
+			+ SVerticalBox::Slot().AutoHeight().Padding(4)
+			[
 				SAssignNew(SegmentsBox, SVerticalBox)
 			]
 			+ SVerticalBox::Slot().AutoHeight().Padding(4)
@@ -534,6 +609,274 @@ void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 	SelectAsset(LoadObject<UAttackDataAsset>(nullptr,
 		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/DA_DragonKnight_Combo01_Beat.DA_DragonKnight_Combo01_Beat")));
 	LoadWav();
+}
+
+FReply SBeatComboEditorWidget::ApplyResponseTemplate(int32 TemplateIndex)
+{
+	UAttackDataAsset* Data = AttackData.Get();
+	if (!Data || Data->ImpactMarkers.IsEmpty()) return FReply::Handled();
+	Data->Modify();
+	for (FAttackImpactMarker& Marker : Data->ImpactMarkers)
+	{
+		Marker.RequiredResponse = ERhythmResponseType::Dodge;
+		Marker.HoldMarker = ERhythmHoldMarkerType::None;
+		Marker.HoldGroup = TEXT("HoldA");
+	}
+	if (TemplateIndex == 1)
+	{
+		for (FAttackImpactMarker& Marker : Data->ImpactMarkers) Marker.RequiredResponse = ERhythmResponseType::Block;
+	}
+	else if (TemplateIndex == 2)
+	{
+		for (int32 Index=0; Index<Data->ImpactMarkers.Num(); ++Index)
+			Data->ImpactMarkers[Index].RequiredResponse = Index % 2 == 0 ? ERhythmResponseType::Dodge : ERhythmResponseType::Block;
+	}
+	else if (TemplateIndex == 3 && !Data->ImpactMarkers.IsEmpty())
+	{
+		Data->ImpactMarkers.Last().RequiredResponse = ERhythmResponseType::Counter;
+	}
+	else if (TemplateIndex == 4 && Data->ImpactMarkers.Num() >= 3)
+	{
+		const int32 Start = Data->ImpactMarkers.Num() >= 5 ? 1 : 0;
+		const int32 End = Data->ImpactMarkers.Num() >= 5 ? Data->ImpactMarkers.Num()-2 : Data->ImpactMarkers.Num()-1;
+		for (int32 Index=Start; Index<=End; ++Index)
+		{
+			FAttackImpactMarker& Marker=Data->ImpactMarkers[Index];
+			Marker.RequiredResponse=ERhythmResponseType::HoldBlock;
+			Marker.HoldMarker=Index==Start ? ERhythmHoldMarkerType::Start : Index==End ? ERhythmHoldMarkerType::End : ERhythmHoldMarkerType::Continue;
+		}
+	}
+	else if (TemplateIndex == 5)
+	{
+		for (FAttackImpactMarker& Marker : Data->ImpactMarkers)
+		{
+			Marker.PromptIconOverride=nullptr;
+			Marker.PromptIconScale=1.f;
+			Marker.PromptIconColor=FLinearColor::White;
+			Marker.bForceStrongAccent=false;
+		}
+	}
+	Data->MarkPackageDirty();
+	RebuildResponseControls();
+	RefreshTimeline();
+	return FReply::Handled();
+}
+
+FReply SBeatComboEditorWidget::ValidateResponses()
+{
+	FString Error;
+	Status = ValidateResponseConfiguration(Error) ? TEXT("防御指令配置有效，可以保存") : Error;
+	return FReply::Handled();
+}
+
+bool SBeatComboEditorWidget::ValidateResponseConfiguration(FString& OutError) const
+{
+	const UAttackDataAsset* Data = AttackData.Get();
+	if (!Data) { OutError=TEXT("错误：未选择攻击数据"); return false; }
+	TMap<FName, FIntPoint> Ranges;
+	for (int32 Index=0; Index<Data->ImpactMarkers.Num(); ++Index)
+	{
+		const FAttackImpactMarker& Marker=Data->ImpactMarkers[Index];
+		if (Marker.PromptLeadBeats < 0.f || Marker.PromptIconScale <= 0.f)
+		{ OutError=FString::Printf(TEXT("错误：第 %d 击的图标/提前量无效"),Index+1); return false; }
+		if (Marker.RequiredResponse==ERhythmResponseType::HoldBlock)
+		{
+			if (Marker.HoldMarker==ERhythmHoldMarkerType::None || Marker.HoldGroup.IsNone())
+			{ OutError=FString::Printf(TEXT("错误：第 %d 击缺少持续格挡阶段或组名"),Index+1); return false; }
+			FIntPoint& Range=Ranges.FindOrAdd(Marker.HoldGroup,FIntPoint(INDEX_NONE,INDEX_NONE));
+			if (Marker.HoldMarker==ERhythmHoldMarkerType::Start)
+			{ if(Range.X!=INDEX_NONE){OutError=TEXT("错误：同一持续格挡组存在多个起点");return false;} Range.X=Index; }
+			if (Marker.HoldMarker==ERhythmHoldMarkerType::End)
+			{ if(Range.Y!=INDEX_NONE){OutError=TEXT("错误：同一持续格挡组存在多个终点");return false;} Range.Y=Index; }
+		}
+		if (Index>0)
+		{
+			const FAttackImpactMarker& Prev=Data->ImpactMarkers[Index-1];
+			const float Gap=Data->GetElapsedAtAnimationTime(Marker.AnimationTimeSeconds)-Data->GetElapsedAtAnimationTime(Prev.AnimationTimeSeconds);
+			if (Prev.RequiredResponse==ERhythmResponseType::Dodge && Marker.RequiredResponse==ERhythmResponseType::Dodge && Gap<.40f)
+			{ OutError=FString::Printf(TEXT("错误：第 %d/%d 击闪避间隔 %.0fms，小于连续闪避衔接 400ms"),Index,Index+1,Gap*1000.f);return false; }
+			if (Marker.RequiredResponse==ERhythmResponseType::Counter && Gap<.25f)
+			{ OutError=FString::Printf(TEXT("错误：第 %d 击反击准备时间只有 %.0fms"),Index+1,Gap*1000.f);return false; }
+		}
+	}
+	TArray<FIntPoint> AllRanges;
+	for (const TPair<FName,FIntPoint>& Pair:Ranges)
+	{
+		if(Pair.Value.X==INDEX_NONE||Pair.Value.Y==INDEX_NONE||Pair.Value.Y<=Pair.Value.X)
+		{OutError=FString::Printf(TEXT("错误：持续格挡组 %s 的起止点不完整"),*Pair.Key.ToString());return false;}
+		for(int32 I=Pair.Value.X;I<=Pair.Value.Y;++I)
+		{
+			const FAttackImpactMarker& M=Data->ImpactMarkers[I];
+			if(M.RequiredResponse!=ERhythmResponseType::HoldBlock||M.HoldGroup!=Pair.Key)
+			{OutError=FString::Printf(TEXT("错误：持续格挡组 %s 中间夹有其他指令"),*Pair.Key.ToString());return false;}
+		}
+		for(const FIntPoint& Other:AllRanges)
+			if(Pair.Value.X<=Other.Y&&Pair.Value.Y>=Other.X){OutError=TEXT("错误：持续格挡组互相重叠");return false;}
+		AllRanges.Add(Pair.Value);
+	}
+	return true;
+}
+
+bool SBeatComboEditorWidget::IsImpactResponseValid(int32 ImpactIndex) const
+{
+	const UAttackDataAsset* Data = AttackData.Get();
+	if (!Data || !Data->ImpactMarkers.IsValidIndex(ImpactIndex)) return false;
+	const FAttackImpactMarker& Marker = Data->ImpactMarkers[ImpactIndex];
+	if (Marker.PromptLeadBeats < 0.f || Marker.PromptIconScale <= 0.f) return false;
+	if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock)
+	{
+		if (Marker.HoldMarker == ERhythmHoldMarkerType::None || Marker.HoldGroup.IsNone()) return false;
+		int32 Start = INDEX_NONE, End = INDEX_NONE;
+		for (int32 Index = 0; Index < Data->ImpactMarkers.Num(); ++Index)
+		{
+			const FAttackImpactMarker& Other = Data->ImpactMarkers[Index];
+			if (Other.RequiredResponse != ERhythmResponseType::HoldBlock || Other.HoldGroup != Marker.HoldGroup) continue;
+			if (Other.HoldMarker == ERhythmHoldMarkerType::Start) { if (Start != INDEX_NONE) return false; Start = Index; }
+			if (Other.HoldMarker == ERhythmHoldMarkerType::End) { if (End != INDEX_NONE) return false; End = Index; }
+		}
+		if (Start == INDEX_NONE || End == INDEX_NONE || Start >= End || ImpactIndex < Start || ImpactIndex > End) return false;
+		for (int32 Index = Start; Index <= End; ++Index)
+		{
+			const FAttackImpactMarker& InRange = Data->ImpactMarkers[Index];
+			if (InRange.RequiredResponse != ERhythmResponseType::HoldBlock || InRange.HoldGroup != Marker.HoldGroup) return false;
+		}
+	}
+	if (ImpactIndex > 0)
+	{
+		const FAttackImpactMarker& Previous = Data->ImpactMarkers[ImpactIndex - 1];
+		const float Gap = Data->GetElapsedAtAnimationTime(Marker.AnimationTimeSeconds) -
+			Data->GetElapsedAtAnimationTime(Previous.AnimationTimeSeconds);
+		if (Previous.RequiredResponse == ERhythmResponseType::Dodge && Marker.RequiredResponse == ERhythmResponseType::Dodge && Gap < .40f) return false;
+		if (Marker.RequiredResponse == ERhythmResponseType::Counter && Gap < .25f) return false;
+	}
+	return true;
+}
+
+bool SBeatComboEditorWidget::TryBeginHoldEndpointDrag(double SourceSeconds, double ToleranceSeconds,
+	FName& OutGroup, bool& bOutStart) const
+{
+	const UAttackDataAsset* Data = AttackData.Get();
+	if (!Data) return false;
+	double BestDistance = ToleranceSeconds;
+	bool bFound = false;
+	for (const FAttackImpactMarker& Marker : Data->ImpactMarkers)
+	{
+		if (Marker.RequiredResponse != ERhythmResponseType::HoldBlock ||
+			(Marker.HoldMarker != ERhythmHoldMarkerType::Start && Marker.HoldMarker != ERhythmHoldMarkerType::End)) continue;
+		const double MarkerSource = GetMontageStartSourceSeconds() + GetPreviewElapsedAtAnimationTime(Marker.AnimationTimeSeconds) -
+			GetPreviewElapsedAtAnimationTime(Data->ClipStartSeconds);
+		const double Distance = FMath::Abs(MarkerSource - SourceSeconds);
+		if (Distance <= BestDistance)
+		{
+			BestDistance = Distance;
+			OutGroup = Marker.HoldGroup;
+			bOutStart = Marker.HoldMarker == ERhythmHoldMarkerType::Start;
+			bFound = true;
+		}
+	}
+	return bFound;
+}
+
+void SBeatComboEditorWidget::DragHoldEndpoint(FName Group, bool bStartEndpoint, double SourceSeconds)
+{
+	UAttackDataAsset* Data = AttackData.Get();
+	if (!Data || Group.IsNone()) return;
+	int32 CurrentStart = INDEX_NONE, CurrentEnd = INDEX_NONE, Nearest = INDEX_NONE;
+	double BestDistance = TNumericLimits<double>::Max();
+	for (int32 Index = 0; Index < Data->ImpactMarkers.Num(); ++Index)
+	{
+		const FAttackImpactMarker& Marker = Data->ImpactMarkers[Index];
+		if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock && Marker.HoldGroup == Group)
+		{
+			if (Marker.HoldMarker == ERhythmHoldMarkerType::Start) CurrentStart = Index;
+			if (Marker.HoldMarker == ERhythmHoldMarkerType::End) CurrentEnd = Index;
+		}
+		const double MarkerSource = GetMontageStartSourceSeconds() + GetPreviewElapsedAtAnimationTime(Marker.AnimationTimeSeconds) -
+			GetPreviewElapsedAtAnimationTime(Data->ClipStartSeconds);
+		const double Distance = FMath::Abs(MarkerSource - SourceSeconds);
+		if (Distance < BestDistance) { BestDistance = Distance; Nearest = Index; }
+	}
+	if (CurrentStart == INDEX_NONE || CurrentEnd == INDEX_NONE || Nearest == INDEX_NONE) return;
+	const int32 NewStart = bStartEndpoint ? FMath::Clamp(Nearest, 0, CurrentEnd - 1) : CurrentStart;
+	const int32 NewEnd = bStartEndpoint ? CurrentEnd : FMath::Clamp(Nearest, CurrentStart + 1, Data->ImpactMarkers.Num() - 1);
+	if (NewStart == CurrentStart && NewEnd == CurrentEnd) return;
+	Data->Modify();
+	for (FAttackImpactMarker& Marker : Data->ImpactMarkers)
+	{
+		if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock && Marker.HoldGroup == Group)
+		{
+			Marker.RequiredResponse = ERhythmResponseType::Dodge;
+			Marker.HoldMarker = ERhythmHoldMarkerType::None;
+		}
+	}
+	for (int32 Index = NewStart; Index <= NewEnd; ++Index)
+	{
+		FAttackImpactMarker& Marker = Data->ImpactMarkers[Index];
+		Marker.RequiredResponse = ERhythmResponseType::HoldBlock;
+		Marker.HoldGroup = Group;
+		Marker.HoldMarker = Index == NewStart ? ERhythmHoldMarkerType::Start :
+			Index == NewEnd ? ERhythmHoldMarkerType::End : ERhythmHoldMarkerType::Continue;
+	}
+	Data->MarkPackageDirty();
+	Status = FString::Printf(TEXT("已拖动持续格挡范围：第 %d 至第 %d 击"), NewStart + 1, NewEnd + 1);
+	RebuildResponseControls();
+	RefreshTimeline();
+}
+
+void SBeatComboEditorWidget::RebuildResponseControls()
+{
+	if (!ResponsesBox.IsValid()) return;
+	ResponsesBox->ClearChildren();
+	UAttackDataAsset* Data = AttackData.Get();
+	if (!Data) return;
+	for (int32 Index = 0; Index < Data->ImpactMarkers.Num(); ++Index)
+	{
+		ResponsesBox->AddSlot().AutoHeight().Padding(2)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center).Padding(3)
+			[SNew(SBox).WidthOverride(70)[SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("第 %d 击"), Index + 1)))]]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(2)[SNew(SButton).Text(FText::FromString(TEXT("闪避"))).OnClicked_Lambda([this, Index](){ if (UAttackDataAsset* D=AttackData.Get(); D && D->ImpactMarkers.IsValidIndex(Index)){ D->Modify(); D->ImpactMarkers[Index].RequiredResponse=ERhythmResponseType::Dodge; D->ImpactMarkers[Index].HoldMarker=ERhythmHoldMarkerType::None; D->MarkPackageDirty(); RebuildResponseControls(); } return FReply::Handled(); })]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(2)[SNew(SButton).Text(FText::FromString(TEXT("格挡"))).OnClicked_Lambda([this, Index](){ if (UAttackDataAsset* D=AttackData.Get(); D && D->ImpactMarkers.IsValidIndex(Index)){ D->Modify(); D->ImpactMarkers[Index].RequiredResponse=ERhythmResponseType::Block; D->ImpactMarkers[Index].HoldMarker=ERhythmHoldMarkerType::None; D->MarkPackageDirty(); RebuildResponseControls(); } return FReply::Handled(); })]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(2)[SNew(SButton).Text(FText::FromString(TEXT("反击"))).OnClicked_Lambda([this, Index](){ if (UAttackDataAsset* D=AttackData.Get(); D && D->ImpactMarkers.IsValidIndex(Index)){ D->Modify(); D->ImpactMarkers[Index].RequiredResponse=ERhythmResponseType::Counter; D->ImpactMarkers[Index].HoldMarker=ERhythmHoldMarkerType::None; D->MarkPackageDirty(); RebuildResponseControls(); } return FReply::Handled(); })]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(2)[SNew(SButton).Text(FText::FromString(TEXT("长按"))).OnClicked_Lambda([this, Index](){ if (UAttackDataAsset* D=AttackData.Get(); D && D->ImpactMarkers.IsValidIndex(Index)){ D->Modify(); D->ImpactMarkers[Index].RequiredResponse=ERhythmResponseType::HoldBlock; if(D->ImpactMarkers[Index].HoldMarker==ERhythmHoldMarkerType::None) D->ImpactMarkers[Index].HoldMarker=ERhythmHoldMarkerType::Continue; D->MarkPackageDirty(); RebuildResponseControls(); } return FReply::Handled(); })]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(2)[SNew(SButton)
+				.Text_Lambda([this, Index](){ return FText::FromString(PendingHoldRangeStart == Index ? TEXT("长按起点 ✓") : TEXT("设长按范围")); })
+				.ToolTipText(FText::FromString(TEXT("第一次点击选择起点，再点击较后的命中帧自动生成按下/保持/松开范围")))
+				.OnClicked_Lambda([this, Index](){ return SelectHoldRangeEndpoint(Index); })]
+			+ SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center).Padding(8,2)
+			[SNew(STextBlock).Text_Lambda([this, Index](){ const UAttackDataAsset* D=AttackData.Get(); return FText::FromString(D && D->ImpactMarkers.IsValidIndex(Index) ? UEnum::GetDisplayValueAsText(D->ImpactMarkers[Index].RequiredResponse).ToString() : TEXT("-")); })]
+		];
+	}
+}
+
+FReply SBeatComboEditorWidget::SelectHoldRangeEndpoint(int32 ImpactIndex)
+{
+	UAttackDataAsset* Data = AttackData.Get();
+	if (!Data || !Data->ImpactMarkers.IsValidIndex(ImpactIndex)) return FReply::Handled();
+	if (PendingHoldRangeStart == INDEX_NONE || ImpactIndex <= PendingHoldRangeStart)
+	{
+		PendingHoldRangeStart = ImpactIndex;
+		Status = FString::Printf(TEXT("已选择第 %d 击为持续格挡起点；请点击后面的结束命中帧"), ImpactIndex + 1);
+		RebuildResponseControls();
+		return FReply::Handled();
+	}
+	Data->Modify();
+	const FName GroupName(*FString::Printf(TEXT("Hold_%d_%d"), PendingHoldRangeStart + 1, ImpactIndex + 1));
+	for (int32 Index = PendingHoldRangeStart; Index <= ImpactIndex; ++Index)
+	{
+		FAttackImpactMarker& Marker = Data->ImpactMarkers[Index];
+		Marker.RequiredResponse = ERhythmResponseType::HoldBlock;
+		Marker.HoldGroup = GroupName;
+		Marker.HoldMarker = Index == PendingHoldRangeStart ? ERhythmHoldMarkerType::Start :
+			Index == ImpactIndex ? ERhythmHoldMarkerType::End : ERhythmHoldMarkerType::Continue;
+	}
+	Status = FString::Printf(TEXT("已创建第 %d 至第 %d 击的持续格挡范围"), PendingHoldRangeStart + 1, ImpactIndex + 1);
+	PendingHoldRangeStart = INDEX_NONE;
+	Data->MarkPackageDirty();
+	RebuildResponseControls();
+	RefreshTimeline();
+	return FReply::Handled();
 }
 
 double SBeatComboEditorWidget::GetFirstBeatSourceSeconds() const
@@ -626,6 +969,7 @@ void SBeatComboEditorWidget::SelectAsset(UAttackDataAsset* Asset)
 			? Asset->SegmentPlayRates[Index] : PreviewRate, MinimumRate, MaximumRate);
 	}
 	RebuildSegmentControls();
+	RebuildResponseControls();
 	if (!Asset->MusicSourceWavPath.IsEmpty())
 	{
 		WavPath = Asset->MusicSourceWavPath;
@@ -791,6 +1135,7 @@ FReply SBeatComboEditorWidget::AutoAlignSegments()
 	bUseSegmentRates = true;
 	Status = TEXT("已分别匹配相邻命中；可手动微调每段速度，然后保存");
 	RebuildSegmentControls();
+	RebuildResponseControls();
 	RefreshTimeline();
 	return FReply::Handled();
 }
@@ -829,6 +1174,12 @@ FReply SBeatComboEditorWidget::SaveAsset()
 	if (bUseSegmentRates && PreviewSegmentRates.Num() != Data->ImpactMarkers.Num() + 1)
 	{
 		Status = TEXT("命中标记数量已变化，请重新点击自动逐击对齐");
+		return FReply::Handled();
+	}
+	FString ResponseError;
+	if (!ValidateResponseConfiguration(ResponseError))
+	{
+		Status = ResponseError + TEXT("；已禁止保存");
 		return FReply::Handled();
 	}
 	Data->Modify();

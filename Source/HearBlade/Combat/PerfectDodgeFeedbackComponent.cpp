@@ -12,6 +12,10 @@
 #include "Materials/MaterialInterface.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "Kismet/GameplayStatics.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "UnrealClient.h"
 #include "UObject/ConstructorHelpers.h"
 
 UPerfectDodgeFeedbackComponent::UPerfectDodgeFeedbackComponent()
@@ -25,7 +29,7 @@ void UPerfectDodgeFeedbackComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	if (UPlayerRhythmCombatComponent* Combat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>())
-		Combat->OnPerfectDodge.AddDynamic(this, &UPerfectDodgeFeedbackComponent::HandlePerfectDodge);
+		Combat->OnRhythmSuccessFeedback.AddDynamic(this, &UPerfectDodgeFeedbackComponent::HandleRhythmFeedback);
 	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
 	if (Player && Config && Config->PostProcessMaterial && Config->Accessibility != EPerfectDodgeAccessibility::NoFullscreen)
 	{
@@ -38,19 +42,70 @@ void UPerfectDodgeFeedbackComponent::BeginPlay()
 void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (UPlayerRhythmCombatComponent* Combat = GetOwner() ? GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr)
-		Combat->OnPerfectDodge.RemoveDynamic(this, &UPerfectDodgeFeedbackComponent::HandlePerfectDodge);
+		Combat->OnRhythmSuccessFeedback.RemoveDynamic(this, &UPerfectDodgeFeedbackComponent::HandleRhythmFeedback);
+	RestoreImpactFrame();
 	if (AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner()); Player && PostProcessMID)
 		Player->GetFollowCamera()->PostProcessSettings.AddBlendable(PostProcessMID, 0.0f);
 	ClearTransientVisuals();
 	Super::EndPlay(EndPlayReason);
 }
 
-void UPerfectDodgeFeedbackComponent::HandlePerfectDodge(const FPerfectDodgeFeedbackData& Feedback)
+void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback)
+{
+	if (!Config || !GetOwner()) return;
+	if (Feedback.bSuccess)
+	{
+		const bool bTierUp = Feedback.FeedbackTier > UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(Feedback.PreviousCombo);
+		USoundBase* Sound = bTierUp ? Config->TierUpSound.Get() :
+			Feedback.bPerfect ? Config->PerfectSound.Get() : Config->GoodSound.Get();
+		if (Sound) UGameplayStatics::PlaySound2D(this, Sound, bTierUp ? .82f : Feedback.bPerfect ? .68f : .48f);
+		if (FParse::Param(FCommandLine::Get(), TEXT("RhythmCombatCaptureTest")) &&
+			(Feedback.ComboCount == 1 || Feedback.ComboCount == 5 || Feedback.ComboCount == 6 ||
+			 Feedback.ComboCount == 8 || Feedback.ComboCount == 16))
+		{
+			const FString File = FPaths::ProjectSavedDir() / TEXT("Screenshots") /
+				FString::Printf(TEXT("RhythmFeedback_Combo%02d_Event%lld.png"), Feedback.ComboCount, Feedback.EventId);
+			FScreenshotRequest::RequestScreenshot(File, false, false);
+		}
+	}
+	if (UBossCombatCameraComponent* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
+	{
+		if (Feedback.Response == ERhythmResponseType::HoldBlock)
+		{
+			if (!Feedback.bSuccess || Feedback.HoldMarker == ERhythmHoldMarkerType::End)
+			{
+				Camera->StopHoldFeedback(Config->HoldStopSeconds);
+			}
+			else if (Config->Accessibility != EPerfectDodgeAccessibility::NoCameraShake)
+			{
+				if (Feedback.HoldMarker == ERhythmHoldMarkerType::Start)
+					Camera->StartHoldFeedback(Config->HoldShakeDegrees);
+				else if (Feedback.HoldMarker == ERhythmHoldMarkerType::Continue)
+					Camera->TriggerHoldImpact(Config->HoldImpactShakeDegrees, .06f);
+			}
+		}
+	}
+	if (!Feedback.bPerfect) return;
+
+	FPerfectDodgeFeedbackData Perfect;
+	Perfect.BladeWorldLocation = Feedback.WorldLocation;
+	Perfect.AttackDirection = Feedback.AttackDirection;
+	Perfect.ComboCount = Feedback.ComboCount;
+	Perfect.bStrongBeat = Feedback.bStrongBeat;
+	if (const UPlayerRhythmCombatComponent* Combat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>())
+		Perfect.ResonanceFraction = Combat->GetResonanceFraction();
+	const int32 Tier = FMath::Clamp(Feedback.FeedbackTier, 0, 3);
+	const float TierScale = Tier == 0 ? Config->TierStrengths.X : Tier == 1 ? Config->TierStrengths.Y :
+		Tier == 2 ? Config->TierStrengths.Z : Config->TierStrengths.W;
+	PlayPerfectFeedback(Perfect, TierScale, Feedback.bKeyPerfect);
+}
+
+void UPerfectDodgeFeedbackComponent::PlayPerfectFeedback(const FPerfectDodgeFeedbackData& Feedback,
+	float TierScale, bool bKeyPerfect)
 {
 	if (!Config || !GetWorld()) return;
 	ClearTransientVisuals();
-	const float ComboScale = FMath::Min(1.2f, 1.0f + FMath::Max(0, Feedback.ComboCount - 1) * 0.025f);
-	ActiveStrength = ComboScale * (Feedback.bStrongBeat ? Config->StrongBeatMultiplier : 1.0f);
+	ActiveStrength = FMath::Min(1.65f, TierScale * (Feedback.bStrongBeat ? Config->StrongBeatMultiplier : 1.0f));
 	ActiveDuration = Config->DurationSeconds;
 	if (const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>(); Clock && Clock->IsRunning())
 		ActiveDuration = static_cast<float>(Clock->GetSecondsPerBeat() * .25);
@@ -65,16 +120,58 @@ void UPerfectDodgeFeedbackComponent::HandlePerfectDodge(const FPerfectDodgeFeedb
 	SpawnRing(Feedback, 0.0f);
 	if (Feedback.bStrongBeat) SpawnRing(Feedback, ActiveDuration * .5f);
 	SpawnGhosts(ActiveStrength);
+	if (bKeyPerfect) StartImpactFrame();
 	if (Config->RingParticles)
 		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Config->RingParticles, Feedback.BladeWorldLocation,
 			Feedback.AttackDirection.Rotation(), FVector(ActiveStrength), true, true);
-	if (UBossCombatCameraComponent* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
-		Camera->TriggerPerfectDodgeFeedback(Config->FOVExpansionDegrees, Config->CameraShakeDegrees, ActiveStrength,
+	if (Config->Accessibility != EPerfectDodgeAccessibility::NoCameraShake)
+		if (UBossCombatCameraComponent* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
+		Camera->TriggerPerfectDodgeFeedback(Config->FOVExpansionDegrees, Config->CameraShakeDegrees,
+			FMath::Min(1.45f, TierScale),
 			Feedback.BladeWorldLocation, Feedback.AttackDirection, Feedback.bStrongBeat,
 			Config->CameraLateralShiftCm, Config->CameraDollyShiftCm, Config->CameraYawKickDegrees,
 			Config->CameraPitchKickDegrees, Config->CameraReboundStrength);
-	UE_LOG(LogTemp, Display, TEXT("BeatRift: spawned strong=%d rings=%d ghosts=%d strength=%.2f"),
-		Feedback.bStrongBeat ? 1 : 0, Feedback.bStrongBeat ? 2 : 1, Ghosts.Num(), ActiveStrength);
+	UE_LOG(LogTemp, Display, TEXT("BeatRift: spawned strong=%d key=%d rings=%d ghosts=%d strength=%.2f"),
+		Feedback.bStrongBeat ? 1 : 0, bKeyPerfect ? 1 : 0, Feedback.bStrongBeat ? 2 : 1, Ghosts.Num(), ActiveStrength);
+}
+
+void UPerfectDodgeFeedbackComponent::StartImpactFrame()
+{
+	if (!Config || !GetWorld() || Config->Accessibility != EPerfectDodgeAccessibility::Full || bImpactFrameActive) return;
+	const double Now = GetWorld()->GetTimeSeconds();
+	if (Now - LastImpactFrameWorldSeconds < Config->ImpactFrameCooldown) return;
+	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
+	UCameraComponent* Camera = Player ? Player->GetFollowCamera() : nullptr;
+	if (!Camera) return;
+	FPostProcessSettings& PP = Camera->PostProcessSettings;
+	bSavedSaturationOverride = PP.bOverride_ColorSaturation;
+	bSavedContrastOverride = PP.bOverride_ColorContrast;
+	SavedSaturation = PP.ColorSaturation;
+	SavedContrast = PP.ColorContrast;
+	PP.bOverride_ColorSaturation = true;
+	PP.bOverride_ColorContrast = true;
+	PP.ColorSaturation = FVector4(.02f, .02f, .02f, 1.f);
+	PP.ColorContrast = FVector4(1.55f, 1.55f, 1.55f, 1.f);
+	bImpactFrameActive = true;
+	LastImpactFrameWorldSeconds = Now;
+	ImpactFrameEndWorldSeconds = Now + Config->ImpactFrameSeconds;
+}
+
+void UPerfectDodgeFeedbackComponent::RestoreImpactFrame()
+{
+	if (!bImpactFrameActive) return;
+	if (AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner()))
+	{
+		if (UCameraComponent* Camera = Player->GetFollowCamera())
+		{
+			FPostProcessSettings& PP = Camera->PostProcessSettings;
+			PP.ColorSaturation = SavedSaturation;
+			PP.ColorContrast = SavedContrast;
+			PP.bOverride_ColorSaturation = bSavedSaturationOverride;
+			PP.bOverride_ColorContrast = bSavedContrastOverride;
+		}
+	}
+	bImpactFrameActive = false;
 }
 
 void UPerfectDodgeFeedbackComponent::SpawnRing(const FPerfectDodgeFeedbackData& Feedback, float DelaySeconds)
@@ -137,8 +234,10 @@ void UPerfectDodgeFeedbackComponent::SpawnGhosts(float Strength)
 void UPerfectDodgeFeedbackComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (!GetWorld() || EffectStartWorldSeconds < 0.0) return;
+	if (!GetWorld()) return;
 	const double Now = GetWorld()->GetTimeSeconds();
+	if (bImpactFrameActive && Now >= ImpactFrameEndWorldSeconds) RestoreImpactFrame();
+	if (EffectStartWorldSeconds < 0.0) return;
 	const float Phase = FMath::Clamp(static_cast<float>((Now - EffectStartWorldSeconds) / ActiveDuration), 0.f, 1.f);
 	const float AttackFraction = .12f;
 	const float EnvelopeShape = Phase < AttackFraction

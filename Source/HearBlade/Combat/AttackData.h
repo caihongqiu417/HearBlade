@@ -7,6 +7,26 @@
 #include "Engine/DataAsset.h"
 #include "AttackData.generated.h"
 
+class UTexture2D;
+
+UENUM(BlueprintType)
+enum class ERhythmResponseType : uint8
+{
+	Dodge UMETA(DisplayName="闪避"),
+	Block UMETA(DisplayName="格挡"),
+	Counter UMETA(DisplayName="反击"),
+	HoldBlock UMETA(DisplayName="持续格挡")
+};
+
+UENUM(BlueprintType)
+enum class ERhythmHoldMarkerType : uint8
+{
+	None UMETA(DisplayName="非长按"),
+	Start UMETA(DisplayName="长按开始"),
+	Continue UMETA(DisplayName="长按持续"),
+	End UMETA(DisplayName="长按结束")
+};
+
 // 一段独立攻击中的一次命中。BeatOffset 相对第一击，第一击填 0。
 USTRUCT(BlueprintType)
 struct FAttackImpactMarker
@@ -31,6 +51,30 @@ struct FAttackImpactMarker
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|伤害", meta = (ClampMin = "0.01", ClampMax = "0.3"))
 	float DamageWindowAfterSeconds = 0.10f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|防御指令")
+	ERhythmResponseType RequiredResponse = ERhythmResponseType::Dodge;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|防御指令", meta=(ClampMin="0.0", ClampMax="8.0"))
+	float PromptLeadBeats = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|防御指令")
+	bool bForceStrongAccent = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|防御指令")
+	TObjectPtr<UTexture2D> PromptIconOverride = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|防御指令", meta=(ClampMin="0.4", ClampMax="2.0", EditCondition="PromptIconOverride != nullptr"))
+	float PromptIconScale = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|防御指令", meta=(EditCondition="PromptIconOverride != nullptr"))
+	FLinearColor PromptIconColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|持续格挡", meta=(EditCondition="RequiredResponse == ERhythmResponseType::HoldBlock"))
+	FName HoldGroup = TEXT("HoldA");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|持续格挡", meta=(EditCondition="RequiredResponse == ERhythmResponseType::HoldBlock"))
+	ERhythmHoldMarkerType HoldMarker = ERhythmHoldMarkerType::None;
 };
 
 // ============================================================

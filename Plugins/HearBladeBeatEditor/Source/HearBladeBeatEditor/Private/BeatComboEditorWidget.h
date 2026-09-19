@@ -37,6 +37,9 @@ public:
 	int32 GetSelectedBeat() const;
 	double GetPreviewRequestSourceSeconds() const { return PreviewRequestSourceSeconds; }
 	void PickRequestAtSourceSeconds(double SourceSeconds);
+	bool IsImpactResponseValid(int32 ImpactIndex) const;
+	bool TryBeginHoldEndpointDrag(double SourceSeconds, double ToleranceSeconds, FName& OutGroup, bool& bOutStart) const;
+	void DragHoldEndpoint(FName Group, bool bStartEndpoint, double SourceSeconds);
 
 private:
 	void SelectAsset(UAttackDataAsset* Asset);
@@ -51,6 +54,11 @@ private:
 	FText GetSummary() const;
 	void RefreshTimeline();
 	void RebuildSegmentControls();
+	void RebuildResponseControls();
+	FReply ApplyResponseTemplate(int32 TemplateIndex);
+	FReply ValidateResponses();
+	FReply SelectHoldRangeEndpoint(int32 ImpactIndex);
+	bool ValidateResponseConfiguration(FString& OutError) const;
 	void OnAssetPropertiesChanged(const FPropertyChangedEvent& Event);
 
 	TWeakObjectPtr<UAttackDataAsset> AttackData;
@@ -58,6 +66,7 @@ private:
 	TSharedPtr<SEditableTextBox> WavPathBox;
 	TSharedPtr<class SBeatComboTimeline> Timeline;
 	TSharedPtr<SVerticalBox> SegmentsBox;
+	TSharedPtr<SVerticalBox> ResponsesBox;
 	FBeatWaveform Waveform;
 	FString WavPath;
 	FString Status;
@@ -72,4 +81,5 @@ private:
 	TArray<float> PreviewSegmentRates;
 	bool bUseSegmentRates = false;
 	double PreviewRequestSourceSeconds = 49.0;
+	int32 PendingHoldRangeStart = INDEX_NONE;
 };

@@ -1,4 +1,7 @@
 #include "Combat/BeatSyncedComboComponent.h"
+#include "Combat/BossBeatDirector.h"
+#include "BehaviorTree/BehaviorTreeComponent.h"
+#include "EngineUtils.h"
 
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "Combat/AttackData.h"
@@ -70,9 +73,30 @@ UBeatSyncedComboComponent::UBeatSyncedComboComponent()
 		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/ABP_DragonKnight_Movement.ABP_DragonKnight_Movement_C")));
 }
 
+void UBeatSyncedComboComponent::ReceiveBossDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
+{
+	ApplyBossDamage(Damage);
+}
+
+void UBeatSyncedComboComponent::ApplyBossDamage(float Damage)
+{
+	if (!FMath::IsFinite(Damage) || Damage <= 0.f || BossHealth <= 0.f) return;
+	BossHealth = FMath::Clamp(BossHealth - Damage, 0.f, MaxBossHealth);
+	UE_LOG(LogTemp, Display, TEXT("BossHealth: %.0f / %.0f"), BossHealth, MaxBossHealth);
+	if (BossHealth <= 0.f)
+	{
+		CancelCombo();
+		for (TActorIterator<ABossBeatDirector> It(GetWorld()); It; ++It)
+			if (It->BossActor == GetOwner() && It->BehaviorTreeComponent)
+				It->BehaviorTreeComponent->StopTree(EBTStopMode::Forced);
+	}
+}
+
 void UBeatSyncedComboComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	BossHealth = FMath::Max(1.f, MaxBossHealth);
+	GetOwner()->OnTakeAnyDamage.AddUniqueDynamic(this, &UBeatSyncedComboComponent::ReceiveBossDamage);
 	// The Boss is an Actor rather than a Character. Its root capsule is the only
 	// primitive swept by locomotion and montage root motion. Old placed instances
 	// can retain a tiny overlap-only capsule even when the Blueprint default changed.
@@ -512,16 +536,32 @@ void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>
 		Cue.IdealDodgeLeadSeconds = AttackData->ImpactMarkers.IsValidIndex(Index)
 			? AttackData->ImpactMarkers[Index].IdealDodgeLeadSeconds : 0.14f;
 		Cue.ImpactIndex = Index;
+		if (AttackData->ImpactMarkers.IsValidIndex(Index))
+		{
+			const FAttackImpactMarker& Marker = AttackData->ImpactMarkers[Index];
+			Cue.PromptLeadBeats = Marker.PromptLeadBeats;
+			Cue.RequiredResponse = Marker.RequiredResponse;
+			Cue.HoldMarker = Marker.HoldMarker;
+			if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock && Marker.HoldMarker == ERhythmHoldMarkerType::End)
+				Cue.IdealDodgeLeadSeconds = 0.f;
+			Cue.HoldGroup = Marker.HoldGroup;
+			Cue.IconOverride = Marker.PromptIconOverride;
+			Cue.IconScale = Marker.PromptIconScale;
+			Cue.IconColor = Marker.PromptIconColor;
+		}
 		const double BeatOffset = AttackData->ImpactMarkers.IsValidIndex(Index)
 			? AttackData->ImpactMarkers[Index].BeatOffset : 0.0;
 		const double TargetBeat = FirstImpactBeat + BeatOffset;
 		const int32 RoundedBeat = FMath::RoundToInt(TargetBeat);
-		Cue.bStrongBeat = FMath::Abs(TargetBeat - RoundedBeat) < .05 && RoundedBeat % BeatsPerBar == 0;
+		Cue.bStrongBeat = (AttackData->ImpactMarkers.IsValidIndex(Index) &&
+			AttackData->ImpactMarkers[Index].bForceStrongAccent) ||
+			(FMath::Abs(TargetBeat - RoundedBeat) < .05 && RoundedBeat % BeatsPerBar == 0);
 	}
 }
 
 bool UBeatSyncedComboComponent::QueueCombo()
 {
+	if (BossHealth <= 0.f) return false;
 	if (bQueued || bPlaying || !IsValid(AttackData) || !IsValid(AttackData->AttackMontage))
 	{
 		return false;
@@ -685,7 +725,13 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 			? AttackData->ImpactMarkers[NextDamageWindowIndex] : Defaults;
 		const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(NextDamageWindowIndex)) - ClipStartElapsed;
 		const double MarkerTime = ScheduledStartAudioSeconds + MarkerElapsed;
-		if (AudioNow <= MarkerTime + Marker.DamageWindowAfterSeconds) break;
+		float WindowAfter = Marker.DamageWindowAfterSeconds;
+		if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock && Marker.HoldMarker == ERhythmHoldMarkerType::End)
+		{
+			if (const UPlayerRhythmCombatComponent* Player = AttackTarget->FindComponentByClass<UPlayerRhythmCombatComponent>())
+				WindowAfter = FMath::Max(WindowAfter, Player->GetGoodWindowSeconds());
+		}
+		if (AudioNow <= MarkerTime + WindowAfter) break;
 		if (ActiveDamageImpactIndex != NextDamageWindowIndex)
 		{
 			ActiveDamageImpactIndex = NextDamageWindowIndex;
@@ -752,6 +798,16 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	const bool bAtMarkerFallback = FMath::Abs(AudioNow - MarkerAudioTime) <= 0.035 && OwnerDistance <= 300.0f;
 	PreviousBladeTraceLocation = CurrentBlade;
 	if (SweepDistance > BladeRadius + TargetRadius && !bAtMarkerFallback) return;
+	// A release note is judged at its authored tail, never on an early blade overlap.
+	if (WindowMarker.RequiredResponse == ERhythmResponseType::HoldBlock &&
+		WindowMarker.HoldMarker == ERhythmHoldMarkerType::End && AudioNow < MarkerAudioTime) return;
+	if (WindowMarker.RequiredResponse == ERhythmResponseType::HoldBlock && WindowMarker.HoldMarker == ERhythmHoldMarkerType::End)
+	{
+		// Keep both halves of the release window open. Holding through the target
+		// must not consume the note before a slightly late release can be graded.
+		if (const UPlayerRhythmCombatComponent* Player = Target->FindComponentByClass<UPlayerRhythmCombatComponent>();
+			Player && Player->IsBlocking() && AudioNow < MarkerAudioTime + Player->GetGoodWindowSeconds()) return;
+	}
 
 	bActiveDamageResolved = true;
 	const FAttackImpactMarker& Marker = AttackData->ImpactMarkers.IsValidIndex(WindowIndex)
@@ -764,9 +820,35 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	const bool bStrong = Clock && bWholeBeat && NearestBeat % FMath::Max(1, Clock->GetBeatsPerBar()) == 0;
 	if (UPlayerRhythmCombatComponent* PlayerState = Target->FindComponentByClass<UPlayerRhythmCombatComponent>())
 	{
-		const bool bAvoided = PlayerState->ResolveBossContact(AudioNow, TargetBeat, Marker.Damage,
-			Marker.IdealDodgeLeadSeconds, bStrong, ClosestBladeFeedbackLocation, ClosestBladeAttackDirection);
+		const bool bAvoided = PlayerState->ResolveBossContact(MarkerAudioTime, TargetBeat, Marker.Damage,
+			Marker.IdealDodgeLeadSeconds, bStrong, ClosestBladeFeedbackLocation, ClosestBladeAttackDirection,
+			Marker.RequiredResponse, Marker.HoldMarker, Marker.HoldGroup);
 		if (!bAvoided) NotifyConfirmedHit();
+		if (bAvoided && Marker.RequiredResponse == ERhythmResponseType::Counter &&
+			(PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ||
+			 PlayerState->LastJudgment == ERhythmDodgeJudgment::Good))
+		{
+			FVector Away = (GetOwner()->GetActorLocation() - Target->GetActorLocation()).GetSafeNormal2D();
+			ApplyBossDamage(CounterDamage * (PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ? 1.f : .5f));
+			if (Away.IsNearlyZero()) Away = -GetOwner()->GetActorForwardVector();
+			FHitResult StaggerHit;
+			GetOwner()->AddActorWorldOffset(Away * (PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ? 95.f : 45.f), true, &StaggerHit);
+			UE_LOG(LogTemp, Display, TEXT("RhythmCounter: Boss interrupted grade=%s knockback=%.0f"),
+				*UEnum::GetValueAsString(PlayerState->LastJudgment),
+				PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ? 95.f : 45.f);
+			CancelCombo();
+			return;
+		}
+		if (bAvoided && Marker.RequiredResponse == ERhythmResponseType::HoldBlock &&
+			Marker.HoldMarker == ERhythmHoldMarkerType::End &&
+			PlayerState->LastJudgment == ERhythmDodgeJudgment::PerfectHold)
+		{
+			FVector Away = (GetOwner()->GetActorLocation() - Target->GetActorLocation()).GetSafeNormal2D();
+			if (Away.IsNearlyZero()) Away = -GetOwner()->GetActorForwardVector();
+			FHitResult ShockHit;
+			GetOwner()->AddActorWorldOffset(Away * 70.0f, true, &ShockHit);
+			UE_LOG(LogTemp, Display, TEXT("PerfectHoldShock: boss knockback=70 resonance=%.1f"), PlayerState->Resonance);
+		}
 		UE_LOG(LogTemp, Display, TEXT("BossDamageSweep: impact=%d blade=%s sweepDistance=%.1f radius=%.1f fallback=%d avoided=%d"),
 			WindowIndex + 1, *GetNameSafe(Blade), SweepDistance, BladeRadius + TargetRadius,
 			bAtMarkerFallback ? 1 : 0, bAvoided ? 1 : 0);
@@ -800,7 +882,8 @@ void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex
 		if (AttackDirection.IsNearlyZero())
 			AttackDirection = (AttackTarget->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal();
 		bHandledByDodge = PlayerState->ResolveBossAvoidance(MarkerAudioTime, TargetBeat,
-			Marker.IdealDodgeLeadSeconds, bStrong, FeedbackLocation, AttackDirection);
+			Marker.IdealDodgeLeadSeconds, bStrong, FeedbackLocation, AttackDirection,
+			Marker.RequiredResponse, Marker.HoldMarker, Marker.HoldGroup);
 	}
 	bActiveDamageResolved = true;
 	UE_LOG(LogTemp, Display, TEXT("BossDamageSweep: impact=%d noContact=1 threatened=1 dodgeHandled=%d"),
@@ -891,6 +974,7 @@ bool UBeatSyncedComboComponent::StartPlayback(double AudioNowSeconds)
 void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (BossHealth <= 0.f) return;
 	if (USkeletalMeshComponent* Mesh = LocomotionMesh.Get())
 	{
 		// The animation graph plays the pose; extract the same clip's root track here.
@@ -1073,6 +1157,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		return;
 	}
 	UpdateDamageSweep(Now);
+	if (!bPlaying) return;
 
 	const double AnimationPosition = AttackData->GetAnimationTimeAtElapsed(
 		AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds) +

@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "Combat/AttackData.h"
 #include "BeatSyncedComboComponent.generated.h"
 
 class UAttackDataAsset;
@@ -56,8 +57,15 @@ struct FUpcomingImpactCue
 {
 	double ImpactAudioSeconds = 0.0;
 	float IdealDodgeLeadSeconds = 0.14f;
+	float PromptLeadBeats = 3.0f;
 	int32 ImpactIndex = 0;
 	bool bStrongBeat = false;
+	ERhythmResponseType RequiredResponse = ERhythmResponseType::Dodge;
+	ERhythmHoldMarkerType HoldMarker = ERhythmHoldMarkerType::None;
+	FName HoldGroup;
+	TObjectPtr<UTexture2D> IconOverride = nullptr;
+	float IconScale = 1.0f;
+	FLinearColor IconColor = FLinearColor::White;
 };
 
 // 行为树触发攻击后，将第一击安排在下一可用的指定小节拍位。
@@ -68,6 +76,13 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 
 public:
 	UBeatSyncedComboComponent();
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss生命", meta=(ClampMin="1")) float MaxBossHealth = 1000.f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss生命") float BossHealth = 1000.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss生命") FText BossDisplayName = FText::FromString(TEXT("焰铠龙骑士"));
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss生命", meta=(ClampMin="0")) float CounterDamage = 80.f;
+	UFUNCTION(BlueprintPure, Category="Boss生命") float GetBossHealthFraction() const { return MaxBossHealth > 0.f ? FMath::Clamp(BossHealth / MaxBossHealth, 0.f, 1.f) : 0.f; }
+	UFUNCTION(BlueprintCallable, Category="Boss生命") void ApplyBossDamage(float Damage);
+	UFUNCTION() void ReceiveBossDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招")
 	TObjectPtr<UAttackDataAsset> AttackData;
