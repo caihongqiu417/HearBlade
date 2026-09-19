@@ -145,6 +145,9 @@ private:
 	UPROPERTY(EditAnywhere, Category="节奏闪避|动作", meta=(ClampMin="0.1", ClampMax="1.0"))
 	float DodgeRootMotionTranslationScale = 0.32f;
 
+	UPROPERTY(EditAnywhere, Category="节奏闪避|动作", meta=(ClampMin="0.0", ClampMax="400.0"))
+	float DodgeDistanceCm = 185.0f;
+
 	UPROPERTY(EditAnywhere, Category="节奏闪避|无敌帧", meta=(ClampMin="0.0"))
 	float InvulnerabilityStartSeconds = 0.04f;
 
@@ -161,5 +164,6 @@ private:
 	UPROPERTY(Transient) TObjectPtr<class UAnimSequence> DodgeBackwardAnimation;
 	UPROPERTY(Transient) TObjectPtr<class UAnimSequence> DodgeLeftAnimation;
 	UPROPERTY(Transient) TObjectPtr<class UAnimSequence> DodgeRightAnimation;
+	float DodgeDistanceApplied = 0.0f;
 	void BroadcastPerfectFeedback(float ErrorMs, bool bStrongBeat, FVector BladeWorldLocation, FVector AttackDirection);
 };

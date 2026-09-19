@@ -1,0 +1,10 @@
+import unreal
+mannequin=unreal.load_asset('/Game/Characters/Mannequins/Meshes/SK_Mannequin')
+knight=unreal.load_asset('/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SK_DKM_Full')
+if not mannequin or not knight: raise RuntimeError('skeleton missing')
+mannequin.modify(); knight.modify()
+mannequin.add_compatible_skeleton(knight)
+knight.add_compatible_skeleton(mannequin)
+unreal.EditorAssetLibrary.save_loaded_asset(mannequin, only_if_is_dirty=False)
+unreal.EditorAssetLibrary.save_loaded_asset(knight, only_if_is_dirty=False)
+unreal.log_warning('ROLL_COMPATIBILITY configured both skeletons')

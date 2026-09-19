@@ -2,8 +2,10 @@
 #include "Combat/BeatSyncedComboComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimSequence.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "EngineUtils.h"
 #include "Misc/CommandLine.h"
@@ -76,12 +78,27 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	}
 	if (!bDodging || !GetWorld() || !GetOwner()) return;
 	const float Elapsed = static_cast<float>(GetWorld()->GetTimeSeconds() - DodgeStartWorldSeconds);
+	if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
+	{
+		const float Alpha = FMath::Clamp(Elapsed / DodgeDurationSeconds, 0.0f, 1.0f);
+		const float EasedAlpha = 1.0f - FMath::Pow(1.0f - Alpha, 2.4f);
+		const float TargetDistance = DodgeDistanceCm * EasedAlpha;
+		const float Step = FMath::Max(0.0f, TargetDistance - DodgeDistanceApplied);
+		if (Step > KINDA_SMALL_NUMBER)
+		{
+			FHitResult Hit;
+			Character->AddActorWorldOffset(DodgeDirection * Step, true, &Hit);
+			DodgeDistanceApplied += Step * (Hit.IsValidBlockingHit() ? Hit.Time : 1.0f);
+		}
+	}
 	if (Elapsed >= DodgeDurationSeconds)
 	{
 		bDodging = false;
 		if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
 		{
 			Character->SetAnimRootMotionTranslationScale(1.0f);
+			if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+				Movement->SetMovementMode(MOVE_Walking);
 			UE_LOG(LogTemp, Display, TEXT("RhythmDodgeMotion: completed distance=%.1fcm meshRelative=(%.1f,%.1f,%.1f)"),
 				FVector::Dist2D(DodgeStartLocation, Character->GetActorLocation()),
 				Character->GetMesh()->GetRelativeLocation().X, Character->GetMesh()->GetRelativeLocation().Y,
@@ -172,6 +189,7 @@ bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 	DodgeDirection = WorldDirection;
 	DodgeStartLocation = GetOwner()->GetActorLocation();
 	bDodging = true;
+	DodgeDistanceApplied = 0.0f;
 	++DodgeSequenceId;
 	DodgeStartWorldSeconds = GetWorld()->GetTimeSeconds();
 	if (const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>())
@@ -180,16 +198,26 @@ bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 
 	if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
 	{
+		if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+		{
+			Movement->StopMovementImmediately();
+			Movement->DisableMovement();
+		}
+		// Capsule sweep below owns translation. Suppress authored root translation
+		// so changing back to locomotion cannot visually snap the mesh to the capsule.
+		Character->SetAnimRootMotionTranslationScale(0.0f);
 		const FVector Local = Character->GetActorTransform().InverseTransformVectorNoScale(DodgeDirection);
 		UAnimSequence* Chosen = DodgeForwardAnimation;
-		if (FMath::Abs(Local.Y) > FMath::Abs(Local.X)) Chosen = Local.Y >= 0.0f ? DodgeRightAnimation : DodgeLeftAnimation;
-		else if (Local.X < 0.0f) Chosen = DodgeBackwardAnimation;
-		if (Chosen && Character->GetMesh() && Character->GetMesh()->GetAnimInstance())
+		if (FMath::Abs(Local.Y) > FMath::Abs(Local.X))
+			Chosen = Local.Y >= 0.0f ? DodgeRightAnimation : DodgeLeftAnimation;
+		else if (Local.X < 0.0f)
+			Chosen = DodgeBackwardAnimation;
+		if (Chosen && Character->GetMesh())
 		{
-			UAnimInstance* AnimInstance = Character->GetMesh()->GetAnimInstance();
-			AnimInstance->SetRootMotionMode(ERootMotionMode::RootMotionFromMontagesOnly);
-			Character->SetAnimRootMotionTranslationScale(DodgeRootMotionTranslationScale);
-			AnimInstance->PlaySlotAnimationAsDynamicMontage(Chosen, TEXT("DefaultSlot"), 0.04f, 0.12f, 1.0f);
+			Character->GetMesh()->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+			Character->GetMesh()->PlayAnimation(Chosen, false);
+			if (UAnimSingleNodeInstance* Instance = Character->GetMesh()->GetSingleNodeInstance())
+				Instance->SetPlayRate(Chosen->GetPlayLength() / FMath::Max(DodgeDurationSeconds, 0.1f));
 		}
 	}
 	return true;
