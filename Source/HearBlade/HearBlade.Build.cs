@@ -23,7 +23,7 @@ public class HearBlade : ModuleRules
 			"Niagara"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { });
+		PrivateDependencyModuleNames.AddRange(new string[] { "SlateCore", "RenderCore" });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"HearBlade"

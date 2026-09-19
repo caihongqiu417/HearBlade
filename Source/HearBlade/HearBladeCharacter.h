@@ -12,6 +12,8 @@ class UCameraComponent;
 class UInputAction;
 class UInputMappingContext;
 class UBossCombatCameraComponent;
+class UPlayerRhythmCombatComponent;
+class UPerfectDodgeFeedbackComponent;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -34,6 +36,10 @@ class AHearBladeCharacter : public ACharacter
 	UCameraComponent* FollowCamera;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UBossCombatCameraComponent> CombatCamera;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UPlayerRhythmCombatComponent> RhythmCombat;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<UPerfectDodgeFeedbackComponent> PerfectDodgeFeedback;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> LockOnAction;
 	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> LockOnMapping;
 	
@@ -73,6 +79,7 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 	void ToggleCombatLock();
+	void Dodge();
 
 public:
 
@@ -99,5 +106,8 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	UFUNCTION(BlueprintCallable, Category="Combat") void DoDodge();
+	UPROPERTY(Transient) TObjectPtr<UInputAction> DodgeAction;
+	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> DodgeMapping;
 };
 

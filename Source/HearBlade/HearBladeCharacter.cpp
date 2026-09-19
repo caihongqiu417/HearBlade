@@ -12,6 +12,8 @@
 #include "InputActionValue.h"
 #include "HearBlade.h"
 #include "Combat/BossCombatCameraComponent.h"
+#include "Combat/PlayerRhythmCombatComponent.h"
+#include "Combat/PerfectDodgeFeedbackComponent.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputCoreTypes.h"
@@ -50,6 +52,8 @@ AHearBladeCharacter::AHearBladeCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 	CombatCamera = CreateDefaultSubobject<UBossCombatCameraComponent>(TEXT("BossCombatCamera"));
+	RhythmCombat = CreateDefaultSubobject<UPlayerRhythmCombatComponent>(TEXT("RhythmCombat"));
+	PerfectDodgeFeedback = CreateDefaultSubobject<UPerfectDodgeFeedbackComponent>(TEXT("PerfectDodgeFeedback"));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -76,9 +80,21 @@ void AHearBladeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		LockOnMapping->MapKey(LockOnAction, EKeys::MiddleMouseButton);
 		LockOnMapping->MapKey(LockOnAction, EKeys::Gamepad_RightThumbstick);
 		EnhancedInputComponent->BindAction(LockOnAction, ETriggerEvent::Started, this, &AHearBladeCharacter::ToggleCombatLock);
+		DodgeAction = NewObject<UInputAction>(this, TEXT("RhythmDodgeAction"));
+		DodgeAction->ValueType = EInputActionValueType::Boolean;
+		DodgeMapping = NewObject<UInputMappingContext>(this, TEXT("RhythmDodgeMapping"));
+		DodgeMapping->MapKey(DodgeAction, EKeys::LeftShift);
+		DodgeMapping->MapKey(DodgeAction, EKeys::RightShift);
+		DodgeMapping->MapKey(DodgeAction, EKeys::Gamepad_FaceButton_Right);
+		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Started, this, &AHearBladeCharacter::Dodge);
 		if (const APlayerController* PC = Cast<APlayerController>(GetController()))
+		{
 			if (UEnhancedInputLocalPlayerSubsystem* Input = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
+			{
 				Input->AddMappingContext(LockOnMapping, 1);
+				Input->AddMappingContext(DodgeMapping, 2);
+			}
+		}
 	}
 	else
 	{
@@ -142,6 +158,19 @@ void AHearBladeCharacter::DoLook(float Yaw, float Pitch)
 void AHearBladeCharacter::ToggleCombatLock()
 {
 	if (CombatCamera) CombatCamera->ToggleLockOn();
+}
+
+void AHearBladeCharacter::Dodge()
+{
+	DoDodge();
+}
+
+void AHearBladeCharacter::DoDodge()
+{
+	if (!RhythmCombat) return;
+	FVector Direction = GetLastMovementInputVector();
+	if (Direction.IsNearlyZero()) Direction = GetActorForwardVector();
+	RhythmCombat->TryDodge(Direction);
 }
 
 void AHearBladeCharacter::DoJumpStart()

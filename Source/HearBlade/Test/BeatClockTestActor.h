@@ -55,9 +55,26 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试")
 	TObjectPtr<UAudioComponent> MusicComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试|战斗鼓点")
+	TObjectPtr<UAudioComponent> CombatDrumComponent;
+
 	// A quiet extra percussion layer makes the meter audible during the Boss fight.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
 	bool bEnableCombatDrums = true;
+
+	// A one-bar mastered stem runs on the audio thread and stays aligned even if the game hitches.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
+	bool bUseLoopingDrumStem = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
+	TObjectPtr<USoundBase> CombatDrumLoop;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点", meta=(ClampMin="0.0", ClampMax="2.0"))
+	float CombatDrumStemVolume = 1.35f;
+
+	// Slightly lowering the song gives the guide drums a clear place in the mix.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点", meta=(ClampMin="0.5", ClampMax="1.0"))
+	float MusicMixVolume = .78f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点", meta=(ClampMin="0.0", ClampMax="1.0"))
 	float StrongDrumVolume = .55f;

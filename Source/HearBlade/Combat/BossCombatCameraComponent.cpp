@@ -7,7 +7,6 @@
 #include "Combat/BossBeatDirector.h"
 #include "Combat/BossCameraConfig.h"
 #include "Combat/BossCameraModifier.h"
-#include "Components/TextRenderComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -73,26 +72,7 @@ void UBossCombatCameraComponent::SetCombatTarget(AActor* NewTarget)
 	bManualSuppression = false;
 	OutOfRangeTime = OccludedTime = 0.f;
 	BindCombo(NewTarget->FindComponentByClass<UBeatSyncedComboComponent>());
-	UTextRenderComponent* Text = NewObject<UTextRenderComponent>(NewTarget, TEXT("BossCameraLockMarker"));
-	if (Text)
-	{
-		Text->SetText(FText::FromString(TEXT("LOCK")));
-		Text->SetTextRenderColor(FColor(255, 125, 45));
-		Text->SetHorizontalAlignment(EHTA_Center);
-		Text->SetWorldSize(24.f);
-		Text->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		Text->SetupAttachment(NewTarget->GetRootComponent());
-		Text->RegisterComponent();
-		Text->SetRelativeLocation(FVector(0.f, 0.f, 200.f));
-		Marker = Text;
-	}
 	UE_LOG(LogTemp, Display, TEXT("CombatCamera: locked %s"), *GetNameSafe(NewTarget));
-}
-
-void UBossCombatCameraComponent::RemoveMarker()
-{
-	if (UTextRenderComponent* Text = Marker.Get()) Text->DestroyComponent();
-	Marker.Reset();
 }
 
 void UBossCombatCameraComponent::CancelFeedback()
@@ -104,7 +84,6 @@ void UBossCombatCameraComponent::CancelFeedback()
 void UBossCombatCameraComponent::ClearCombatTarget()
 {
 	BindCombo(nullptr);
-	RemoveMarker();
 	Target.Reset();
 	OutOfRangeTime = OccludedTime = 0.f;
 	ManualYaw = ManualPitch = 0.f;
@@ -129,6 +108,38 @@ void UBossCombatCameraComponent::AddLookInput(float Yaw, float Pitch)
 	ManualYaw = FMath::Clamp(ManualYaw + Yaw, -22.f, 22.f);
 	ManualPitch = FMath::Clamp(ManualPitch + Pitch, -12.f, 12.f);
 	LastLookInputTime = GetWorld()->GetTimeSeconds();
+}
+
+void UBossCombatCameraComponent::TriggerPerfectDodgeFeedback(float FOVExpansionDegrees, float ShakeDegrees, float Strength,
+	FVector BladeWorldLocation, FVector AttackDirection, bool bStrongBeat,
+	float LateralShiftCm, float DollyShiftCm, float YawKickDegrees, float PitchKickDegrees,
+	float ReboundStrength)
+{
+	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
+	if (!Player || !Modifier.IsValid()) return;
+	float ObstructionScale = 1.0f;
+	if (USpringArmComponent* Boom = Player->GetCameraBoom())
+	{
+		const float Compression = Boom->TargetArmLength > 1.f ? FVector::Dist(Boom->GetComponentLocation(), Player->GetFollowCamera()->GetComponentLocation()) / Boom->TargetArmLength : 1.f;
+		if (Compression < .72f) ObstructionScale = .25f;
+	}
+	if (Target.IsValid() && FVector::Dist2D(Target->GetActorLocation(), Player->GetActorLocation()) < 170.f)
+		ObstructionScale = FMath::Min(ObstructionScale, .25f);
+	float SideSign = 1.f;
+	if (const UCameraComponent* Camera = Player->GetFollowCamera())
+	{
+		FVector ToBlade = BladeWorldLocation - Player->GetActorLocation();
+		if (ToBlade.IsNearlyZero()) ToBlade = AttackDirection;
+		SideSign = FVector::DotProduct(ToBlade.GetSafeNormal2D(), Camera->GetRightVector().GetSafeNormal2D()) >= 0.f ? 1.f : -1.f;
+	}
+	const float BeatAccent = bStrongBeat ? 1.12f : 1.f;
+	const float FinalStrength = Strength * ObstructionScale * BeatAccent;
+	Modifier->TriggerPerfectDodge(-FOVExpansionDegrees * FinalStrength,
+		ShakeDegrees * FinalStrength, LateralShiftCm * FinalStrength, DollyShiftCm * FinalStrength,
+		YawKickDegrees * FinalStrength, PitchKickDegrees * FinalStrength, SideSign, ReboundStrength,
+		.032f, .040f, bStrongBeat ? .19f : .16f);
+	UE_LOG(LogTemp, Display, TEXT("PerfectDodgeCamera: side=%.0f strong=%d scale=%.2f lateral=%.1f yaw=%.2f"),
+		SideSign, bStrongBeat ? 1 : 0, FinalStrength, LateralShiftCm * FinalStrength, YawKickDegrees * FinalStrength);
 }
 
 void UBossCombatCameraComponent::HandleWarning(FVector Landing, double)
@@ -255,8 +266,6 @@ void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
 			FMath::GetMappedRangeValueClamped(FVector2D(500.f, 1800.f),
 			FVector2D(C->FreeFOV, C->MaxCombatFOV), Distance));
 		Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, DesiredFOV, DeltaTime, 5.f));
-		if (UTextRenderComponent* Text = Marker.Get())
-			Text->SetWorldRotation((Camera->GetComponentLocation() - Text->GetComponentLocation()).Rotation());
 	}
 	else
 	{

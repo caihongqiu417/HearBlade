@@ -9,6 +9,7 @@
 #include "Animation/AnimSequence.h"
 #include "Animation/Skeleton.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Combat/PlayerRhythmCombatComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/MeshComponent.h"
@@ -485,6 +486,40 @@ float UBeatSyncedComboComponent::GetImpactTime(int32 Index) const
 		: AttackData->ImpactMarkers[Index].AnimationTimeSeconds;
 }
 
+bool UBeatSyncedComboComponent::GetNextImpactDodgeTiming(double& OutImpactAudioSeconds, float& OutIdealLeadSeconds) const
+{
+	if ((!bQueued && !bPlaying) || !IsValid(AttackData) || NextImpactIndex >= GetImpactCount()) return false;
+	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds);
+	const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(NextImpactIndex)) - ClipStartElapsed;
+	OutImpactAudioSeconds = ScheduledStartAudioSeconds + MarkerElapsed;
+	OutIdealLeadSeconds = AttackData->ImpactMarkers.IsValidIndex(NextImpactIndex)
+		? AttackData->ImpactMarkers[NextImpactIndex].IdealDodgeLeadSeconds : 0.14f;
+	return true;
+}
+
+void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>& OutCues, int32 MaxCount) const
+{
+	OutCues.Reset();
+	if ((!bQueued && !bPlaying) || !IsValid(AttackData) || MaxCount <= 0) return;
+	const UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
+	const int32 BeatsPerBar = Clock ? FMath::Max(1, Clock->GetBeatsPerBar()) : 4;
+	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds);
+	for (int32 Index = NextImpactIndex; Index < GetImpactCount() && OutCues.Num() < MaxCount; ++Index)
+	{
+		FUpcomingImpactCue& Cue = OutCues.AddDefaulted_GetRef();
+		const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(Index)) - ClipStartElapsed;
+		Cue.ImpactAudioSeconds = ScheduledStartAudioSeconds + MarkerElapsed;
+		Cue.IdealDodgeLeadSeconds = AttackData->ImpactMarkers.IsValidIndex(Index)
+			? AttackData->ImpactMarkers[Index].IdealDodgeLeadSeconds : 0.14f;
+		Cue.ImpactIndex = Index;
+		const double BeatOffset = AttackData->ImpactMarkers.IsValidIndex(Index)
+			? AttackData->ImpactMarkers[Index].BeatOffset : 0.0;
+		const double TargetBeat = FirstImpactBeat + BeatOffset;
+		const int32 RoundedBeat = FMath::RoundToInt(TargetBeat);
+		Cue.bStrongBeat = FMath::Abs(TargetBeat - RoundedBeat) < .05 && RoundedBeat % BeatsPerBar == 0;
+	}
+}
+
 bool UBeatSyncedComboComponent::QueueCombo()
 {
 	if (bQueued || bPlaying || !IsValid(AttackData) || !IsValid(AttackData->AttackMontage))
@@ -572,6 +607,11 @@ bool UBeatSyncedComboComponent::QueueCombo()
 		ScheduledStartAudioSeconds, FirstImpactDelay);
 	NextImpactIndex = 0;
 	NextBladeSoundIndex = 0;
+	NextDamageWindowIndex = 0;
+	ActiveDamageImpactIndex = INDEX_NONE;
+	bActiveDamageResolved = false;
+	bActiveDamageThreatened = false;
+	BladeTraceMesh = FindBladeMesh();
 	bLastAttackCompleted = false;
 	bQueued = true;
 	return true;
@@ -606,9 +646,165 @@ void UBeatSyncedComboComponent::CancelCombo()
 	bLastAttackCompleted = false;
 	NextImpactIndex = 0;
 	NextBladeSoundIndex = 0;
+	NextDamageWindowIndex = 0;
+	ActiveDamageImpactIndex = INDEX_NONE;
+	bActiveDamageResolved = false;
+	bActiveDamageThreatened = false;
+	BladeTraceMesh.Reset();
 	RootMotionMesh.Reset();
 	AttackTarget.Reset();
 	LocomotionResumeWorldSeconds = GetWorld()->GetTimeSeconds() + 0.2;
+}
+
+UMeshComponent* UBeatSyncedComboComponent::FindBladeMesh() const
+{
+	if (!GetOwner()) return nullptr;
+	TArray<UMeshComponent*> Meshes;
+	GetOwner()->GetComponents<UMeshComponent>(Meshes);
+	for (UMeshComponent* Mesh : Meshes)
+	{
+		if (!IsValid(Mesh)) continue;
+		const FString Name = Mesh->GetName().ToLower();
+		if (Name.Contains(TEXT("sword")) || Name.Contains(TEXT("weapon")) || Mesh->ComponentHasTag(TEXT("DamageBlade")))
+			return Mesh;
+	}
+	return nullptr;
+}
+
+void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
+{
+	if (!bPlaying || !IsValid(AttackData) || !AttackTarget.IsValid() || GetImpactCount() <= 0) return;
+	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds);
+
+	// Resolve every elapsed window in order. This also handles a throttled editor or a frame hitch
+	// that jumps completely over a short damage window.
+	while (NextDamageWindowIndex < GetImpactCount())
+	{
+		const FAttackImpactMarker Defaults;
+		const FAttackImpactMarker& Marker = AttackData->ImpactMarkers.IsValidIndex(NextDamageWindowIndex)
+			? AttackData->ImpactMarkers[NextDamageWindowIndex] : Defaults;
+		const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(NextDamageWindowIndex)) - ClipStartElapsed;
+		const double MarkerTime = ScheduledStartAudioSeconds + MarkerElapsed;
+		if (AudioNow <= MarkerTime + Marker.DamageWindowAfterSeconds) break;
+		if (ActiveDamageImpactIndex != NextDamageWindowIndex)
+		{
+			ActiveDamageImpactIndex = NextDamageWindowIndex;
+			bActiveDamageResolved = false;
+			bActiveDamageThreatened = FVector::Dist2D(AttackTarget->GetActorLocation(), GetOwner()->GetActorLocation()) <= 450.0f;
+			ClosestBladeFeedbackLocation = FVector::ZeroVector;
+			ClosestBladeAttackDirection = (AttackTarget->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal();
+			ClosestBladeFeedbackDistance = BIG_NUMBER;
+		}
+		if (!bActiveDamageResolved) ResolveUncontactedDamageWindow(NextDamageWindowIndex);
+		++NextDamageWindowIndex;
+		ActiveDamageImpactIndex = INDEX_NONE;
+		bActiveDamageThreatened = false;
+	}
+	if (NextDamageWindowIndex >= GetImpactCount()) return;
+
+	const int32 WindowIndex = NextDamageWindowIndex;
+	const FAttackImpactMarker Defaults;
+	const FAttackImpactMarker& WindowMarker = AttackData->ImpactMarkers.IsValidIndex(WindowIndex)
+		? AttackData->ImpactMarkers[WindowIndex] : Defaults;
+	const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(WindowIndex)) - ClipStartElapsed;
+	const double MarkerAudioTime = ScheduledStartAudioSeconds + MarkerElapsed;
+	if (AudioNow < MarkerAudioTime - WindowMarker.DamageWindowBeforeSeconds) return;
+
+	UMeshComponent* Blade = BladeTraceMesh.Get();
+	if (!IsValid(Blade))
+	{
+		Blade = FindBladeMesh();
+		BladeTraceMesh = Blade;
+	}
+	const FVector CurrentBlade = Blade ? Blade->Bounds.Origin
+		: GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 180.0f + FVector(0, 0, 100.0f);
+	const bool bNewWindow = ActiveDamageImpactIndex != WindowIndex;
+	if (bNewWindow)
+	{
+		ActiveDamageImpactIndex = WindowIndex;
+		bActiveDamageResolved = false;
+		bActiveDamageThreatened = false;
+		PreviousBladeTraceLocation = CurrentBlade;
+		ClosestBladeFeedbackLocation = CurrentBlade;
+		ClosestBladeAttackDirection = GetOwner()->GetActorForwardVector();
+		ClosestBladeFeedbackDistance = BIG_NUMBER;
+	}
+	if (bActiveDamageResolved) return;
+
+	const AActor* Target = AttackTarget.Get();
+	const UCapsuleComponent* Capsule = Target ? Target->FindComponentByClass<UCapsuleComponent>() : nullptr;
+	const FVector TargetCenter = Capsule ? Capsule->GetComponentLocation() : Target->GetActorLocation();
+	const float TargetRadius = Capsule ? Capsule->GetScaledCapsuleRadius() : 42.0f;
+	const float BladeRadius = Blade ? FMath::Clamp(Blade->Bounds.SphereRadius * 0.35f, 35.0f, 105.0f) : 70.0f;
+	const float SweepDistance = FMath::PointDistToSegment(TargetCenter, PreviousBladeTraceLocation, CurrentBlade);
+	const FVector ClosestOnBladeSweep = FMath::ClosestPointOnSegment(TargetCenter, PreviousBladeTraceLocation, CurrentBlade);
+	if (SweepDistance < ClosestBladeFeedbackDistance)
+	{
+		ClosestBladeFeedbackDistance = SweepDistance;
+		ClosestBladeFeedbackLocation = ClosestOnBladeSweep;
+		ClosestBladeAttackDirection = (CurrentBlade - PreviousBladeTraceLocation).GetSafeNormal();
+		if (ClosestBladeAttackDirection.IsNearlyZero())
+			ClosestBladeAttackDirection = (TargetCenter - GetOwner()->GetActorLocation()).GetSafeNormal();
+	}
+	const float OwnerDistance = FVector::Dist2D(TargetCenter, GetOwner()->GetActorLocation());
+	if (bNewWindow)
+		bActiveDamageThreatened = OwnerDistance <= 450.0f;
+	const bool bAtMarkerFallback = FMath::Abs(AudioNow - MarkerAudioTime) <= 0.035 && OwnerDistance <= 300.0f;
+	PreviousBladeTraceLocation = CurrentBlade;
+	if (SweepDistance > BladeRadius + TargetRadius && !bAtMarkerFallback) return;
+
+	bActiveDamageResolved = true;
+	const FAttackImpactMarker& Marker = AttackData->ImpactMarkers.IsValidIndex(WindowIndex)
+		? AttackData->ImpactMarkers[WindowIndex] : Defaults;
+	const double Offset = AttackData->ImpactMarkers.IsEmpty() ? 0.0 : Marker.BeatOffset;
+	const double TargetBeat = FirstImpactBeat + Offset;
+	const int32 NearestBeat = FMath::RoundToInt(TargetBeat);
+	const bool bWholeBeat = FMath::Abs(TargetBeat - NearestBeat) < 0.05;
+	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
+	const bool bStrong = Clock && bWholeBeat && NearestBeat % FMath::Max(1, Clock->GetBeatsPerBar()) == 0;
+	if (UPlayerRhythmCombatComponent* PlayerState = Target->FindComponentByClass<UPlayerRhythmCombatComponent>())
+	{
+		const bool bAvoided = PlayerState->ResolveBossContact(AudioNow, TargetBeat, Marker.Damage,
+			Marker.IdealDodgeLeadSeconds, bStrong, ClosestBladeFeedbackLocation, ClosestBladeAttackDirection);
+		if (!bAvoided) NotifyConfirmedHit();
+		UE_LOG(LogTemp, Display, TEXT("BossDamageSweep: impact=%d blade=%s sweepDistance=%.1f radius=%.1f fallback=%d avoided=%d"),
+			WindowIndex + 1, *GetNameSafe(Blade), SweepDistance, BladeRadius + TargetRadius,
+			bAtMarkerFallback ? 1 : 0, bAvoided ? 1 : 0);
+	}
+}
+
+void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex)
+{
+	if (!bActiveDamageThreatened || !AttackTarget.IsValid() || !IsValid(AttackData) ||
+		ImpactIndex < 0 || ImpactIndex >= GetImpactCount()) return;
+	const FAttackImpactMarker Defaults;
+	const FAttackImpactMarker& Marker = AttackData->ImpactMarkers.IsValidIndex(ImpactIndex)
+		? AttackData->ImpactMarkers[ImpactIndex] : Defaults;
+	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds);
+	const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(ImpactIndex)) - ClipStartElapsed;
+	const double MarkerAudioTime = ScheduledStartAudioSeconds + MarkerElapsed;
+	const double Offset = AttackData->ImpactMarkers.IsEmpty() ? 0.0 : Marker.BeatOffset;
+	const double TargetBeat = FirstImpactBeat + Offset;
+	const int32 NearestBeat = FMath::RoundToInt(TargetBeat);
+	const bool bWholeBeat = FMath::Abs(TargetBeat - NearestBeat) < 0.05;
+	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
+	const bool bStrong = Clock && bWholeBeat && NearestBeat % FMath::Max(1, Clock->GetBeatsPerBar()) == 0;
+	bool bHandledByDodge = false;
+	if (UPlayerRhythmCombatComponent* PlayerState =
+		AttackTarget->FindComponentByClass<UPlayerRhythmCombatComponent>())
+	{
+		FVector FeedbackLocation = ClosestBladeFeedbackLocation;
+		if (FeedbackLocation.IsNearlyZero())
+			FeedbackLocation = AttackTarget->GetActorLocation() + FVector(0, 0, 85.0f);
+		FVector AttackDirection = ClosestBladeAttackDirection;
+		if (AttackDirection.IsNearlyZero())
+			AttackDirection = (AttackTarget->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal();
+		bHandledByDodge = PlayerState->ResolveBossAvoidance(MarkerAudioTime, TargetBeat,
+			Marker.IdealDodgeLeadSeconds, bStrong, FeedbackLocation, AttackDirection);
+	}
+	bActiveDamageResolved = true;
+	UE_LOG(LogTemp, Display, TEXT("BossDamageSweep: impact=%d noContact=1 threatened=1 dodgeHandled=%d"),
+		ImpactIndex + 1, bHandledByDodge ? 1 : 0);
 }
 
 bool UBeatSyncedComboComponent::StartPlayback(double AudioNowSeconds)
@@ -703,7 +899,9 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		const UBossLocomotionAnimInstance* Anim = Cast<UBossLocomotionAnimInstance>(Mesh->GetAnimInstance());
 		LastLocomotionSpeed = 0.0f;
 		bLastLocomotionBlocked = false;
-		if (!bQueued && !bPlaying && GetWorld()->GetTimeSeconds() >= LocomotionResumeWorldSeconds &&
+		// A queued attack may be waiting for the next downbeat. Keep locomotion alive
+		// until montage playback actually starts so the Boss does not freeze in place.
+		if (!bPlaying && GetWorld()->GetTimeSeconds() >= LocomotionResumeWorldSeconds &&
 			Anim && Anim->bIsMoving && DirectionalWalkAnimations.IsValidIndex(0))
 		{
 			// All eight walk samples share the same duration and root travel. The Blend Space
@@ -756,7 +954,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		{
 			LocomotionAnimationTime = 0.0f;
 		}
-		if (Anim && Anim->bIsMoving && !bQueued && !bPlaying &&
+		if (Anim && Anim->bIsMoving && !bPlaying &&
 			GetWorld()->GetTimeSeconds() - LastLocomotionLogWorldSeconds > 2.0)
 		{
 			UE_LOG(LogTemp, Display, TEXT("BossLocomotion: Direction=%d ActualSpeed=%.0f Blocked=%d Boss=%s"),
@@ -781,11 +979,11 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		{
 			if (!LockBlinkDestination())
 			{
-				UE_LOG(LogTemp, Warning, TEXT("BeatBlink: No safe landing; cancelling attack at beat %d"), FirstImpactBeat);
-				CancelCombo();
-				return;
+				UE_LOG(LogTemp, Warning, TEXT("BeatBlink: No safe landing; continuing combo without blink at beat %d"), FirstImpactBeat);
+				ClearBlink();
 			}
-			bBlinkWarningShown = true;
+			if (bBlinkRequested) bBlinkWarningShown = true;
+			if (!bBlinkRequested) return;
 			OnBlinkWarning.Broadcast(LockedBlinkLocation, ScheduledFirstImpactAudioSeconds);
 			if (BlinkSettings.WarningEffect)
 			{
@@ -809,10 +1007,10 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			if (!GetWorld()->FindTeleportSpot(GetOwner(), CheckedLocation, LockedBlinkRotation) ||
 				FVector::Dist2D(CheckedLocation, LockedBlinkLocation) > 75.0f)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("BeatBlink: Landing became blocked; cancelling attack"));
-				CancelCombo();
-				return;
+				UE_LOG(LogTemp, Warning, TEXT("BeatBlink: Landing became blocked; continuing combo in place"));
+				ClearBlink();
 			}
+			if (!bBlinkRequested) return;
 			const FVector From = GetOwner()->GetActorLocation();
 			if (RootMotionMesh.IsValid())
 			{
@@ -833,7 +1031,8 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			}
 			if (!GetOwner()->TeleportTo(CheckedLocation, LockedBlinkRotation, false, false))
 			{
-				CancelCombo();
+				UE_LOG(LogTemp, Warning, TEXT("BeatBlink: Teleport failed; continuing combo in place"));
+				ClearBlink();
 				return;
 			}
 			bBlinkExecuted = true;
@@ -873,6 +1072,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	{
 		return;
 	}
+	UpdateDamageSweep(Now);
 
 	const double AnimationPosition = AttackData->GetAnimationTimeAtElapsed(
 		AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds) +

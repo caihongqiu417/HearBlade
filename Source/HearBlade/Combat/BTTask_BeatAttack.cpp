@@ -81,6 +81,46 @@ UBTTask_BeatAttack::UBTTask_BeatAttack()
 	if (EmbersEffect.Succeeded()) Blink.LandingEffect = EmbersEffect.Object;
 }
 
+float UBTTask_BeatAttack::UpdateOrbitMovement(UBeatSyncedComboComponent* Combo, AActor* Boss,
+	const APawn* Player, const UBeatClockSubsystem* Clock, float DeltaSeconds)
+{
+	if (!Combo || !Boss || !Player) return 0.0f;
+	const FVector ToPlayer = (Player->GetActorLocation() - Boss->GetActorLocation()).GetSafeNormal2D();
+	const float Distance = FVector::Dist2D(Player->GetActorLocation(), Boss->GetActorLocation());
+	const float DesiredRadius = FMath::Clamp(ApproachStopDistance, MinAttackDistance + 75.0f,
+		FMath::Max(MinAttackDistance + 75.0f, ActivationRange - 100.0f));
+	const FVector Inward = ToPlayer.IsNearlyZero() ? Boss->GetActorForwardVector().GetSafeNormal2D() : ToPlayer;
+	const FVector Tangent = FVector(-Inward.Y, Inward.X, 0.0f) * (bOrbitClockwise ? 1.0f : -1.0f);
+	const float RadialError = Distance - DesiredRadius;
+	// Close range should look like pressure circling, not a compulsory three-step retreat.
+	const float RadialVelocity = RadialError < 0.0f
+		? FMath::Max(RadialError * 0.8f, -ApproachSpeed * 0.45f)
+		: FMath::Min(RadialError * 1.5f, ApproachSpeed);
+	FVector WantedVelocity = Inward * RadialVelocity + Tangent * OrbitSpeed;
+	if (WantedVelocity.Size2D() > FMath::Max(ApproachSpeed, OrbitSpeed))
+		WantedVelocity = WantedVelocity.GetSafeNormal2D() * FMath::Max(ApproachSpeed, OrbitSpeed);
+	const FRotator FacePlayer(0.0f, Inward.Rotation().Yaw, 0.0f);
+	Boss->SetActorRotation(FMath::RInterpConstantTo(Boss->GetActorRotation(), FacePlayer,
+		DeltaSeconds, TurnSpeedDegreesPerSecond));
+	const FVector LocalStep = Boss->GetActorTransform().InverseTransformVectorNoScale(WantedVelocity);
+	SetBossLocomotion(Boss, WantedVelocity.Size2D(), LocalStep, AnimationReferenceSpeed, DeltaSeconds,
+		Clock, Combo->GetWalkClipLengthSeconds(), WalkCycleBeats, WalkBeatAccentStrength);
+	if (Combo->WasLastLocomotionBlocked() && Combo->GetWorld()->GetTimeSeconds() - LastBlockedWorldSeconds > 1.0f)
+	{
+		bOrbitClockwise = !bOrbitClockwise;
+		LastBlockedWorldSeconds = Combo->GetWorld()->GetTimeSeconds();
+		UE_LOG(LogTemp, Warning, TEXT("BTTask_BeatAttack: Orbit blocked Distance=%.0f, changing direction"), Distance);
+	}
+	if (Combo->GetWorld()->GetTimeSeconds() - LastMovementLogWorldSeconds > 2.0f)
+	{
+		UE_LOG(LogTemp, Display, TEXT("BTTask_BeatAttack: Orbit Distance=%.0f Target=%.0f ActualSpeed=%.0f Queued=%d Boss=%s"),
+			Distance, DesiredRadius, Combo->GetLastLocomotionSpeed(), Combo->IsComboQueued() ? 1 : 0,
+			*Boss->GetActorLocation().ToString());
+		LastMovementLogWorldSeconds = Combo->GetWorld()->GetTimeSeconds();
+	}
+	return Distance;
+}
+
 EBTNodeResult::Type UBTTask_BeatAttack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	UBeatSyncedComboComponent* Combo = GetComboComponent(OwnerComp, BossActorKey.SelectedKeyName);
@@ -111,6 +151,13 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 	const UBeatClockSubsystem* Clock = World->GetSubsystem<UBeatClockSubsystem>();
 	if (!bAttackStarted)
 	{
+		// A previous BT branch may have been aborted while its montage was already playing.
+		// Let that committed combo finish before this task starts orbiting or queues another attack.
+		if (Combo->IsComboQueuedOrPlaying())
+		{
+			SetBossLocomotion(Combo->GetOwner(), 0.0f, FVector::ZeroVector, AnimationReferenceSpeed, DeltaSeconds);
+			return;
+		}
 		const APawn* Player = UGameplayStatics::GetPlayerPawn(World, 0);
 		AActor* Boss = Combo->GetOwner();
 		if (!Player || !Boss)
@@ -118,52 +165,19 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 			SetBossLocomotion(Boss, 0.0f, FVector::ZeroVector, AnimationReferenceSpeed, DeltaSeconds);
 			return;
 		}
-		const FVector ToPlayer = (Player->GetActorLocation() - Boss->GetActorLocation()).GetSafeNormal2D();
-		const float Distance = FVector::Dist2D(Player->GetActorLocation(), Boss->GetActorLocation());
-		const float DesiredRadius = FMath::Clamp(ApproachStopDistance, MinAttackDistance + 75.0f,
-			FMath::Max(MinAttackDistance + 75.0f, ActivationRange - 100.0f));
-		const FVector Inward = ToPlayer.IsNearlyZero() ? Boss->GetActorForwardVector().GetSafeNormal2D() : ToPlayer;
-		const FVector Tangent = FVector(-Inward.Y, Inward.X, 0.0f) * (bOrbitClockwise ? 1.0f : -1.0f);
-		const float RadialError = Distance - DesiredRadius;
-		const float RadialVelocity = FMath::Clamp(RadialError * 1.5f, -ApproachSpeed, ApproachSpeed);
-		// Prioritize getting clear of the player if a combo ended almost on top of them.
-		const float TangentialVelocity = Distance < MinAttackDistance ? OrbitSpeed * 0.35f : OrbitSpeed;
-		FVector WantedVelocity = Inward * RadialVelocity + Tangent * TangentialVelocity;
-		if (WantedVelocity.Size2D() > FMath::Max(ApproachSpeed, OrbitSpeed))
-			WantedVelocity = WantedVelocity.GetSafeNormal2D() * FMath::Max(ApproachSpeed, OrbitSpeed);
-		const FRotator FacePlayer(0.0f, Inward.Rotation().Yaw, 0.0f);
-		Boss->SetActorRotation(FMath::RInterpConstantTo(Boss->GetActorRotation(), FacePlayer,
-			DeltaSeconds, TurnSpeedDegreesPerSecond));
-		const FVector LocalStep = Boss->GetActorTransform().InverseTransformVectorNoScale(WantedVelocity);
-		SetBossLocomotion(Boss, WantedVelocity.Size2D(), LocalStep, AnimationReferenceSpeed, DeltaSeconds,
-			Clock, Combo->GetWalkClipLengthSeconds(), WalkCycleBeats, WalkBeatAccentStrength);
-		const float ActualSpeed = Combo->GetLastLocomotionSpeed();
-		if (Combo->WasLastLocomotionBlocked() && World->GetTimeSeconds() - LastBlockedWorldSeconds > 1.0f)
-		{
-			bOrbitClockwise = !bOrbitClockwise;
-			LastBlockedWorldSeconds = World->GetTimeSeconds();
-			UE_LOG(LogTemp, Warning, TEXT("BTTask_BeatAttack: Orbit blocked Distance=%.0f, changing direction"), Distance);
-		}
-		if (World->GetTimeSeconds() - LastMovementLogWorldSeconds > 2.0f)
-		{
-			UE_LOG(LogTemp, Display, TEXT("BTTask_BeatAttack: Orbit Distance=%.0f Target=%.0f ActualSpeed=%.0f Boss=%s"),
-				Distance, DesiredRadius, ActualSpeed, *Boss->GetActorLocation().ToString());
-			LastMovementLogWorldSeconds = World->GetTimeSeconds();
-		}
+		UpdateOrbitMovement(Combo, Boss, Player, Clock, DeltaSeconds);
 		if (!Clock || !Clock->IsRunning() ||
 			World->GetTimeSeconds() - LastAttackCompletedWorldSeconds < PostAttackCooldownSeconds ||
 			World->GetTimeSeconds() - OrbitStartWorldSeconds < MinimumOrbitSeconds) return;
 		const float CurrentDistance = FVector::Dist2D(Player->GetActorLocation(), Boss->GetActorLocation());
-		// Arena geometry can prevent reaching the preferred orbit radius. Keep the fight moving
-		// once we've visibly tried to circle, while preserving the hard minimum attack distance.
-		const float RequiredAttackDistance = Combo->WasLastLocomotionBlocked()
-			? MinAttackDistance : FMath::Max(MinAttackDistance, DesiredRadius - 175.0f);
-		if (CurrentDistance > ActivationRange || CurrentDistance < RequiredAttackDistance)
+		// Blink attacks already choose a safe landing radius. Do not force a retreat
+		// to a hard minimum distance before reserving an attack beat.
+		if (CurrentDistance > ActivationRange)
 		{
 			if (!bLoggedWaitingForRange)
 			{
-				UE_LOG(LogTemp, Display, TEXT("BTTask_BeatAttack: Waiting for %.0f..%.0f cm (current %.0f cm)"),
-					RequiredAttackDistance, ActivationRange, CurrentDistance);
+				UE_LOG(LogTemp, Display, TEXT("BTTask_BeatAttack: Waiting within %.0f cm (current %.0f cm)"),
+					ActivationRange, CurrentDistance);
 				bLoggedWaitingForRange = true;
 			}
 			return;
@@ -211,7 +225,6 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 			return;
 		}
 		bAttackStarted = true;
-		SetBossLocomotion(Boss, 0.0f, FVector::ZeroVector, AnimationReferenceSpeed, DeltaSeconds);
 		UE_LOG(LogTemp, Display, TEXT("BTTask_BeatAttack: PlayerDistance=%.0f Attack=%s Queued=true BlinkImpactAudio=%.3f"),
 			CurrentDistance, *GetNameSafe(Selected), Combo->GetScheduledFirstImpactAudioSeconds());
 		return;
@@ -221,6 +234,20 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		Combo->CancelCombo();
 		FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
 		return;
+	}
+	if (Combo->IsComboQueued())
+	{
+		const APawn* Player = UGameplayStatics::GetPlayerPawn(World, 0);
+		AActor* Boss = Combo->GetOwner();
+		if (Player && Boss)
+		{
+			UpdateOrbitMovement(Combo, Boss, Player, Clock, DeltaSeconds);
+			return;
+		}
+	}
+	if (Combo->IsComboPlaying())
+	{
+		SetBossLocomotion(Combo->GetOwner(), 0.0f, FVector::ZeroVector, AnimationReferenceSpeed, DeltaSeconds);
 	}
 	if (!Combo->IsComboQueuedOrPlaying())
 	{
@@ -237,7 +264,11 @@ EBTNodeResult::Type UBTTask_BeatAttack::AbortTask(UBehaviorTreeComponent& OwnerC
 {
 	if (bAttackStarted)
 	{
-		if (UBeatSyncedComboComponent* Combo = GetComboComponent(OwnerComp, BossActorKey.SelectedKeyName)) Combo->CancelCombo();
+		if (UBeatSyncedComboComponent* Combo = GetComboComponent(OwnerComp, BossActorKey.SelectedKeyName))
+		{
+			if (!Combo->IsComboPlaying()) Combo->CancelCombo();
+			else UE_LOG(LogTemp, Display, TEXT("BTTask_BeatAttack: BT aborted after playback began; committed combo continues"));
+		}
 	}
 	bAttackStarted = false;
 	if (UBeatSyncedComboComponent* Combo = GetComboComponent(OwnerComp, BossActorKey.SelectedKeyName))

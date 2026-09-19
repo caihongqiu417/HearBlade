@@ -18,6 +18,19 @@ struct FAttackImpactMarker
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据", meta = (ClampMin = "0"))
 	double BeatOffset = 0.0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|伤害", meta = (ClampMin = "0.0"))
+	float Damage = 18.0f;
+
+	// The intended dodge input happens this many seconds before blade contact.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|闪避判定", meta = (ClampMin = "0.0", ClampMax = "0.5"))
+	float IdealDodgeLeadSeconds = 0.14f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|伤害", meta = (ClampMin = "0.01", ClampMax = "0.3"))
+	float DamageWindowBeforeSeconds = 0.10f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|伤害", meta = (ClampMin = "0.01", ClampMax = "0.3"))
+	float DamageWindowAfterSeconds = 0.10f;
 };
 
 // ============================================================

@@ -7,6 +7,8 @@
 #include "BTTask_BeatAttack.generated.h"
 
 class UAttackDataAsset;
+class UBeatClockSubsystem;
+class APawn;
 
 // 行为树决定何时、用哪段攻击；组件只负责将该段的命中排到下一可用拍。
 UCLASS()
@@ -50,13 +52,13 @@ public:
 
 	// Don't launch a fresh combo immediately after the last one; show the circling first.
 	UPROPERTY(EditAnywhere, Category="节拍攻击|环绕", meta=(ClampMin="0.0", DisplayName="攻击前最短环绕时间"))
-	float MinimumOrbitSeconds = 0.45f;
+	float MinimumOrbitSeconds = 0.15f;
 
 	UPROPERTY(EditAnywhere, Category="节拍攻击|环绕", meta=(ClampMin="0.0", DisplayName="最小攻击距离"))
 	float MinAttackDistance = 180.0f;
 
 	UPROPERTY(EditAnywhere, Category="节拍攻击", meta=(ClampMin="0.0"))
-	float PostAttackCooldownSeconds = 0.75f;
+	float PostAttackCooldownSeconds = 0.35f;
 
 	UPROPERTY(EditAnywhere, Category="节拍攻击|转向", meta=(ClampMin="1.0"))
 	float TurnSpeedDegreesPerSecond = 360.0f;
@@ -75,6 +77,8 @@ public:
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 private:
+	float UpdateOrbitMovement(UBeatSyncedComboComponent* Combo, AActor* Boss, const APawn* Player,
+		const UBeatClockSubsystem* Clock, float DeltaSeconds);
 	bool bAttackStarted = false;
 	bool bLoggedWaitingForRange = false;
 	bool bLoggedTurning = false;

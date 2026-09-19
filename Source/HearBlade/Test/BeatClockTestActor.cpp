@@ -18,6 +18,11 @@ ABeatClockTestActor::ABeatClockTestActor()
 	MusicComponent->bAutoActivate = false;
 	MusicComponent->bAllowSpatialization = false;
 	MusicComponent->bIsUISound = true;
+	CombatDrumComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("CombatDrumComponent"));
+	CombatDrumComponent->SetupAttachment(MusicComponent);
+	CombatDrumComponent->bAutoActivate = false;
+	CombatDrumComponent->bAllowSpatialization = false;
+	CombatDrumComponent->bIsUISound = true;
 
 	// 配置第一步使用的拍子设置。
 	ClockSettings.BPM = 104.0;
@@ -29,6 +34,8 @@ ABeatClockTestActor::ABeatClockTestActor()
 		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/DA_DragonKnight_Combo01_Beat.DA_DragonKnight_Combo01_Beat"));
 	DrumKick = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_BossDrumKick.SW_BossDrumKick"));
 	DrumTick = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_BossDrumTick.SW_BossDrumTick"));
+	CombatDrumLoop = LoadObject<USoundBase>(nullptr,
+		TEXT("/Game/Audio/SFX/SW_BossCombatDrumLoop.SW_BossCombatDrumLoop"));
 }
 
 // ============================================================
@@ -38,8 +45,9 @@ ABeatClockTestActor::ABeatClockTestActor()
 void ABeatClockTestActor::BeginPlay()
 {
 	Super::BeginPlay();
-	UE_LOG(LogTemp, Display, TEXT("BossDrums: enabled=%d kick=%s tick=%s volumes=%.2f/%.2f/%.2f"),
-		bEnableCombatDrums ? 1 : 0, *GetNameSafe(DrumKick), *GetNameSafe(DrumTick),
+	UE_LOG(LogTemp, Display, TEXT("BossDrums: enabled=%d stem=%s stemVolume=%.2f musicVolume=%.2f kick=%s tick=%s volumes=%.2f/%.2f/%.2f"),
+		bEnableCombatDrums ? 1 : 0, *GetNameSafe(CombatDrumLoop), CombatDrumStemVolume, MusicMixVolume,
+		*GetNameSafe(DrumKick), *GetNameSafe(DrumTick),
 		StrongDrumVolume, MiddleDrumVolume, WeakDrumVolume);
 
 	// 拍子时钟由 Unreal 自动创建，测试对象只需要取得它。
@@ -52,12 +60,15 @@ void ABeatClockTestActor::BeginPlay()
 	if (Music)
 	{
 		MusicComponent->SetSound(Music);
+		MusicComponent->SetVolumeMultiplier(MusicMixVolume);
 		FBeatClockSettings MusicSettings = ClockSettings;
 		float StartTime = MusicStartTimeSeconds;
+		double SourceBeatPhase = ClockSettings.StartOffsetSeconds;
 		if (IsValid(SyncAttackData))
 		{
 			MusicSettings.BPM = SyncAttackData->ReferenceBPM;
 			MusicSettings.StartOffsetSeconds = SyncAttackData->ReferenceBeatPhaseSeconds;
+			SourceBeatPhase = SyncAttackData->ReferenceBeatPhaseSeconds;
 			StartTime = static_cast<float>(SyncAttackData->ReferenceMusicStartSeconds);
 		}
 		const double SecondsPerBeat = 60.0 / FMath::Max(MusicSettings.BPM, 1.0);
@@ -67,6 +78,17 @@ void ABeatClockTestActor::BeginPlay()
 			MusicSettings.StartOffsetSeconds += SecondsPerBeat;
 		}
 		BeatClock->StartClockWithMusic(MusicSettings, MusicComponent, StartTime);
+		if (bEnableCombatDrums && bUseLoopingDrumStem && CombatDrumLoop && CombatDrumComponent)
+		{
+			const double BarSeconds = SecondsPerBeat * FMath::Max(1, MusicSettings.BeatsPerBar);
+			double DrumStartTime = FMath::Fmod(StartTime - SourceBeatPhase, BarSeconds);
+			if (DrumStartTime < 0.0) DrumStartTime += BarSeconds;
+			CombatDrumComponent->SetSound(CombatDrumLoop);
+			CombatDrumComponent->SetVolumeMultiplier(CombatDrumStemVolume);
+			CombatDrumComponent->Play(static_cast<float>(DrumStartTime));
+			UE_LOG(LogTemp, Display, TEXT("CombatDrumStem: playing=%d sourceStart=%.6f bar=%.6f BPM=%.3f"),
+				CombatDrumComponent->IsPlaying() ? 1 : 0, DrumStartTime, BarSeconds, MusicSettings.BPM);
+		}
 	}
 	else
 	{
@@ -83,6 +105,7 @@ void ABeatClockTestActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	BeatClock->StopClock();
 	MusicComponent->Stop();
+	if (CombatDrumComponent) CombatDrumComponent->Stop();
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -96,7 +119,8 @@ void ABeatClockTestActor::HandleBeat(int32 BeatIndex /* 全部拍子编号 */, i
 	UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	// After a hitch, the clock can emit skipped beats together. Don't play old
 	// percussion on top of the current beat.
-	if (bEnableCombatDrums && Clock && BeatIndex == Clock->GetCurrentBeatIndex() &&
+	const bool bStemIsPlaying = CombatDrumComponent && CombatDrumComponent->IsPlaying();
+	if (bEnableCombatDrums && !bStemIsPlaying && Clock && BeatIndex == Clock->GetCurrentBeatIndex() &&
 		(!MusicComponent || MusicComponent->IsPlaying()))
 	{
 		USoundBase* AccentSound = (BeatInBar == 0 || BeatInBar == 2) ? DrumKick : DrumTick;

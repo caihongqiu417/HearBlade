@@ -50,6 +50,16 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBossBlinkSucceeded, FVector, Lan
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBossBlinkCancelled);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBossConfirmedHit);
 
+// A read-only snapshot used by player-facing HUD. Times come from the same audio clock
+// that drives the combo, so the cue never invents a separate visual rhythm timer.
+struct FUpcomingImpactCue
+{
+	double ImpactAudioSeconds = 0.0;
+	float IdealDodgeLeadSeconds = 0.14f;
+	int32 ImpactIndex = 0;
+	bool bStrongBeat = false;
+};
+
 // 行为树触发攻击后，将第一击安排在下一可用的指定小节拍位。
 UCLASS(ClassGroup=(Combat), meta=(BlueprintSpawnableComponent))
 class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
@@ -99,6 +109,10 @@ public:
 	// Must be called before QueueAttack. The first impact and the blink then share one clock timestamp.
 	void ConfigureNextBlink(const FBeatBlinkSettings& Settings);
 	double GetScheduledFirstImpactAudioSeconds() const { return ScheduledFirstImpactAudioSeconds; }
+	double GetScheduledStartAudioSeconds() const { return ScheduledStartAudioSeconds; }
+	// Runtime timing for the next unresolved blade contact. Used by player-facing rhythm cues and tests.
+	bool GetNextImpactDodgeTiming(double& OutImpactAudioSeconds, float& OutIdealLeadSeconds) const;
+	void GetUpcomingImpactCues(TArray<FUpcomingImpactCue>& OutCues, int32 MaxCount = 4) const;
 
 	UFUNCTION(BlueprintCallable, Category="节拍连招")
 	void SetAttackTarget(AActor* InTarget);
@@ -108,6 +122,10 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="节拍连招")
 	bool IsComboQueuedOrPlaying() const { return bQueued || bPlaying; }
+	UFUNCTION(BlueprintPure, Category="节拍连招")
+	bool IsComboQueued() const { return bQueued; }
+	UFUNCTION(BlueprintPure, Category="节拍连招")
+	bool IsComboPlaying() const { return bPlaying; }
 
 	UFUNCTION(BlueprintPure, Category="节拍连招")
 	bool WasLastAttackCompleted() const { return bLastAttackCompleted; }
@@ -185,6 +203,9 @@ private:
 	void ResetStrongBeatPresentation();
 	void UpdateBeatOverlay(const UBeatClockSubsystem* Clock);
 	void TriggerBeatOverlay(bool bStrong, double AudioNow);
+	void UpdateDamageSweep(double AudioNow);
+	void ResolveUncontactedDamageWindow(int32 ImpactIndex);
+	UMeshComponent* FindBladeMesh() const;
 
 	bool bQueued = false;
 	bool bPlaying = false;
@@ -239,4 +260,13 @@ private:
 	TObjectPtr<UBossMotionWarpingComponent> WarpComponent;
 	int32 ActiveWarpWindowIndex = INDEX_NONE;
 	FVector WarpAnchorLocation = FVector::ZeroVector;
+	int32 ActiveDamageImpactIndex = INDEX_NONE;
+	int32 NextDamageWindowIndex = 0;
+	bool bActiveDamageResolved = false;
+	bool bActiveDamageThreatened = false;
+	FVector PreviousBladeTraceLocation = FVector::ZeroVector;
+	FVector ClosestBladeFeedbackLocation = FVector::ZeroVector;
+	FVector ClosestBladeAttackDirection = FVector::ForwardVector;
+	float ClosestBladeFeedbackDistance = BIG_NUMBER;
+	TWeakObjectPtr<UMeshComponent> BladeTraceMesh;
 };

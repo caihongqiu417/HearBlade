@@ -1,8 +1,9 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "HearBladeGameMode.h"
+#include "UI/RhythmCombatHUD.h"
 
 AHearBladeGameMode::AHearBladeGameMode()
 {
-	// stub
+	HUDClass = ARhythmCombatHUD::StaticClass();
 }
