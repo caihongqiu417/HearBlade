@@ -135,6 +135,9 @@ public:
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 	int32 GetCurrentBeatInBar() const;
 
+	// Briefly clear space in the music mix for a blade strike, then recover.
+	void TriggerImpactDuck(float MusicGain, float HoldSeconds = 0.07f, float ReleaseSpeed = 9.f);
+
 	// ========================================================
 	// 拍子事件
 	// ========================================================
@@ -155,4 +158,9 @@ private:
 
 	// 上一次已经发出的拍子编号；-1 表示还没有发出过拍子事件。
 	int32 LastEmittedBeat = -1;
+	TWeakObjectPtr<UAudioComponent> MusicSource;
+	float BaseMusicVolume = 1.f;
+	float CurrentMusicGain = 1.f;
+	float DuckHoldRemaining = 0.f;
+	float DuckReleaseSpeed = 9.f;
 };

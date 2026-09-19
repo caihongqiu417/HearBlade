@@ -11,7 +11,13 @@
 #include "Components/SkeletalMeshComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
+#include "Components/MeshComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Components/AudioComponent.h"
 #include "Engine/SkeletalMesh.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Materials/MaterialInterface.h"
+#include "Kismet/GameplayStatics.h"
 #include "RootMotionModifier_SkewWarp.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
@@ -23,15 +29,19 @@
 
 namespace
 {
-void SpawnBriefFire(UWorld* World, UNiagaraSystem* Effect, const FVector& Location, float Lifetime)
+UNiagaraComponent* SpawnBriefFire(UWorld* World, UNiagaraSystem* Effect, const FVector& Location,
+	float Lifetime, float Scale = 1.f)
 {
-	if (!World || !Effect) return;
+	if (!World || !Effect) return nullptr;
 	if (UNiagaraComponent* Component = UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, Effect, Location))
 	{
+		Component->SetWorldScale3D(FVector(Scale));
 		FTimerHandle Timer;
 		World->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateWeakLambda(Component,
 			[Component]() { Component->Deactivate(); }), FMath::Max(0.1f, Lifetime), false);
+		return Component;
 	}
+	return nullptr;
 }
 
 void AlignBossToGround(AActor* Boss, AActor* Target)
@@ -154,6 +164,75 @@ void UBeatSyncedComboComponent::BeginPlay()
 	}
 	UE_LOG(LogTemp, Display, TEXT("BeatFire: %d persistent fire components follow the music beat"),
 		FirePulseTargets.Num());
+	TArray<UMeshComponent*> VisualMeshes;
+	GetOwner()->GetComponents<UMeshComponent>(VisualMeshes);
+	USceneComponent* WeaponAnchor = nullptr;
+	for (UMeshComponent* VisualMesh : VisualMeshes)
+	{
+		if (!IsValid(VisualMesh)) continue;
+		bool bArmorMesh = false;
+		for (int32 Index = 0; Index < VisualMesh->GetNumMaterials(); ++Index)
+		{
+			UMaterialInterface* Material = VisualMesh->GetMaterial(Index);
+			if (!IsValid(Material)) continue;
+			const bool bSword = Material->GetName().Contains(TEXT("Sword_Fire"), ESearchCase::IgnoreCase);
+			const bool bBodyFire = !bSword && Material->GetName().Contains(TEXT("_Fire"), ESearchCase::IgnoreCase);
+			if (!bSword && !bBodyFire) continue;
+			bArmorMesh |= bBodyFire;
+			float BaseIntensity = 20.f;
+			if (!bSword || !Material->GetScalarParameterValue(FMaterialParameterInfo(TEXT("Emissive Intensity")), BaseIntensity)) continue;
+			if (UMaterialInstanceDynamic* DynamicMaterial = VisualMesh->CreateDynamicMaterialInstance(Index))
+			{
+				SwordGlowTargets.Add({DynamicMaterial, BaseIntensity});
+				if (!WeaponAnchor) WeaponAnchor = VisualMesh;
+			}
+		}
+		if (bArmorMesh) BeatOverlayMeshes.Add(VisualMesh);
+	}
+	if (!BeatOverlayMaterial)
+		BeatOverlayMaterial = LoadObject<UMaterialInterface>(nullptr,
+			TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/MATERIALS/M_BossBeatOverlay.M_BossBeatOverlay"));
+	if (BeatOverlayMaterial)
+	{
+		BeatOverlayInstance = UMaterialInstanceDynamic::Create(BeatOverlayMaterial, GetOwner());
+		BeatOverlayInstance->SetScalarParameterValue(TEXT("StrongPulse"), 0.f);
+		BeatOverlayInstance->SetScalarParameterValue(TEXT("WeakPulse"), 0.f);
+		for (const TWeakObjectPtr<UMeshComponent>& Mesh : BeatOverlayMeshes)
+			if (UMeshComponent* Component = Mesh.Get()) Component->SetOverlayMaterial(BeatOverlayInstance);
+	}
+	FName WeaponSocket = NAME_None;
+	if (!WeaponAnchor)
+	{
+		WeaponAnchor = LocomotionMesh.Get();
+		if (USkeletalMeshComponent* BodyMesh = LocomotionMesh.Get();
+			BodyMesh && BodyMesh->DoesSocketExist(TEXT("hand_r")))
+			WeaponSocket = TEXT("hand_r");
+	}
+	if (!WeaponAnchor) WeaponAnchor = GetOwner()->GetRootComponent();
+	if (WeaponAnchor)
+	{
+		UPointLightComponent* Light = NewObject<UPointLightComponent>(GetOwner(), TEXT("BossStrongBeatSwordLight"));
+		GetOwner()->AddInstanceComponent(Light);
+		Light->SetMobility(EComponentMobility::Movable);
+		Light->SetupAttachment(WeaponAnchor, WeaponSocket);
+		Light->SetRelativeLocation(WeaponAnchor == GetOwner()->GetRootComponent()
+			? FVector(0.f, 0.f, 150.f) : FVector(25.f, 0.f, 0.f));
+		Light->SetLightColor(FLinearColor(1.f, .18f, .025f));
+		Light->SetAttenuationRadius(270.f);
+		Light->SetCastShadows(false);
+		Light->SetIntensity(0.f);
+		Light->RegisterComponent();
+		SwordChargeLight = Light;
+	}
+	USoundBase* UserSwordSlice = LoadObject<USoundBase>(nullptr,
+		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/SOUND/SW_DragonKnight_SwordSlice.SW_DragonKnight_SwordSlice"));
+	const bool bLegacyStrong = StrongBeatSound && StrongBeatSound->GetName().StartsWith(TEXT("SW_BossBlade"));
+	const bool bLegacyWeak = WeakBladeSound && WeakBladeSound->GetName().StartsWith(TEXT("SW_BossBlade"));
+	if (UserSwordSlice && (!StrongBeatSound || bLegacyStrong)) StrongBeatSound = UserSwordSlice;
+	if (UserSwordSlice && (!WeakBladeSound || bLegacyWeak)) WeakBladeSound = UserSwordSlice;
+	UE_LOG(LogTemp, Display, TEXT("BossStrongBeat: swordMaterials=%d overlayMeshes=%d overlay=%s anchor=%s socket=%s strongSound=%s weakSound=%s"),
+		SwordGlowTargets.Num(), BeatOverlayMeshes.Num(), *GetNameSafe(BeatOverlayMaterial), *GetNameSafe(WeaponAnchor), *WeaponSocket.ToString(),
+		*GetNameSafe(StrongBeatSound), *GetNameSafe(WeakBladeSound));
 }
 
 float UBeatSyncedComboComponent::GetWalkClipLengthSeconds() const
@@ -174,9 +253,123 @@ void UBeatSyncedComboComponent::UpdateBeatFirePulse(const UBeatClockSubsystem* C
 		const bool bBarStart = Clock->GetBeatsPerBar() > 0 && NearestBeat % Clock->GetBeatsPerBar() == 0;
 		Scale += FireBeatPulseStrength * Accent * (bBarStart ? 1.35f : 1.f);
 	}
+	if (Clock && Clock->IsRunning() && bStrongBeatThisAttack && (bQueued || bPlaying))
+	{
+		const double UntilImpact = ScheduledFirstImpactAudioSeconds - Clock->GetAudioNowSeconds();
+		const double ChargeSeconds = FMath::Max(.01, StrongBeatChargeBeats * Clock->GetSecondsPerBeat());
+		if (UntilImpact > 0.0 && UntilImpact <= ChargeSeconds)
+		{
+			const float Alpha = FMath::Clamp(static_cast<float>(1.0 - UntilImpact / ChargeSeconds), 0.f, 1.f);
+			const float Ease = Alpha * Alpha * (3.f - 2.f * Alpha);
+			Scale *= FMath::Lerp(1.f, .32f, Ease);
+		}
+		else if (bBlinkExecuted && UntilImpact <= 0.0 && UntilImpact > -.3)
+		{
+			Scale *= 1.f + .95f * FMath::Exp(static_cast<float>(UntilImpact / .11));
+		}
+	}
 	for (const FFirePulseTarget& Target : FirePulseTargets)
 		if (UNiagaraComponent* Component = Target.Component.Get())
 			Component->SetRelativeScale3D(Target.BaseScale * Scale);
+}
+
+void UBeatSyncedComboComponent::UpdateStrongBeatPresentation(const UBeatClockSubsystem* Clock)
+{
+	float Glow = 1.f;
+	float LightIntensity = 0.f;
+	if (Clock && Clock->IsRunning() && bStrongBeatThisAttack && (bQueued || bPlaying))
+	{
+		const double UntilImpact = ScheduledFirstImpactAudioSeconds - Clock->GetAudioNowSeconds();
+		const double ChargeSeconds = FMath::Max(.01, StrongBeatChargeBeats * Clock->GetSecondsPerBeat());
+		if (UntilImpact > 0.0 && UntilImpact <= ChargeSeconds)
+		{
+			const float Alpha = FMath::Clamp(static_cast<float>(1.0 - UntilImpact / ChargeSeconds), 0.f, 1.f);
+			const float Ease = Alpha * Alpha * (3.f - 2.f * Alpha);
+			Glow = FMath::Lerp(1.f, StrongBeatSwordGlowMultiplier, Ease);
+			LightIntensity = 3800.f * Ease;
+			if (!bStrongBeatChargeStarted)
+			{
+				bStrongBeatChargeStarted = true;
+				if (BlinkSettings.WarningEffect)
+				{
+					const UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(GetOwner()->GetRootComponent());
+					const float HalfHeight = Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 110.f;
+					OriginWarningFX = SpawnBriefFire(GetWorld(), BlinkSettings.WarningEffect,
+						GetOwner()->GetActorLocation() - FVector(0, 0, HalfHeight - 2.f),
+						static_cast<float>(ChargeSeconds + .1), 1.4f);
+				}
+				UE_LOG(LogTemp, Display, TEXT("BossStrongBeat: charge beat=%d audio=%.3f target=%.3f"),
+					FirstImpactBeat, Clock->GetAudioNowSeconds(), ScheduledFirstImpactAudioSeconds);
+			}
+			if (UNiagaraComponent* Effect = OriginWarningFX.Get())
+				Effect->SetWorldScale3D(FVector(FMath::Lerp(1.4f, .35f, Ease)));
+		}
+		else if (bBlinkExecuted && UntilImpact <= 0.0 && UntilImpact > -.3)
+		{
+			const float Flash = FMath::Exp(static_cast<float>(UntilImpact / .11));
+			Glow = 1.f + 4.f * Flash;
+			LightIntensity = 7600.f * Flash;
+		}
+		if (bBlinkWarningShown && !bBlinkExecuted && BlinkSettings.WarningBeats > 0.f)
+		{
+			const float WarningProgress = FMath::Clamp(static_cast<float>(1.0 -
+				UntilImpact / (BlinkSettings.WarningBeats * Clock->GetSecondsPerBeat())), 0.f, 1.f);
+			const float WarningScale = FMath::Lerp(1.3f, .42f, WarningProgress);
+			if (UNiagaraComponent* Effect = LandingWarningFX.Get()) Effect->SetWorldScale3D(FVector(WarningScale));
+		}
+	}
+	for (const FSwordGlowTarget& Target : SwordGlowTargets)
+		if (UMaterialInstanceDynamic* Material = Target.Material.Get())
+			Material->SetScalarParameterValue(TEXT("Emissive Intensity"), Target.BaseIntensity * Glow);
+	if (UPointLightComponent* Light = SwordChargeLight.Get()) Light->SetIntensity(LightIntensity);
+}
+
+void UBeatSyncedComboComponent::TriggerBeatOverlay(bool bStrong, double AudioNow)
+{
+	if (!BeatOverlayInstance) return;
+	if (bStrong)
+	{
+		LastStrongOverlayAudioSeconds = AudioNow;
+		BeatOverlayInstance->SetScalarParameterValue(TEXT("StrongPulse"), 1.f);
+	}
+	else
+	{
+		LastWeakOverlayAudioSeconds = AudioNow;
+		BeatOverlayInstance->SetScalarParameterValue(TEXT("WeakPulse"), 1.f);
+	}
+}
+
+void UBeatSyncedComboComponent::UpdateBeatOverlay(const UBeatClockSubsystem* Clock)
+{
+	if (!BeatOverlayInstance || !Clock || !Clock->IsRunning()) return;
+	const double Now = Clock->GetAudioNowSeconds();
+	auto Envelope = [Now](double Last, float Duration) -> float
+	{
+		const double Age = Now - Last;
+		if (Age < 0.0 || Age >= Duration) return 0.f;
+		const float Alpha = static_cast<float>(Age / Duration);
+		return FMath::Square(1.f - Alpha);
+	};
+	BeatOverlayInstance->SetScalarParameterValue(TEXT("StrongPulse"),
+		Envelope(LastStrongOverlayAudioSeconds, FMath::Max(.1f, StrongOverlaySeconds)));
+	BeatOverlayInstance->SetScalarParameterValue(TEXT("WeakPulse"),
+		Envelope(LastWeakOverlayAudioSeconds, FMath::Max(.05f, WeakOverlaySeconds)));
+}
+
+void UBeatSyncedComboComponent::ResetStrongBeatPresentation()
+{
+	const bool bWasCharging = bStrongBeatChargeStarted;
+	for (const FSwordGlowTarget& Target : SwordGlowTargets)
+		if (UMaterialInstanceDynamic* Material = Target.Material.Get())
+			Material->SetScalarParameterValue(TEXT("Emissive Intensity"), Target.BaseIntensity);
+	if (UPointLightComponent* Light = SwordChargeLight.Get()) Light->SetIntensity(0.f);
+	if (UNiagaraComponent* Effect = OriginWarningFX.Get()) Effect->Deactivate();
+	if (UNiagaraComponent* Effect = LandingWarningFX.Get()) Effect->Deactivate();
+	OriginWarningFX.Reset();
+	LandingWarningFX.Reset();
+	bStrongBeatChargeStarted = false;
+	bStrongBeatThisAttack = false;
+	if (bWasCharging) UE_LOG(LogTemp, Display, TEXT("BossStrongBeat: restored sword glow, light and warning fire"));
 }
 
 bool UBeatSyncedComboComponent::QueueAttack(UAttackDataAsset* InAttackData)
@@ -197,6 +390,7 @@ void UBeatSyncedComboComponent::ConfigureNextBlink(const FBeatBlinkSettings& Set
 void UBeatSyncedComboComponent::ClearBlink()
 {
 	if (bBlinkWarningShown && !bBlinkExecuted) OnBlinkCancelled.Broadcast();
+	ResetStrongBeatPresentation();
 	bBlinkRequested = false;
 	bBlinkWarningShown = false;
 	bBlinkExecuted = false;
@@ -343,7 +537,7 @@ bool UBeatSyncedComboComponent::QueueCombo()
 	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(ClipStart);
 	const double FirstImpactDelay = AttackData->GetElapsedAtAnimationTime(GetImpactTime(0)) - ClipStartElapsed;
 	const double LeadSeconds = FMath::Max<double>(SchedulingLeadSeconds,
-		bBlinkRequested ? BlinkSettings.WarningBeats * Clock->GetSecondsPerBeat() + 0.05 : 0.0);
+		bBlinkRequested ? FMath::Max(BlinkSettings.WarningBeats, StrongBeatChargeBeats) * Clock->GetSecondsPerBeat() + 0.05 : 0.0);
 	const double EarliestImpactTime = Clock->GetAudioNowSeconds() + FirstImpactDelay + LeadSeconds;
 	const double BeatDuration = Clock->GetSecondsPerBeat();
 	for (int32 Index = 1; Index < GetImpactCount(); ++Index)
@@ -369,12 +563,15 @@ bool UBeatSyncedComboComponent::QueueCombo()
 		CandidateBeat += (WantedBeatInBar - CandidateBeat % BeatsPerBar + BeatsPerBar) % BeatsPerBar;
 	}
 	FirstImpactBeat = CandidateBeat;
+	bStrongBeatThisAttack = bBlinkRequested && CandidateBeat % FMath::Max(1, Clock->GetBeatsPerBar()) == 0;
+	bStrongBeatChargeStarted = false;
 	ScheduledFirstImpactAudioSeconds = Clock->GetBeatTimeSeconds(FirstImpactBeat);
 	ScheduledStartAudioSeconds = ScheduledFirstImpactAudioSeconds - FirstImpactDelay;
 	UE_LOG(LogTemp, Display, TEXT("BeatSyncedCombo: Boss=%s FirstImpactBeat=%d BeatInBar=%d StartAudio=%.3f FirstImpactDelay=%.3f"),
 		*GetNameSafe(GetOwner()), FirstImpactBeat, FirstImpactBeat % FMath::Max(1, Clock->GetBeatsPerBar()) + 1,
 		ScheduledStartAudioSeconds, FirstImpactDelay);
 	NextImpactIndex = 0;
+	NextBladeSoundIndex = 0;
 	bLastAttackCompleted = false;
 	bQueued = true;
 	return true;
@@ -408,6 +605,7 @@ void UBeatSyncedComboComponent::CancelCombo()
 	bPlaying = false;
 	bLastAttackCompleted = false;
 	NextImpactIndex = 0;
+	NextBladeSoundIndex = 0;
 	RootMotionMesh.Reset();
 	AttackTarget.Reset();
 	LocomotionResumeWorldSeconds = GetWorld()->GetTimeSeconds() + 0.2;
@@ -569,6 +767,8 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	}
 	UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	UpdateBeatFirePulse(Clock);
+	UpdateStrongBeatPresentation(Clock);
+	UpdateBeatOverlay(Clock);
 	if (!Clock || !Clock->IsRunning())
 	{
 		return;
@@ -589,12 +789,19 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			OnBlinkWarning.Broadcast(LockedBlinkLocation, ScheduledFirstImpactAudioSeconds);
 			if (BlinkSettings.WarningEffect)
 			{
+				const UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(GetOwner()->GetRootComponent());
+				const float HalfHeight = Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 110.f;
 				const float WarningDuration = BlinkSettings.WarningBeats * Clock->GetSecondsPerBeat();
-				SpawnBriefFire(GetWorld(), BlinkSettings.WarningEffect, GetOwner()->GetActorLocation(), WarningDuration);
-				SpawnBriefFire(GetWorld(), BlinkSettings.WarningEffect, LockedBlinkLocation, WarningDuration);
+				if (!OriginWarningFX.IsValid())
+					OriginWarningFX = SpawnBriefFire(GetWorld(), BlinkSettings.WarningEffect,
+						GetOwner()->GetActorLocation() - FVector(0, 0, HalfHeight - 2.f),
+						WarningDuration, bStrongBeatThisAttack ? 1.3f : 1.f);
+				LandingWarningFX = SpawnBriefFire(GetWorld(), BlinkSettings.WarningEffect,
+					FVector(LockedBlinkLocation.X, LockedBlinkLocation.Y, LockedBlinkGroundZ + 2.f),
+					WarningDuration, bStrongBeatThisAttack ? 1.3f : 1.f);
 			}
-			UE_LOG(LogTemp, Display, TEXT("BeatBlink: Warning beat=%d Audio=%.3f Landing=%s"),
-				FirstImpactBeat, Now, *LockedBlinkLocation.ToString());
+			UE_LOG(LogTemp, Display, TEXT("BeatBlink: Warning beat=%d Audio=%.3f Landing=%s GroundFXZ=%.1f"),
+				FirstImpactBeat, Now, *LockedBlinkLocation.ToString(), LockedBlinkGroundZ + 2.f);
 		}
 		if (bBlinkRequested && bBlinkWarningShown && !bBlinkExecuted && Now >= ScheduledFirstImpactAudioSeconds)
 		{
@@ -630,12 +837,20 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 				return;
 			}
 			bBlinkExecuted = true;
+			if (bStrongBeatThisAttack) TriggerBeatOverlay(true, Now);
 			AlignBossToGround(GetOwner(), AttackTarget.Get());
 			OnBlinkSucceeded.Broadcast(CheckedLocation, ScheduledFirstImpactAudioSeconds);
+			if (UNiagaraComponent* Effect = OriginWarningFX.Get()) Effect->Deactivate();
+			if (UNiagaraComponent* Effect = LandingWarningFX.Get()) Effect->Deactivate();
+			const UCapsuleComponent* BurstCapsule = Cast<UCapsuleComponent>(GetOwner()->GetRootComponent());
+			const float BurstHalfHeight = BurstCapsule ? BurstCapsule->GetScaledCapsuleHalfHeight() : 110.f;
 			if (BlinkSettings.OriginEffect)
-				SpawnBriefFire(GetWorld(), BlinkSettings.OriginEffect, From, 0.35f);
+				SpawnBriefFire(GetWorld(), BlinkSettings.OriginEffect,
+					From - FVector(0, 0, BurstHalfHeight - 2.f), 0.35f);
 			if (BlinkSettings.LandingEffect)
-				SpawnBriefFire(GetWorld(), BlinkSettings.LandingEffect, CheckedLocation, 0.35f);
+				SpawnBriefFire(GetWorld(), BlinkSettings.LandingEffect,
+					GetOwner()->GetActorLocation() - FVector(0, 0, BurstHalfHeight - 2.f), 0.35f,
+					bStrongBeatThisAttack ? 1.45f : 1.f);
 			// Discard pre-impact root translation; later strikes keep their normal Motion Warping.
 			LastRootMotionPosition = GetImpactTime(0);
 			ActiveWarpWindowIndex = INDEX_NONE;
@@ -662,6 +877,34 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	const double AnimationPosition = AttackData->GetAnimationTimeAtElapsed(
 		AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds) +
 		static_cast<float>(Now - ScheduledStartAudioSeconds));
+	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds);
+	while (NextBladeSoundIndex < GetImpactCount())
+	{
+		const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(NextBladeSoundIndex)) - ClipStartElapsed;
+		const double MarkerAudioTime = ScheduledStartAudioSeconds + MarkerElapsed;
+		if (Now < MarkerAudioTime - BladeWhooshLeadSeconds) break;
+		const double Offset = AttackData->ImpactMarkers.IsEmpty() ? 0.0 : AttackData->ImpactMarkers[NextBladeSoundIndex].BeatOffset;
+		const double TargetBeat = FirstImpactBeat + Offset;
+		const int32 NearestBeat = FMath::RoundToInt(TargetBeat);
+		const bool bWholeBeat = FMath::Abs(TargetBeat - NearestBeat) < .05;
+		const int32 BeatInBar = NearestBeat % FMath::Max(1, Clock->GetBeatsPerBar());
+		const bool bStrongAccent = bWholeBeat && BeatInBar == 0;
+		const float AccentVolume = bStrongAccent ? StrongBladeVolume
+			: WeakBladeVolume * (bWholeBeat && BeatInBar == 2 ? 1.f : .82f);
+		USoundBase* BladeSound = bStrongAccent ? StrongBeatSound.Get() : WeakBladeSound.Get();
+		if (BladeSound && AccentVolume > 0.f)
+		{
+			Clock->TriggerImpactDuck(bStrongAccent ? StrongBeatMusicGain : WeakBeatMusicGain, .15f, 6.f);
+			const float Pitch = bStrongAccent ? .98f : 1.05f;
+			UAudioComponent* Voice = UGameplayStatics::SpawnSound2D(this, BladeSound,
+				AccentVolume * BladeSfxGain, Pitch, BladeSoundStartTimeSeconds);
+			UE_LOG(LogTemp, Display, TEXT("BossBladeVoice: impact=%d component=%s playing=%d duration=%.3f gain=%.2f pitch=%.2f sourceStart=%.3f leadMs=%.1f"),
+				NextBladeSoundIndex + 1, *GetNameSafe(Voice), Voice && Voice->IsPlaying() ? 1 : 0,
+				BladeSound->GetDuration(), AccentVolume * BladeSfxGain, Pitch, BladeSoundStartTimeSeconds,
+				(MarkerAudioTime - Now) * 1000.0);
+		}
+		++NextBladeSoundIndex;
+	}
 	TArray<USkeletalMeshComponent*> Meshes;
 	GetOwner()->GetComponents<USkeletalMeshComponent>(Meshes);
 	for (USkeletalMeshComponent* Mesh : Meshes)
@@ -710,6 +953,13 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		const double Offset = AttackData->ImpactMarkers.IsEmpty() ? 0.0 : AttackData->ImpactMarkers[NextImpactIndex].BeatOffset;
 		const double TargetBeat = FirstImpactBeat + Offset;
 		const float BeatError = static_cast<float>(Now - Clock->GetBeatTimeSeconds(TargetBeat));
+		const int32 NearestBeat = FMath::RoundToInt(TargetBeat);
+		const bool bWholeBeat = FMath::Abs(TargetBeat - NearestBeat) < .05;
+		const int32 BeatInBar = NearestBeat % FMath::Max(1, Clock->GetBeatsPerBar());
+		const bool bStrongAccent = bWholeBeat && BeatInBar == 0;
+		TriggerBeatOverlay(bStrongAccent, Now);
+		UE_LOG(LogTemp, Display, TEXT("BossBeatOverlay: Impact=%d BeatInBar=%d Strong=%d ErrorMs=%.1f"),
+			NextImpactIndex + 1, BeatInBar + 1, bStrongAccent ? 1 : 0, BeatError * 1000.f);
 		UE_LOG(LogTemp, Display, TEXT("BeatSyncedCombo: Impact=%d TargetBeat=%.2f ErrorMs=%.1f"),
 			NextImpactIndex + 1, TargetBeat, BeatError * 1000.0f);
 		if (AttackTarget.IsValid())

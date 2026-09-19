@@ -12,6 +12,11 @@ class UAnimInstance;
 class UAnimSequence;
 class UNiagaraComponent;
 class UBeatClockSubsystem;
+class UMaterialInstanceDynamic;
+class UPointLightComponent;
+class USoundBase;
+class UMaterialInterface;
+class UMeshComponent;
 
 USTRUCT(BlueprintType)
 struct FBeatBlinkSettings
@@ -115,6 +120,55 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|节奏感", meta=(ClampMin="0.0", ClampMax="0.3"))
 	float FireBeatPulseStrength = 0.10f;
 
+	// The first strike of a bar draws the fire into the blade before it lands.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强拍", meta=(ClampMin="0.25", ClampMax="2.0"))
+	float StrongBeatChargeBeats = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强拍", meta=(ClampMin="1.0", ClampMax="6.0"))
+	float StrongBeatSwordGlowMultiplier = 3.5f;
+
+	// Additive outline and moving energy bands drawn on top of the armor.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强弱拍")
+	TObjectPtr<UMaterialInterface> BeatOverlayMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强弱拍", meta=(ClampMin="0.1", ClampMax="1.0"))
+	float StrongOverlaySeconds = 0.42f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强弱拍", meta=(ClampMin="0.05", ClampMax="0.6"))
+	float WeakOverlaySeconds = 0.23f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强拍")
+	TObjectPtr<USoundBase> StrongBeatSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强拍")
+	TObjectPtr<USoundBase> WeakBladeSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强拍", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float StrongBladeVolume = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强拍", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float WeakBladeVolume = .9f;
+
+	// Extra gain for short wind sounds against the full-band music mix.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强弱拍", meta=(ClampMin="0.5", ClampMax="4.0"))
+	float BladeSfxGain = 1.40f;
+
+	// Start the air sweep before the animation's blade impact marker.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强弱拍", meta=(ClampMin="0.0", ClampMax="0.15"))
+	float BladeWhooshLeadSeconds = 0.15f;
+
+	// Skip the quiet head of the selected user sound. Combined with the lead,
+	// its main air-slice transient lands just before the impact marker.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强弱拍", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float BladeSoundStartTimeSeconds = 0.15f;
+
+	// Brief background music reduction leaves room for the blade transient.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强拍", meta=(ClampMin="0.2", ClampMax="1.0"))
+	float StrongBeatMusicGain = .38f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|强拍", meta=(ClampMin="0.2", ClampMax="1.0"))
+	float WeakBeatMusicGain = .58f;
+
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void BeginPlay() override;
 
@@ -127,18 +181,25 @@ private:
 	bool LockBlinkDestination();
 	void ClearBlink();
 	void UpdateBeatFirePulse(const UBeatClockSubsystem* Clock);
+	void UpdateStrongBeatPresentation(const UBeatClockSubsystem* Clock);
+	void ResetStrongBeatPresentation();
+	void UpdateBeatOverlay(const UBeatClockSubsystem* Clock);
+	void TriggerBeatOverlay(bool bStrong, double AudioNow);
 
 	bool bQueued = false;
 	bool bPlaying = false;
 	bool bLastAttackCompleted = false;
 	int32 FirstImpactBeat = 0;
 	int32 NextImpactIndex = 0;
+	int32 NextBladeSoundIndex = 0;
 	double ScheduledStartAudioSeconds = 0.0;
 	double ScheduledFirstImpactAudioSeconds = 0.0;
 	FBeatBlinkSettings BlinkSettings;
 	bool bBlinkRequested = false;
 	bool bBlinkWarningShown = false;
 	bool bBlinkExecuted = false;
+	bool bStrongBeatThisAttack = false;
+	bool bStrongBeatChargeStarted = false;
 	FVector LockedBlinkLocation = FVector::ZeroVector;
 	float LockedBlinkGroundZ = 0.0f;
 	FRotator LockedBlinkRotation = FRotator::ZeroRotator;
@@ -160,6 +221,20 @@ private:
 		FVector BaseScale = FVector::OneVector;
 	};
 	TArray<FFirePulseTarget> FirePulseTargets;
+	struct FSwordGlowTarget
+	{
+		TWeakObjectPtr<UMaterialInstanceDynamic> Material;
+		float BaseIntensity = 20.f;
+	};
+	TArray<FSwordGlowTarget> SwordGlowTargets;
+	TArray<TWeakObjectPtr<UMeshComponent>> BeatOverlayMeshes;
+	UPROPERTY(Transient)
+	TObjectPtr<UMaterialInstanceDynamic> BeatOverlayInstance;
+	double LastStrongOverlayAudioSeconds = -1.0e9;
+	double LastWeakOverlayAudioSeconds = -1.0e9;
+	TWeakObjectPtr<UPointLightComponent> SwordChargeLight;
+	TWeakObjectPtr<UNiagaraComponent> OriginWarningFX;
+	TWeakObjectPtr<UNiagaraComponent> LandingWarningFX;
 	UPROPERTY(Transient)
 	TObjectPtr<UBossMotionWarpingComponent> WarpComponent;
 	int32 ActiveWarpWindowIndex = INDEX_NONE;

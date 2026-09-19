@@ -4,6 +4,7 @@
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
 #include "Combat/AttackData.h"
+#include "Kismet/GameplayStatics.h"
 
 // ============================================================
 // 创建测试对象
@@ -26,6 +27,8 @@ ABeatClockTestActor::ABeatClockTestActor()
 	Music = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/Music/SW_AintItFun.SW_AintItFun"));
 	SyncAttackData = LoadObject<UAttackDataAsset>(nullptr,
 		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/DA_DragonKnight_Combo01_Beat.DA_DragonKnight_Combo01_Beat"));
+	DrumKick = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_BossDrumKick.SW_BossDrumKick"));
+	DrumTick = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_BossDrumTick.SW_BossDrumTick"));
 }
 
 // ============================================================
@@ -35,6 +38,9 @@ ABeatClockTestActor::ABeatClockTestActor()
 void ABeatClockTestActor::BeginPlay()
 {
 	Super::BeginPlay();
+	UE_LOG(LogTemp, Display, TEXT("BossDrums: enabled=%d kick=%s tick=%s volumes=%.2f/%.2f/%.2f"),
+		bEnableCombatDrums ? 1 : 0, *GetNameSafe(DrumKick), *GetNameSafe(DrumTick),
+		StrongDrumVolume, MiddleDrumVolume, WeakDrumVolume);
 
 	// 拍子时钟由 Unreal 自动创建，测试对象只需要取得它。
 	UBeatClockSubsystem* BeatClock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
@@ -87,6 +93,22 @@ void ABeatClockTestActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 void ABeatClockTestActor::HandleBeat(int32 BeatIndex /* 全部拍子编号 */, int32 BeatInBar /* 当前小节内的拍子编号 */)
 {
+	UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
+	// After a hitch, the clock can emit skipped beats together. Don't play old
+	// percussion on top of the current beat.
+	if (bEnableCombatDrums && Clock && BeatIndex == Clock->GetCurrentBeatIndex() &&
+		(!MusicComponent || MusicComponent->IsPlaying()))
+	{
+		USoundBase* AccentSound = (BeatInBar == 0 || BeatInBar == 2) ? DrumKick : DrumTick;
+		const float Volume = BeatInBar == 0 ? StrongDrumVolume
+			: BeatInBar == 2 ? MiddleDrumVolume : WeakDrumVolume;
+		if (AccentSound && Volume > 0.f)
+			UGameplayStatics::PlaySound2D(this, AccentSound, Volume);
+		if (BeatIndex < 4)
+			UE_LOG(LogTemp, Display, TEXT("BossDrums: Beat=%d InBar=%d Sound=%s Volume=%.2f"),
+				BeatIndex, BeatInBar + 1, *GetNameSafe(AccentSound), Volume);
+		UE_LOG(LogTemp, Verbose, TEXT("BossDrums: Beat=%d InBar=%d Volume=%.2f"), BeatIndex, BeatInBar + 1, Volume);
+	}
 	// BeatInBar 从 0 开始，输出时加 1，让日志从第 1 拍开始显示。
 	UE_LOG(LogTemp, Log, TEXT("[HearBlade 拍子时钟] 总拍子=%d，小节内拍子=%d"), BeatIndex, BeatInBar + 1);
 }

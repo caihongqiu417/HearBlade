@@ -27,6 +27,7 @@ void UBeatClockSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UBeatClockSubsystem::Deinitialize()
 {
+	StopClock();
 	bRunning = false;
 	OnBeat.Clear();
 	Super::Deinitialize();
@@ -58,6 +59,10 @@ void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAu
 		MusicComponent->Play(FMath::Max(0.0f, MusicStartTimeSeconds));
 	}
 	StartClock(InSettings);
+	MusicSource = MusicComponent;
+	BaseMusicVolume = IsValid(MusicComponent) ? MusicComponent->VolumeMultiplier : 1.f;
+	CurrentMusicGain = 1.f;
+	DuckHoldRemaining = 0.f;
 	UE_LOG(LogTemp, Log, TEXT("BeatClock music start: BPM=%.3f offset=%.3f sourceStart=%.3f sound=%s playing=%d"),
 		Settings.BPM, Settings.StartOffsetSeconds, MusicStartTimeSeconds,
 		MusicComponent && MusicComponent->GetSound() ? *MusicComponent->GetSound()->GetName() : TEXT("None"),
@@ -66,7 +71,24 @@ void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAu
 
 void UBeatClockSubsystem::StopClock()
 {
+	if (UAudioComponent* Source = MusicSource.Get()) Source->SetVolumeMultiplier(BaseMusicVolume);
+	MusicSource.Reset();
+	CurrentMusicGain = 1.f;
+	DuckHoldRemaining = 0.f;
 	bRunning = false;
+}
+
+void UBeatClockSubsystem::TriggerImpactDuck(float MusicGain, float HoldSeconds, float ReleaseSpeed)
+{
+	if (UAudioComponent* Source = MusicSource.Get(); bRunning && Source && Source->IsPlaying())
+	{
+		CurrentMusicGain = FMath::Min(CurrentMusicGain, FMath::Clamp(MusicGain, .2f, 1.f));
+		DuckHoldRemaining = FMath::Max(DuckHoldRemaining, HoldSeconds);
+		DuckReleaseSpeed = FMath::Max(ReleaseSpeed, 1.f);
+		Source->SetVolumeMultiplier(BaseMusicVolume * CurrentMusicGain);
+		UE_LOG(LogTemp, Display, TEXT("BeatMusicDuck: applied gain=%.2f source=%s"),
+			CurrentMusicGain, *GetNameSafe(Source));
+	}
 }
 
 // ============================================================
@@ -166,6 +188,16 @@ void UBeatClockSubsystem::Tick(float DeltaTime)
 	if (!bRunning)
 	{
 		return;
+	}
+	if (UAudioComponent* Source = MusicSource.Get(); Source && CurrentMusicGain < .999f)
+	{
+		const float PreviousGain = CurrentMusicGain;
+		if (DuckHoldRemaining > 0.f) DuckHoldRemaining = FMath::Max(0.f, DuckHoldRemaining - DeltaTime);
+		else CurrentMusicGain = FMath::FInterpTo(CurrentMusicGain, 1.f, DeltaTime, DuckReleaseSpeed);
+		if (CurrentMusicGain >= .995f) CurrentMusicGain = 1.f;
+		Source->SetVolumeMultiplier(BaseMusicVolume * CurrentMusicGain);
+		if (PreviousGain < 1.f && CurrentMusicGain == 1.f)
+			UE_LOG(LogTemp, Display, TEXT("BeatMusicDuck: restored music volume"));
 	}
 
 	// 获取当前拍子

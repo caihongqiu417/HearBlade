@@ -55,6 +55,25 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试")
 	TObjectPtr<UAudioComponent> MusicComponent;
 
+	// A quiet extra percussion layer makes the meter audible during the Boss fight.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
+	bool bEnableCombatDrums = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float StrongDrumVolume = .55f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float MiddleDrumVolume = .28f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点", meta=(ClampMin="0.0", ClampMax="1.0"))
+	float WeakDrumVolume = .16f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
+	TObjectPtr<USoundBase> DrumKick;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
+	TObjectPtr<USoundBase> DrumTick;
+
 private:
 	// ========================================================
 	// 拍子事件
