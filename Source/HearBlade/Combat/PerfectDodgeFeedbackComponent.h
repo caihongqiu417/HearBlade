@@ -5,8 +5,10 @@
 #include "PerfectDodgeFeedbackComponent.generated.h"
 
 class UMaterialInstanceDynamic;
+class UMaterialInterface;
 class UPerfectDodgeFeedbackConfig;
 class UPoseableMeshComponent;
+class USkeletalMeshComponent;
 class UStaticMeshComponent;
 
 UCLASS(ClassGroup=(Combat), meta=(BlueprintSpawnableComponent))
@@ -27,11 +29,27 @@ private:
 	void SpawnRing(const FPerfectDodgeFeedbackData& Feedback, float DelaySeconds);
 	void SpawnGhosts(float Strength);
 	void ClearTransientVisuals();
+	void UpdateHoldArmorVisual(float DeltaTime);
+	void CreateHoldArmorVisual();
+	void DestroyHoldArmorVisual();
 	struct FGhostVisual { TWeakObjectPtr<UPoseableMeshComponent> Mesh; TWeakObjectPtr<UMaterialInstanceDynamic> Material; float Delay=0.f; };
 	struct FRingVisual { TWeakObjectPtr<UStaticMeshComponent> Mesh; TWeakObjectPtr<UMaterialInstanceDynamic> Material; double Start=0.0; };
 	TArray<FGhostVisual> Ghosts;
 	TArray<FRingVisual> Rings;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> PostProcessMID;
+	// The Dark Knight body and cloak are separate skeletal components.  Keep one
+	// synchronized armor shell per source component so cloth never drops out of
+	// the sustained-guard silhouette.
+	struct FHoldArmorVisual
+	{
+		TWeakObjectPtr<USkeletalMeshComponent> Source;
+		TWeakObjectPtr<USkeletalMeshComponent> Mesh;
+		TWeakObjectPtr<UMaterialInstanceDynamic> Material;
+		TWeakObjectPtr<UMaterialInterface> PreviousOverlay;
+	};
+	TArray<FHoldArmorVisual> HoldArmorVisuals;
+	double HoldArmorImpactWorldSeconds = -1000.0;
+	bool bHoldArmorWasActive = false;
 	double EffectStartWorldSeconds = -1000.0;
 	float ActiveDuration = 0.15f;
 	float ActiveStrength = 1.0f;

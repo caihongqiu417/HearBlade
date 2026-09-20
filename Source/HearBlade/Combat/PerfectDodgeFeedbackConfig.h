@@ -23,6 +23,10 @@ class HEARBLADE_API UPerfectDodgeFeedbackConfig : public UDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|素材") TObjectPtr<UMaterialInterface> PostProcessMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|素材") TObjectPtr<UMaterialInterface> GhostMaterial;
+	// Dedicated, translucent material for the sustained HoldBlock armor shell.
+	// Keeping it separate from dodge ghosts lets the two effects evolve without
+	// visual cross-talk.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|素材") TObjectPtr<UMaterialInterface> HoldArmorMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|素材") TObjectPtr<UMaterialInterface> RingMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|素材") TObjectPtr<UNiagaraSystem> RingParticles;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|声音") TObjectPtr<USoundBase> GoodSound;
@@ -50,6 +54,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡", meta=(ClampMin="0", ClampMax="0.2")) float HoldShakeDegrees = .05f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡", meta=(ClampMin="0", ClampMax="0.35")) float HoldImpactShakeDegrees = .15f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡", meta=(ClampMin="0.02", ClampMax="0.15")) float HoldStopSeconds = .06f;
+	// Persistent character shell shown only while an authored HoldBlock range is
+	// actually being defended. It reuses GhostMaterial so the effect works with
+	// the existing project assets and remains fully data driven.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体", meta=(ClampMin="0.0", ClampMax="1.0")) float HoldArmorBaseOpacity = .28f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体", meta=(ClampMin="0.0", ClampMax="1.0")) float HoldArmorBeatOpacity = .22f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体", meta=(ClampMin="0.0", ClampMax="1.0")) float HoldArmorImpactOpacity = .38f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体", meta=(ClampMin="0.0", ClampMax="0.2")) float HoldArmorImpactSeconds = .10f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体", meta=(ClampMin="1.0", ClampMax="1.08")) float HoldArmorShellScale = 1.018f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体", meta=(ClampMin="0.0", ClampMax="15.0")) float HoldArmorGlowIntensity = 4.8f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体", meta=(ClampMin="0.0", ClampMax="15.0")) float HoldArmorBeatGlowBoost = 3.5f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体", meta=(ClampMin="0.0", ClampMax="20.0")) float HoldArmorImpactGlowBoost = 7.0f;
+	// Molten red reads as committed, unflinching guard; downbeats climb to gold.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体") FLinearColor HoldArmorColor = FLinearColor(1.0f, .035f, .003f, 1.0f);
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|持续格挡|霸体") FLinearColor HoldArmorStrongBeatColor = FLinearColor(1.0f, .62f, .025f, 1.0f);
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|UI", meta=(ClampMin="0", ClampMax="0.02")) float RegularBeatUIScale = .005f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节拍裂闪|UI", meta=(ClampMin="0", ClampMax="0.02")) float DownbeatUIScale = .009f;
 };

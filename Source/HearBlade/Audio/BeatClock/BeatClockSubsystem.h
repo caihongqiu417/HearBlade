@@ -138,6 +138,18 @@ public:
 	// Briefly clear space in the music mix for a blade strike, then recover.
 	void TriggerImpactDuck(float MusicGain, float HoldSeconds = 0.07f, float ReleaseSpeed = 9.f);
 
+	// Register every music stem that must remain phase locked with the main song.
+	// Cinematic rate changes are applied to all registered components together.
+	void RegisterSynchronizedMusicComponent(UAudioComponent* Component);
+	void UnregisterSynchronizedMusicComponent(UAudioComponent* Component);
+
+	// Changes musical time and audio pitch together. Gameplay input and camera
+	// stay at normal world speed while beat-authored animation remains aligned.
+	void SetMusicalPlaybackRate(float TargetRate, float BlendSeconds = 0.06f);
+	void RestoreMusicalPlaybackRate(float BlendSeconds = 0.24f);
+	UFUNCTION(BlueprintPure, Category = "拍子时钟")
+	float GetMusicalPlaybackRate() const { return CurrentPlaybackRate; }
+
 	// ========================================================
 	// 拍子事件
 	// ========================================================
@@ -163,4 +175,15 @@ private:
 	float CurrentMusicGain = 1.f;
 	float DuckHoldRemaining = 0.f;
 	float DuckReleaseSpeed = 9.f;
+	struct FSynchronizedMusicSource
+	{
+		TWeakObjectPtr<UAudioComponent> Component;
+		float BasePitch = 1.f;
+	};
+	TArray<FSynchronizedMusicSource> SynchronizedMusicSources;
+	double MusicalAudioSeconds = 0.0;
+	double LastRawAudioSeconds = 0.0;
+	float CurrentPlaybackRate = 1.f;
+	float TargetPlaybackRate = 1.f;
+	float PlaybackRateInterpSpeed = 100.f;
 };

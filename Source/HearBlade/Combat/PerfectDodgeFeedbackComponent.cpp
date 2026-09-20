@@ -47,6 +47,7 @@ void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 	if (AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner()); Player && PostProcessMID)
 		Player->GetFollowCamera()->PostProcessSettings.AddBlendable(PostProcessMID, 0.0f);
 	ClearTransientVisuals();
+	DestroyHoldArmorVisual();
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -83,6 +84,8 @@ void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFe
 				else if (Feedback.HoldMarker == ERhythmHoldMarkerType::Continue)
 					Camera->TriggerHoldImpact(Config->HoldImpactShakeDegrees, .06f);
 			}
+			if (Feedback.bSuccess && Feedback.HoldMarker != ERhythmHoldMarkerType::End && GetWorld())
+				HoldArmorImpactWorldSeconds = GetWorld()->GetTimeSeconds();
 		}
 	}
 	if (!Feedback.bPerfect) return;
@@ -235,6 +238,7 @@ void UPerfectDodgeFeedbackComponent::TickComponent(float DeltaTime, ELevelTick T
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (!GetWorld()) return;
+	UpdateHoldArmorVisual(DeltaTime);
 	const double Now = GetWorld()->GetTimeSeconds();
 	if (bImpactFrameActive && Now >= ImpactFrameEndWorldSeconds) RestoreImpactFrame();
 	if (EffectStartWorldSeconds < 0.0) return;
@@ -267,6 +271,110 @@ void UPerfectDodgeFeedbackComponent::TickComponent(float DeltaTime, ELevelTick T
 	{
 		if (PostProcessMID) PostProcessMID->SetScalarParameterValue(TEXT("Intensity"), 0.f);
 		ClearTransientVisuals(); EffectStartWorldSeconds = -1000.0;
+	}
+}
+
+void UPerfectDodgeFeedbackComponent::CreateHoldArmorVisual()
+{
+	if (HoldArmorVisuals.Num() > 0 || !Config || !GetOwner() || !GetWorld()) return;
+	UMaterialInterface* ArmorMaterial = Config->HoldArmorMaterial.Get();
+	if (!ArmorMaterial)
+		ArmorMaterial = LoadObject<UMaterialInterface>(nullptr,
+			TEXT("/Game/Combat/Feedback/M_PlayerHoldArmor.M_PlayerHoldArmor"));
+	if (!ArmorMaterial) return;
+	TInlineComponentArray<USkeletalMeshComponent*> Sources(GetOwner());
+	for (USkeletalMeshComponent* Source : Sources)
+	{
+		if (!IsValid(Source) || !Source->GetSkeletalMeshAsset()) continue;
+		UMaterialInterface* PreviousOverlay = Source->GetOverlayMaterial();
+		USkeletalMeshComponent* Shell = NewObject<USkeletalMeshComponent>(GetOwner(),
+			*FString::Printf(TEXT("SustainedHoldArmor_%s"), *Source->GetName()));
+		Shell->SetupAttachment(Source);
+		Shell->SetSkinnedAssetAndUpdate(Source->GetSkeletalMeshAsset(), true);
+		Shell->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Shell->SetGenerateOverlapEvents(false);
+		Shell->SetCastShadow(false);
+		Shell->SetReceivesDecals(false);
+		Shell->RegisterComponentWithWorld(GetWorld());
+		Shell->SetRelativeLocationAndRotation(FVector::ZeroVector, FRotator::ZeroRotator);
+		Shell->SetRelativeScale3D(FVector(Config->HoldArmorShellScale));
+		Shell->SetLeaderPoseComponent(Source);
+
+		UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(ArmorMaterial, Shell);
+		if (!MID)
+		{
+			Shell->DestroyComponent();
+			continue;
+		}
+		for (int32 Index = 0; Index < Shell->GetNumMaterials(); ++Index) Shell->SetMaterial(Index, MID);
+		MID->SetScalarParameterValue(TEXT("Opacity"), 0.0f);
+		MID->SetScalarParameterValue(TEXT("GlowIntensity"), 0.0f);
+		MID->SetVectorParameterValue(TEXT("ArmorColor"), Config->HoldArmorColor);
+		// Direct overlay colors every material section, including the separate cape
+		// and dark accessory slots. The expanded shell adds the outer cracked rim.
+		Source->SetOverlayMaterial(MID);
+		HoldArmorVisuals.Add({Source, Shell, MID, PreviousOverlay});
+	}
+	UE_LOG(LogTemp, Display, TEXT("HoldArmorVisual: activated shells=%d"), HoldArmorVisuals.Num());
+}
+
+void UPerfectDodgeFeedbackComponent::DestroyHoldArmorVisual()
+{
+	for (FHoldArmorVisual& Visual : HoldArmorVisuals)
+	{
+		if (USkeletalMeshComponent* Source = Visual.Source.Get())
+			Source->SetOverlayMaterial(Visual.PreviousOverlay.Get());
+		if (Visual.Mesh.IsValid()) Visual.Mesh->DestroyComponent();
+	}
+	HoldArmorVisuals.Reset();
+	if (bHoldArmorWasActive)
+		UE_LOG(LogTemp, Display, TEXT("HoldArmorVisual: cleared"));
+	bHoldArmorWasActive = false;
+}
+
+void UPerfectDodgeFeedbackComponent::UpdateHoldArmorVisual(float DeltaTime)
+{
+	const UPlayerRhythmCombatComponent* Combat = GetOwner()
+		? GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr;
+	const bool bShouldBeActive = Combat && Combat->IsSustainedHoldActive();
+	if (!bShouldBeActive)
+	{
+		DestroyHoldArmorVisual();
+		return;
+	}
+	CreateHoldArmorVisual();
+	if (HoldArmorVisuals.IsEmpty() || !Config || !GetWorld()) return;
+	bHoldArmorWasActive = true;
+
+	float BeatPulse = 0.0f;
+	bool bStrongBeat = false;
+	if (const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>(); Clock && Clock->IsRunning())
+	{
+		const double Beat = Clock->GetCurrentBeat();
+		const double Fraction = Beat - FMath::FloorToDouble(Beat);
+		const float DistanceToBeat = static_cast<float>(FMath::Min(Fraction, 1.0 - Fraction));
+		BeatPulse = FMath::Pow(FMath::Clamp(1.0f - DistanceToBeat * 2.0f, 0.0f, 1.0f), 5.0f);
+		const int32 BeatIndex = FMath::RoundToInt(Beat);
+		bStrongBeat = Clock->GetBeatsPerBar() > 0 && BeatIndex % Clock->GetBeatsPerBar() == 0;
+	}
+	const float ImpactAge = static_cast<float>(GetWorld()->GetTimeSeconds() - HoldArmorImpactWorldSeconds);
+	const float ImpactPulse = Config->HoldArmorImpactSeconds > KINDA_SMALL_NUMBER
+		? FMath::Square(FMath::Clamp(1.0f - ImpactAge / Config->HoldArmorImpactSeconds, 0.0f, 1.0f)) : 0.0f;
+	const float Opacity = FMath::Clamp(Config->HoldArmorBaseOpacity +
+		BeatPulse * Config->HoldArmorBeatOpacity + ImpactPulse * Config->HoldArmorImpactOpacity, 0.0f, 0.85f);
+	const FLinearColor BeatColor = bStrongBeat ? Config->HoldArmorStrongBeatColor : Config->HoldArmorColor;
+	const FLinearColor Color = FMath::Lerp(Config->HoldArmorColor, BeatColor, BeatPulse);
+	for (FHoldArmorVisual& Visual : HoldArmorVisuals)
+	{
+		if (Visual.Material.IsValid())
+		{
+			Visual.Material->SetScalarParameterValue(TEXT("Opacity"), Opacity);
+			Visual.Material->SetScalarParameterValue(TEXT("GlowIntensity"), Config->HoldArmorGlowIntensity +
+				BeatPulse * Config->HoldArmorBeatGlowBoost + ImpactPulse * Config->HoldArmorImpactGlowBoost);
+			Visual.Material->SetVectorParameterValue(TEXT("ArmorColor"), Color);
+		}
+		if (Visual.Mesh.IsValid())
+			Visual.Mesh->SetRelativeScale3D(FVector(Config->HoldArmorShellScale + BeatPulse * .006f + ImpactPulse * .004f));
 	}
 }
 

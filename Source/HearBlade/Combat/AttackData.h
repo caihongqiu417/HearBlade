@@ -27,6 +27,39 @@ enum class ERhythmHoldMarkerType : uint8
 	End UMETA(DisplayName="长按结束")
 };
 
+USTRUCT(BlueprintType)
+struct FImpactCinematicSettings
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放")
+	bool bEnabled = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放", meta=(ClampMin="0.35", ClampMax="1.0", EditCondition="bEnabled"))
+	float MusicAndBossRate = .88f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放", meta=(ClampMin="0.0", ClampMax="2.0", EditCondition="bEnabled"))
+	float LeadBeats = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放", meta=(ClampMin="0.0", ClampMax="1.0", EditCondition="bEnabled"))
+	float HoldAfterImpactBeats = .16f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放", meta=(ClampMin="0.02", ClampMax="1.0", EditCondition="bEnabled"))
+	float RecoverySeconds = .14f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放", meta=(ClampMin="0.0", ClampMax="1.0", EditCondition="bEnabled"))
+	float TriggerChance = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放", meta=(ClampMin="0.25", ClampMax="2.0", EditCondition="bEnabled"))
+	float CameraStrength = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放", meta=(ClampMin="0.2", ClampMax="1.0", EditCondition="bEnabled"))
+	float ClashActorRate = .48f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="关键慢放", meta=(ClampMin="0.03", ClampMax="0.3", EditCondition="bEnabled"))
+	float ClashActorSlowSeconds = .11f;
+};
+
 // 一段独立攻击中的一次命中。BeatOffset 相对第一击，第一击填 0。
 USTRUCT(BlueprintType)
 struct FAttackImpactMarker
@@ -75,6 +108,52 @@ struct FAttackImpactMarker
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|持续格挡", meta=(EditCondition="RequiredResponse == ERhythmResponseType::HoldBlock"))
 	ERhythmHoldMarkerType HoldMarker = ERhythmHoldMarkerType::None;
+
+	// Optional authored accent for selected impacts. Timing still uses BeatOffset;
+	// slowing the musical timeline cannot move this hit away from its target beat.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|关键慢放")
+	FImpactCinematicSettings Cinematic;
+};
+
+// One runtime instruction used by a response pattern. Timing and damage still
+// come from the authored impact marker; only the player's required response is
+// replaced when this pattern is selected.
+USTRUCT(BlueprintType)
+struct FAttackResponseInstruction
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令")
+	ERhythmResponseType RequiredResponse = ERhythmResponseType::Block;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令",
+		meta=(EditCondition="RequiredResponse == ERhythmResponseType::HoldBlock"))
+	ERhythmHoldMarkerType HoldMarker = ERhythmHoldMarkerType::None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令",
+		meta=(EditCondition="RequiredResponse == ERhythmResponseType::HoldBlock"))
+	FName HoldGroup = TEXT("HoldA");
+};
+
+// A weighted command sequence selected once when an attack is queued. This
+// keeps the HUD prompt and the damage judgment on the same locked sequence.
+USTRUCT(BlueprintType)
+struct FAttackResponsePattern
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令")
+	FName PatternName = TEXT("Pattern");
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令", meta=(ClampMin="0.0"))
+	float Weight = 1.0f;
+
+	// Zero based index of the first impact replaced by Instructions.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令", meta=(ClampMin="0"))
+	int32 FirstImpactIndex = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令")
+	TArray<FAttackResponseInstruction> Instructions;
 };
 
 // ============================================================
@@ -108,6 +187,11 @@ public:
 	// 按动画时间升序排列；第一个标记决定这一段动作的启动时间。
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据")
 	TArray<FAttackImpactMarker> ImpactMarkers;
+
+	// Empty keeps the authored marker responses. Otherwise one valid pattern is
+	// selected per attack using Weight. Animation timing is never changed.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令")
+	TArray<FAttackResponsePattern> ResponsePatterns;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据", meta = (ClampMin = "0.01"))
 	float PlayRate = 1.0f;

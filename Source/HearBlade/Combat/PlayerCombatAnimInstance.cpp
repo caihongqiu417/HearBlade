@@ -5,25 +5,34 @@
 #include "Animation/BlendSpace.h"
 #include "AnimNodes/AnimNode_BlendSpacePlayer.h"
 #include "AnimNodes/AnimNode_Slot.h"
+#include "AnimNodes/AnimNode_TwoWayBlend.h"
 #include "Engine/World.h"
 
-namespace
-{
 struct FPlayerCombatAnimProxy : FAnimInstanceProxy
 {
 	FAnimNode_BlendSpacePlayer_Standalone LocomotionNode;
 	FAnimNode_Slot ActionSlot;
+	FAnimNode_BlendSpacePlayer_Standalone HitNode;
+	FAnimNode_TwoWayBlend RootBlend;
+	int32 LastHitReactionSerial = INDEX_NONE;
 	explicit FPlayerCombatAnimProxy(UAnimInstance* Instance) : FAnimInstanceProxy(Instance)
 	{
 		ActionSlot.SlotName = TEXT("DefaultSlot");
 		ActionSlot.bAlwaysUpdateSourcePose = true;
 		ActionSlot.Source.SetLinkNode(&LocomotionNode);
 		LocomotionNode.SetLoop(true);
+		HitNode.SetLoop(false);
+		RootBlend.A.SetLinkNode(&ActionSlot);
+		RootBlend.B.SetLinkNode(&HitNode);
+		RootBlend.AlphaInputType = EAnimAlphaInputType::Float;
+		RootBlend.Alpha = 0.0f;
 	}
-	virtual FAnimNode_Base* GetCustomRootNode() override { return &ActionSlot; }
+	virtual FAnimNode_Base* GetCustomRootNode() override { return &RootBlend; }
 	virtual void Initialize(UAnimInstance* Instance) override
 	{
-		LocomotionNode.SetBlendSpace(CastChecked<UPlayerCombatAnimInstance>(Instance)->Locomotion);
+		const auto* Combat = CastChecked<UPlayerCombatAnimInstance>(Instance);
+		LocomotionNode.SetBlendSpace(Combat->Locomotion);
+		HitNode.SetBlendSpace(Combat->DirectionalHit);
 		FAnimInstanceProxy::Initialize(Instance);
 	}
 	virtual void PreUpdate(UAnimInstance* Instance, float DeltaSeconds) override
@@ -32,14 +41,39 @@ struct FPlayerCombatAnimProxy : FAnimInstanceProxy
 		const auto* Combat = CastChecked<UPlayerCombatAnimInstance>(Instance);
 		LocomotionNode.SetBlendSpace(Combat->Locomotion);
 		LocomotionNode.SetPosition(Combat->LocomotionPosition);
+		HitNode.SetBlendSpace(Combat->DirectionalHit);
+		HitNode.SetPosition(Combat->HitBlendPosition);
+		if (LastHitReactionSerial != Combat->HitReactionSerial)
+		{
+			HitNode.SetAccumulatedTime(0.0f);
+			LastHitReactionSerial = Combat->HitReactionSerial;
+		}
+		RootBlend.Alpha = Combat->HitBlendAlpha;
 	}
 };
-}
 
 UPlayerCombatAnimInstance::UPlayerCombatAnimInstance()
 {
 	Locomotion = LoadObject<UBlendSpace>(nullptr, TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/BS_DKM_CombatLocomotion.BS_DKM_CombatLocomotion"));
+	DirectionalHit = LoadObject<UBlendSpace>(nullptr, TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/BS_DKM_DirectionalHit.BS_DKM_DirectionalHit"));
 	SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
+}
+
+void UPlayerCombatAnimInstance::StartDirectionalHit(FVector2D ReactionDirection, float Duration)
+{
+	if (!GetWorld()) return;
+	if (!ReactionDirection.Normalize()) ReactionDirection = FVector2D(-1.0f, 0.0f);
+	HitBlendPosition = FVector(ReactionDirection.X, ReactionDirection.Y, 0.0f);
+	bDirectionalHitActive = true;
+	HitReactionEndWorldSeconds = GetWorld()->GetTimeSeconds() + FMath::Max(.1f, Duration);
+	++HitReactionSerial;
+	if (VisualAction) Montage_Stop(.06f, VisualAction);
+}
+
+void UPlayerCombatAnimInstance::EndDirectionalHit()
+{
+	bDirectionalHitActive = false;
+	HitReactionEndWorldSeconds = -1.0;
 }
 
 FAnimInstanceProxy* UPlayerCombatAnimInstance::CreateAnimInstanceProxy() { return new FPlayerCombatAnimProxy(this); }
@@ -63,6 +97,10 @@ void UPlayerCombatAnimInstance::PlayCombatAction(UAnimSequence* Sequence, bool b
 void UPlayerCombatAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
+	if (bDirectionalHitActive && GetWorld() && GetWorld()->GetTimeSeconds() >= HitReactionEndWorldSeconds)
+		EndDirectionalHit();
+	HitBlendAlpha = FMath::FInterpTo(HitBlendAlpha, bDirectionalHitActive ? 1.0f : 0.0f,
+		DeltaSeconds, bDirectionalHitActive ? 55.0f : 8.0f);
 	if (ReleaseAtWorldSeconds >= 0.0 && GetWorld() && GetWorld()->GetTimeSeconds() >= ReleaseAtWorldSeconds)
 	{
 		if (VisualAction) Montage_Stop(.18f, VisualAction);

@@ -2,14 +2,17 @@
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "Combat/PlayerRhythmCombatComponent.h"
+#include "Combat/BeatSyncedComboComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Combat/PlayerCombatAnimInstance.h"
+#include "Combat/BossLocomotionAnimInstance.h"
 #include "GameFramework/Character.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Engine/SkeletalMesh.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
+#include "Animation/BlendSpace.h"
 
 IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRhythmInputTransitionsTest,
     "HearBlade.Combat.InputTransitions", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
@@ -21,6 +24,15 @@ bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
     UPlayerRhythmCombatComponent* Combat = NewObject<UPlayerRhythmCombatComponent>(Owner);
     Owner->AddInstanceComponent(Combat);
     Combat->RegisterComponent();
+	TestNotNull(TEXT("Player light blood effect loaded"), Combat->BloodHitEffect.Get());
+	TestNotNull(TEXT("Player poise-break blood effect loaded"), Combat->BloodPoiseBreakEffect.Get());
+	Combat->Resonance = 10.0f;
+	Combat->ResonanceDecayDelaySeconds = 0.0f;
+	Combat->ResonanceDecayPerSecond = 6.0f;
+	Combat->LastResonanceGainWorldSeconds = -1000.0;
+	Combat->TickComponent(0.5f, LEVELTICK_All, nullptr);
+	TestEqual(TEXT("Resonance decays continuously after its grace period"), Combat->Resonance, 7.0f);
+	Combat->Resonance = 0.0f;
     using EAction = UPlayerRhythmCombatComponent::EBufferedRhythmAction;
 
     TestTrue(TEXT("Initial dodge accepted"), Combat->TryDodge(FVector::ForwardVector));
@@ -84,6 +96,23 @@ bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
     Combat->PlayResponseFeedback(ERhythmResponseType::Counter, ERhythmDodgeJudgment::Bad,
         FVector::ZeroVector, FVector::ForwardVector, false);
     TestTrue(TEXT("BAD feedback must not cancel the counter animation"), Combat->bCountering);
+
+    Combat->bCountering = false;
+    Combat->BufferedAction = EAction::None;
+    Combat->Poise = Combat->MaxPoise;
+    Combat->ApplyPoiseDamage(Combat->BadPoiseDamage, FVector(100, 0, 0), -FVector::ForwardVector);
+    Combat->ApplyPoiseDamage(Combat->BadPoiseDamage, FVector(100, 0, 0), -FVector::ForwardVector);
+    TestFalse(TEXT("Poise damage below zero does not interrupt actions"), Combat->bPoiseBroken);
+    Combat->ApplyPoiseDamage(Combat->BadPoiseDamage, FVector(100, 0, 0), -FVector::ForwardVector);
+    TestTrue(TEXT("Repeated BAD judgments break poise"), Combat->bPoiseBroken);
+    TestEqual(TEXT("Broken poise remains empty during hit stun"), Combat->Poise, 0.0f);
+    TestTrue(TEXT("Input during hit lock is accepted into the buffer"), Combat->TryCounter());
+    TestTrue(TEXT("Buffered counter waits during hit lock"),
+        Combat->BufferedAction == EAction::Counter && !Combat->bCountering);
+    Combat->PoiseBreakStartWorldSeconds -= Combat->PoiseBreakInputLockSeconds + .01;
+    Combat->ProcessBufferedInput();
+    TestTrue(TEXT("Buffered counter exits hit stun after the lock"), Combat->bCountering && !Combat->bPoiseBroken);
+    TestEqual(TEXT("Poise resets after hit stun"), Combat->Poise, Combat->MaxPoise);
     World->DestroyWorld(false);
     return true;
 }
@@ -144,6 +173,53 @@ bool FRhythmAnimationBlendTest::RunTest(const FString& Parameters)
     Anim->Montage_Stop(.18f);
     Step(15);
     TestTrue(TEXT("Action weight returns to locomotion"), Anim->GetSlotMontageGlobalWeight(TEXT("DefaultSlot")) < .01f);
+    World->DestroyWorld(false);
+    return true;
+}
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FBossDirectionalHitBlendTest,
+    "HearBlade.Combat.BossDirectionalHitBlend", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+
+bool FBossDirectionalHitBlendTest::RunTest(const FString& Parameters)
+{
+    UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
+    ACharacter* Character = World->SpawnActor<ACharacter>();
+	UBeatSyncedComboComponent* BossCombat = NewObject<UBeatSyncedComboComponent>(Character);
+	TestNotNull(TEXT("Boss light metal blood effect loaded"), BossCombat->BloodHitMetalEffect.Get());
+	TestNotNull(TEXT("Boss heavy metal blood effect loaded"), BossCombat->BloodHeavyMetalEffect.Get());
+	Character->AddInstanceComponent(BossCombat);
+	BossCombat->RegisterComponent();
+	BossCombat->ApplyBossDamage(20.0f);
+	TestEqual(TEXT("Boss damage path subtracts health"), BossCombat->BossHealth, 980.0f);
+	TestTrue(TEXT("An idle Boss visibly reacts to damage"), BossCombat->IsHitReacting());
+    USkeletalMeshComponent* Mesh = Character->GetMesh();
+    Mesh->SetSkeletalMesh(LoadObject<USkeletalMesh>(nullptr,
+        TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/MESHES/UE5/SK_Dragon_knight_UE5.SK_Dragon_knight_UE5")));
+    Mesh->SetAnimInstanceClass(UBossLocomotionAnimInstance::StaticClass());
+    UBossLocomotionAnimInstance* Anim = Cast<UBossLocomotionAnimInstance>(Mesh->GetAnimInstance());
+    if (!TestNotNull(TEXT("Boss native animation instance initialized"), Anim))
+    {
+        World->DestroyWorld(false);
+        return false;
+    }
+    TestNotNull(TEXT("Eight-way locomotion Blend Space loaded"), Anim->Locomotion.Get());
+    TestNotNull(TEXT("Four-way directional hit Blend Space loaded"), Anim->DirectionalHit.Get());
+    auto Step = [&](int32 Frames)
+    {
+        for (int32 Frame = 0; Frame < Frames; ++Frame)
+        {
+            Mesh->TickAnimation(1.f / 60.f, false);
+            Mesh->RefreshBoneTransforms();
+        }
+    };
+    Anim->SetLocomotion(0.0f, FVector::ZeroVector, 0.0f);
+    Step(2);
+    const FTransform IdleChest = Mesh->GetSocketTransform(TEXT("spine_03"), RTS_Component);
+    Anim->StartDirectionalHit(FVector2D(-1.0f, 0.0f), .58f);
+    Step(10);
+    TestTrue(TEXT("Boss enters directional hit reaction"), Anim->IsDirectionalHitActive());
+    TestFalse(TEXT("Directional hit changes the evaluated body pose"),
+        IdleChest.Equals(Mesh->GetSocketTransform(TEXT("spine_03"), RTS_Component), .01f));
     World->DestroyWorld(false);
     return true;
 }

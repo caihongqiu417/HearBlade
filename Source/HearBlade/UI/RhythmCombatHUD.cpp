@@ -116,7 +116,8 @@ void ARhythmCombatHUD::DrawBossHealth(float Scale)
 		const float BeatPhase = static_cast<float>(Clock->GetCurrentBeat() - FMath::FloorToDouble(Clock->GetCurrentBeat()));
 		const float BeatImpulse = FMath::Exp(-BeatPhase * 7.5f);
 		const bool bDownbeat = Clock->GetCurrentBeatInBar() == 0;
-		PulseScale += BeatImpulse * (bDownbeat ? .009f : .005f);
+		// Health stays restrained so its fill remains easy to read.
+		PulseScale += BeatImpulse * (bDownbeat ? .007f : .004f);
 	}
 	const float BaseW = FMath::Min(1000.f * Scale, Canvas->SizeX * .72f);
 	const float W = BaseW * PulseScale;
@@ -227,7 +228,9 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 	const float BeatPhase = static_cast<float>(Clock->GetCurrentBeat() - FMath::FloorToDouble(Clock->GetCurrentBeat()));
 	const float BeatImpulse = FMath::Exp(-BeatPhase * 6.5f);
 	const bool bDownbeatNow = Clock->GetCurrentBeatInBar() == 0;
-	const float DecorationPulse = 1.0f + BeatImpulse * (bDownbeatNow ? .009f : .005f);
+	// The command rail is a rhythm instrument as well as a timer. Its art can
+	// breathe clearly while the judge line and authored command coordinates stay fixed.
+	const float DecorationPulse = 1.0f + BeatImpulse * (bDownbeatNow ? .050f : .030f);
 
 	// Gameplay geometry is fixed. Only the illustrated decoration breathes, so
 	// the gate and every authored command keep their exact screen position.
@@ -308,6 +311,126 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 		const float UntilIdealInput = static_cast<float>(Cue.ImpactAudioSeconds - Cue.IdealDodgeLeadSeconds - AudioNow);
 		if (UntilIdealInput < -.18f || UntilIdealInput > LookAhead + .1f) continue;
 		VisibleCues.Add({ &Cue, JudgeX + UntilIdealInput / LookAhead * TravelWidth, UntilIdealInput });
+	}
+
+	// The diamond is the exact input target. Its state comes from the same ideal
+	// input timestamp and Perfect window used by gameplay judgment, so the visual
+	// flash cannot drift away from the real timing window.
+	if (!VisibleCues.IsEmpty())
+	{
+		const float AbsInputError = FMath::Abs(VisibleCues[0].UntilIdealInput);
+		const float PerfectWindow = FMath::Max(.001f, State->GetPerfectWindowSeconds());
+		const float GoodWindow = FMath::Max(PerfectWindow, State->GetGoodWindowSeconds());
+		const float PerfectAmount = FMath::SmoothStep(0.0f, 1.0f,
+			1.0f - FMath::Clamp(AbsInputError / PerfectWindow, 0.0f, 1.0f));
+		const float GoodAmount = FMath::SmoothStep(0.0f, 1.0f,
+			1.0f - FMath::Clamp(AbsInputError / GoodWindow, 0.0f, 1.0f));
+		const float GateScale = 1.0f + GoodAmount * .07f + PerfectAmount * .24f;
+		const float HalfSize = 24.0f * Scale * GateScale;
+		const FVector2D GateCenter(JudgeX, MidY);
+		auto DrawDiamondFill = [&](float InHalfSize, const FLinearColor& Color)
+		{
+			DrawSolidQuad(Canvas,
+				GateCenter + FVector2D(0, -InHalfSize), GateCenter + FVector2D(InHalfSize, 0),
+				GateCenter + FVector2D(0, InHalfSize), GateCenter + FVector2D(-InHalfSize, 0), Color);
+		};
+		auto DrawDiamondOutline = [&](float InHalfSize, const FLinearColor& Color, float Thickness)
+		{
+			const FVector2D Top = GateCenter + FVector2D(0, -InHalfSize);
+			const FVector2D Right = GateCenter + FVector2D(InHalfSize, 0);
+			const FVector2D Bottom = GateCenter + FVector2D(0, InHalfSize);
+			const FVector2D Left = GateCenter + FVector2D(-InHalfSize, 0);
+			DrawLine(Top.X, Top.Y, Right.X, Right.Y, Color, Thickness);
+			DrawLine(Right.X, Right.Y, Bottom.X, Bottom.Y, Color, Thickness);
+			DrawLine(Bottom.X, Bottom.Y, Left.X, Left.Y, Color, Thickness);
+			DrawLine(Left.X, Left.Y, Top.X, Top.Y, Color, Thickness);
+		};
+
+		const FLinearColor GateColor = FMath::Lerp(
+			FLinearColor(.08f, .78f, 1.0f, FadeIn),
+			FLinearColor(1.0f, .72f, .08f, FadeIn), PerfectAmount);
+		const FLinearColor WhiteHot = FMath::Lerp(GateColor,
+			FLinearColor(1.0f, .98f, .82f, FadeIn), PerfectAmount);
+
+		// Broad translucent energy silhouette behind the physical gate.
+		if (GoodAmount > KINDA_SMALL_NUMBER)
+		{
+			DrawDiamondFill(HalfSize * (1.52f + .34f * PerfectAmount),
+				FLinearColor(GateColor.R, GateColor.G, GateColor.B,
+					(.07f * GoodAmount + .16f * PerfectAmount) * FadeIn));
+			DrawDiamondOutline(HalfSize * (1.24f + .24f * PerfectAmount),
+				FLinearColor(GateColor.R, GateColor.G, GateColor.B, .24f * GoodAmount * FadeIn),
+				(2.0f + 3.0f * PerfectAmount) * Scale);
+		}
+
+		// Asymmetric black blade housing gives the gate the same cut-paper silhouette
+		// as the rest of the HUD instead of looking like a primitive shape.
+		const float Wing = HalfSize * (.72f + .28f * PerfectAmount);
+		DrawSolidQuad(Canvas,
+			GateCenter + FVector2D(-HalfSize * 1.62f - Wing, -4.f * Scale),
+			GateCenter + FVector2D(-HalfSize * .72f, -HalfSize * .54f),
+			GateCenter + FVector2D(-HalfSize * .92f, HalfSize * .43f),
+			GateCenter + FVector2D(-HalfSize * 1.62f - Wing * .55f, 7.f * Scale),
+			FLinearColor(.002f, .006f, .012f, .94f * FadeIn));
+		DrawSolidQuad(Canvas,
+			GateCenter + FVector2D(HalfSize * .70f, -HalfSize * .45f),
+			GateCenter + FVector2D(HalfSize * 1.60f + Wing * .65f, -8.f * Scale),
+			GateCenter + FVector2D(HalfSize * 1.60f + Wing, 4.f * Scale),
+			GateCenter + FVector2D(HalfSize * .90f, HalfSize * .55f),
+			FLinearColor(.002f, .006f, .012f, .94f * FadeIn));
+		// Colored blade insets run through those wings and flare out on Perfect.
+		DrawSolidTriangle(Canvas,
+			GateCenter + FVector2D(-HalfSize * (1.42f + .34f * PerfectAmount), 0),
+			GateCenter + FVector2D(-HalfSize * .68f, -HalfSize * .28f),
+			GateCenter + FVector2D(-HalfSize * .82f, HalfSize * .18f),
+			FLinearColor(GateColor.R, GateColor.G, GateColor.B, (.54f + .34f * PerfectAmount) * FadeIn));
+		DrawSolidTriangle(Canvas,
+			GateCenter + FVector2D(HalfSize * (1.42f + .34f * PerfectAmount), 0),
+			GateCenter + FVector2D(HalfSize * .68f, HalfSize * .28f),
+			GateCenter + FVector2D(HalfSize * .82f, -HalfSize * .18f),
+			FLinearColor(GateColor.R, GateColor.G, GateColor.B, (.54f + .34f * PerfectAmount) * FadeIn));
+
+		// Heavy outer chassis, recessed face, and an offset cyan/gold registration edge.
+		DrawDiamondFill(HalfSize * 1.10f, FLinearColor(.001f, .004f, .009f, .96f * FadeIn));
+		DrawDiamondOutline(HalfSize * 1.10f, FLinearColor(.0f, .0f, .0f, FadeIn), 7.0f * Scale);
+		DrawDiamondOutline(HalfSize * 1.02f, GateColor, (2.3f + 2.2f * PerfectAmount) * Scale);
+
+		// Broken edge segments read like four short sword cuts and leave deliberate
+		// gaps at the corners for a sharper manga silhouette.
+		const FVector2D Top = GateCenter + FVector2D(0, -HalfSize * .88f);
+		const FVector2D Right = GateCenter + FVector2D(HalfSize * .88f, 0);
+		const FVector2D Bottom = GateCenter + FVector2D(0, HalfSize * .88f);
+		const FVector2D Left = GateCenter + FVector2D(-HalfSize * .88f, 0);
+		auto DrawBrokenEdge = [&](const FVector2D& A, const FVector2D& B)
+		{
+			const FVector2D A1 = FMath::Lerp(A, B, .12f);
+			const FVector2D B1 = FMath::Lerp(A, B, .43f);
+			const FVector2D A2 = FMath::Lerp(A, B, .60f);
+			const FVector2D B2 = FMath::Lerp(A, B, .92f);
+			DrawLine(A1.X, A1.Y, B1.X, B1.Y, WhiteHot, (2.0f + 1.4f * PerfectAmount) * Scale);
+			DrawLine(A2.X, A2.Y, B2.X, B2.Y, WhiteHot, (2.0f + 1.4f * PerfectAmount) * Scale);
+		};
+		DrawBrokenEdge(Top, Right); DrawBrokenEdge(Right, Bottom);
+		DrawBrokenEdge(Bottom, Left); DrawBrokenEdge(Left, Top);
+
+		// Hollow center keeps the incoming command icon readable. A tiny core only
+		// appears during Perfect, so the gate feels charged rather than permanently bright.
+		DrawDiamondFill(HalfSize * .48f, FLinearColor(.002f, .008f, .014f, .92f * FadeIn));
+		DrawDiamondOutline(HalfSize * .48f,
+			FLinearColor(WhiteHot.R, WhiteHot.G, WhiteHot.B, (.28f + .62f * PerfectAmount) * FadeIn),
+			(1.5f + 2.0f * PerfectAmount) * Scale);
+		if (PerfectAmount > .01f)
+		{
+			DrawDiamondFill(HalfSize * (.16f + .12f * PerfectAmount),
+				FLinearColor(1.0f, .98f, .84f, .72f * PerfectAmount * FadeIn));
+			// Unequal glint lengths keep the burst graphic and avoid a generic plus sign.
+			DrawRect(FLinearColor(1.0f, .98f, .84f, .82f * PerfectAmount * FadeIn),
+				JudgeX - (1.2f + 2.2f * PerfectAmount) * Scale, MidY - HalfSize * 1.90f,
+				(2.4f + 4.4f * PerfectAmount) * Scale, HalfSize * 3.80f);
+			DrawRect(FLinearColor(1.0f, .70f, .08f, .58f * PerfectAmount * FadeIn),
+				JudgeX - HalfSize * 1.35f, MidY - (1.0f + PerfectAmount) * Scale,
+				HalfSize * 2.70f, (2.0f + 2.0f * PerfectAmount) * Scale);
+		}
 	}
 	// One short cue at half a beat. It is keyed by the exact impact audio timestamp,
 	// so DrawHUD cannot retrigger it on every frame.
@@ -560,9 +683,10 @@ void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State
 		const float Phase = static_cast<float>(Beat - FMath::FloorToDouble(Beat));
 		// Only the frame breathes. Content remains stable and readable.
 		const float Wave = FMath::Cos(Phase * 2.0f * UE_PI);
-		FrameBeatScale = 1.0f + Wave * 0.010f;
-		BeatHighlight = Wave * 0.5f + 0.5f;
 		bDownbeat = Clock->GetCurrentBeatInBar() == 0;
+		// Keep health movement subtle; only its surrounding frame breathes.
+		FrameBeatScale = 1.0f + Wave * (bDownbeat ? 0.007f : 0.004f);
+		BeatHighlight = Wave * 0.5f + 0.5f;
 	}
 	const FVector2D BaseSize(650.0f * Scale, 260.0f * Scale);
 	const FVector2D Size = BaseSize * FrameBeatScale;
@@ -654,10 +778,26 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 
 	const FVector2D RailSize(285.0f, 740.0f);
 	const FVector2D RailOrigin(Canvas->SizeX - (RailSize.X + 18.0f) * Scale, Canvas->SizeY * .13f);
+	float JudgmentBeatPulse = 1.0f;
+	if (const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>(); Clock && Clock->IsRunning())
+	{
+		const double Beat = Clock->GetCurrentBeat();
+		const float Phase = static_cast<float>(Beat - FMath::FloorToDouble(Beat));
+		const float Impulse = FMath::Exp(-Phase * 6.0f);
+		JudgmentBeatPulse += Impulse * (Clock->GetCurrentBeatInBar() == 0 ? .055f : .033f);
+	}
+	const FVector2D RailPixelSize = RailSize * Scale;
+	const FVector2D RailCenter = RailOrigin + RailPixelSize * .5f;
+	const auto PulseRailPoint = [&](const FVector2D& Point)
+	{
+		return RailCenter + (Point - RailCenter) * JudgmentBeatPulse;
+	};
 	UTexture2D* RailTexture = JudgmentRailBackboneTexture ? JudgmentRailBackboneTexture : JudgmentRailTexture;
 	if (RailTexture)
 	{
-		FCanvasTileItem Rail(RailOrigin, RailTexture->GetResource(), RailSize * Scale, FLinearColor::White);
+		const FVector2D PulsedSize = RailPixelSize * JudgmentBeatPulse;
+		FCanvasTileItem Rail(RailCenter - PulsedSize * .5f, RailTexture->GetResource(), PulsedSize,
+			FLinearColor(1.0f, 1.0f, 1.0f, .92f + (JudgmentBeatPulse - 1.0f) * 1.45f));
 		Rail.BlendMode = SE_BLEND_Translucent; Canvas->DrawItem(Rail);
 	}
 	const float RailX = Canvas->SizeX - 48.0f * Scale;
@@ -681,17 +821,18 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 		const float Age = static_cast<float>(Now - Entry.TimeSeconds);
 		const bool bNewest = JudgmentFeed.Num() > 0 && &Entry == &JudgmentFeed.Last();
 		const float Punch = bNewest && Age < QueueMoveSeconds ? FMath::Lerp(1.08f, 1.0f, MoveAlpha) : 1.0f;
-		const FVector2D Center = RailOrigin + FVector2D(112.0f, 104.0f + Slot * 102.0f) * Scale;
+		const FVector2D Center = PulseRailPoint(RailOrigin + FVector2D(112.0f, 104.0f + Slot * 102.0f) * Scale);
 		if (JudgmentBurstTexture && Entry.Grade == ERhythmDodgeJudgment::Perfect && Age < .65f)
 		{
-			const FVector2D BurstSize(265.0f * Scale * Punch);
+			const FVector2D BurstSize(265.0f * Scale * Punch * JudgmentBeatPulse);
 			FCanvasTileItem Burst(Center - BurstSize * .5f, JudgmentBurstTexture->GetResource(), BurstSize,
 				FLinearColor(1, .35f, .04f, Alpha));
 			Burst.BlendMode = SE_BLEND_Additive; Canvas->DrawItem(Burst);
 		}
 		FLinearColor Color = GetJudgmentColor(Entry.Grade); Color.A = Alpha;
 		const float GradeCardScale = Entry.Grade == ERhythmDodgeJudgment::Perfect ? 1.07f : 1.0f;
-		const FVector2D CardSize(238.0f * Scale * Punch * GradeCardScale, 87.5f * Scale * Punch * GradeCardScale);
+		const FVector2D CardSize(238.0f * Scale * Punch * GradeCardScale * JudgmentBeatPulse,
+			87.5f * Scale * Punch * GradeCardScale * JudgmentBeatPulse);
 		if (JudgmentCardTexture)
 		{
 			FCanvasTileItem Card(Center - CardSize * .5f, JudgmentCardTexture->GetResource(), CardSize, Color);
@@ -713,7 +854,7 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 			case ERhythmDodgeJudgment::Miss: GradeWordScale = 0.82f; break;
 			default: break;
 			}
-			const FVector2D WordSize = FVector2D(184.0f, 52.0f) * Scale * Punch * GradeWordScale;
+			const FVector2D WordSize = FVector2D(184.0f, 52.0f) * Scale * Punch * GradeWordScale * JudgmentBeatPulse;
 			// The source textures retain generous transparent margins for authoring. Crop those margins here so
 			// the actual lettering fills the judgment card and remains readable at gameplay resolution.
 			FCanvasTileItem Word(Center - WordSize * .5f, WordTexture->GetResource(), WordSize,
@@ -734,14 +875,14 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 	}
 	for (const FJudgmentFeedEntry& Entry : JudgmentFeed) DrawCard(Entry, 1.0f);
 
-	const FVector2D ComboCenter = RailOrigin + FVector2D(112.0f, 655.0f) * Scale;
+	const FVector2D ComboCenter = PulseRailPoint(RailOrigin + FVector2D(112.0f, 655.0f) * Scale);
 	const float ComboAge = static_cast<float>(Now - ComboPunchStartSeconds);
 	const float ComboPunch = ComboAge < .18f ? 1.0f + .08f * (1.0f - FMath::Clamp(ComboAge / .18f, 0.0f, 1.0f)) : 1.0f;
 	const float ComboAlpha = State->ComboCount == 0 ? .45f : 1.0f;
 	const FVector2D PanelSize(250.0f, 107.0f);
 	if (ComboPanelTexture)
 	{
-		const FVector2D DrawSize = PanelSize * Scale * ComboPunch;
+		const FVector2D DrawSize = PanelSize * Scale * ComboPunch * JudgmentBeatPulse;
 		FCanvasTileItem Panel(ComboCenter - DrawSize * .5f, ComboPanelTexture->GetResource(), DrawSize,
 			FLinearColor(1, 1, 1, ComboAlpha));
 		Panel.BlendMode = SE_BLEND_Translucent; Canvas->DrawItem(Panel);
@@ -749,14 +890,17 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 	{
 		if (ComboWordTexture)
 		{
-			const FVector2D WordSize(119.0f * Scale * ComboPunch, 34.0f * Scale * ComboPunch);
-			FCanvasTileItem Word(ComboCenter + FVector2D(-91, -17) * Scale * ComboPunch, ComboWordTexture->GetResource(), WordSize,
+			const FVector2D WordSize(119.0f * Scale * ComboPunch * JudgmentBeatPulse,
+				34.0f * Scale * ComboPunch * JudgmentBeatPulse);
+			FCanvasTileItem Word(ComboCenter + FVector2D(-91, -17) * Scale * ComboPunch * JudgmentBeatPulse,
+				ComboWordTexture->GetResource(), WordSize,
 				FVector2D(.20f, .08f), FVector2D(.80f, .90f), FLinearColor(1, 1, 1, ComboAlpha));
 			Word.BlendMode = SE_BLEND_Translucent; Canvas->DrawItem(Word);
 		}
 		FCanvasTextItem Count(ComboCenter + FVector2D(55, 0) * Scale,
 			FText::FromString(FString::Printf(TEXT("x%d"), State->ComboCount)), GEngine->GetLargeFont(), FLinearColor(1, .72f, .12f));
-		Count.bCentreX = true; Count.bCentreY = true; Count.Scale = FVector2D(1.20f * Scale * ComboPunch);
+		Count.bCentreX = true; Count.bCentreY = true;
+		Count.Scale = FVector2D(1.20f * Scale * ComboPunch * JudgmentBeatPulse);
 		Count.EnableShadow(FLinearColor::Black); Canvas->DrawItem(Count);
 	}
 }

@@ -844,6 +844,10 @@ void SBeatComboEditorWidget::RebuildResponseControls()
 				.Text_Lambda([this, Index](){ return FText::FromString(PendingHoldRangeStart == Index ? TEXT("长按起点 ✓") : TEXT("设长按范围")); })
 				.ToolTipText(FText::FromString(TEXT("第一次点击选择起点，再点击较后的命中帧自动生成按下/保持/松开范围")))
 				.OnClicked_Lambda([this, Index](){ return SelectHoldRangeEndpoint(Index); })]
+			+ SHorizontalBox::Slot().AutoWidth().Padding(2)[SNew(SButton)
+				.Text_Lambda([this, Index](){ const UAttackDataAsset* D=AttackData.Get(); return FText::FromString(D && D->ImpactMarkers.IsValidIndex(Index) && D->ImpactMarkers[Index].Cinematic.bEnabled ? TEXT("关键慢放 ✓") : TEXT("关键慢放")); })
+				.ToolTipText(FText::FromString(TEXT("只让这个命中点进入音乐与 Boss 同步慢放；详细倍率、提前拍数和概率可在下方攻击数据中调整")))
+				.OnClicked_Lambda([this, Index](){ if (UAttackDataAsset* D=AttackData.Get(); D && D->ImpactMarkers.IsValidIndex(Index)){ D->Modify(); D->ImpactMarkers[Index].Cinematic.bEnabled=!D->ImpactMarkers[Index].Cinematic.bEnabled; D->MarkPackageDirty(); Status=D->ImpactMarkers[Index].Cinematic.bEnabled ? FString::Printf(TEXT("第 %d 击已设为关键慢放"), Index+1) : FString::Printf(TEXT("第 %d 击已取消关键慢放"), Index+1); RebuildResponseControls(); RefreshTimeline(); } return FReply::Handled(); })]
 			+ SHorizontalBox::Slot().FillWidth(1).VAlign(VAlign_Center).Padding(8,2)
 			[SNew(STextBlock).Text_Lambda([this, Index](){ const UAttackDataAsset* D=AttackData.Get(); return FText::FromString(D && D->ImpactMarkers.IsValidIndex(Index) ? UEnum::GetDisplayValueAsText(D->ImpactMarkers[Index].RequiredResponse).ToString() : TEXT("-")); })]
 		];

@@ -99,6 +99,10 @@ void ABeatClockTestActor::BeginPlay()
 			MusicSettings.StartOffsetSeconds += SecondsPerBeat;
 		}
 		BeatClock->StartClockWithMusic(MusicSettings, MusicComponent, StartTime);
+		BeatClock->RegisterSynchronizedMusicComponent(CombatDrumComponent);
+		BeatClock->RegisterSynchronizedMusicComponent(ComboLowComponent);
+		BeatClock->RegisterSynchronizedMusicComponent(ComboSnareComponent);
+		BeatClock->RegisterSynchronizedMusicComponent(ComboHighComponent);
 		if (bEnableCombatDrums && bUseLoopingDrumStem && CombatDrumLoop && CombatDrumComponent)
 		{
 			const double BarSeconds = SecondsPerBeat * FMath::Max(1, MusicSettings.BeatsPerBar);

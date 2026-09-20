@@ -47,7 +47,11 @@ void UBeatClockSubsystem::StartClock(FBeatClockSettings InSettings)
 	Settings.BeatSubdivision = FMath::Max(Settings.BeatSubdivision, 1);
 
 	// 记录启动时间
-	ClockStartAudioSeconds = GetAudioNowSeconds();
+	LastRawAudioSeconds = UGameplayStatics::GetAudioTimeSeconds(GetWorld());
+	MusicalAudioSeconds = LastRawAudioSeconds;
+	CurrentPlaybackRate = TargetPlaybackRate = 1.f;
+	PlaybackRateInterpSpeed = 100.f;
+	ClockStartAudioSeconds = MusicalAudioSeconds;
 	LastEmittedBeat = -1;
 	bRunning = true;
 }
@@ -60,6 +64,7 @@ void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAu
 	}
 	StartClock(InSettings);
 	MusicSource = MusicComponent;
+	RegisterSynchronizedMusicComponent(MusicComponent);
 	BaseMusicVolume = IsValid(MusicComponent) ? MusicComponent->VolumeMultiplier : 1.f;
 	CurrentMusicGain = 1.f;
 	DuckHoldRemaining = 0.f;
@@ -72,10 +77,49 @@ void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAu
 void UBeatClockSubsystem::StopClock()
 {
 	if (UAudioComponent* Source = MusicSource.Get()) Source->SetVolumeMultiplier(BaseMusicVolume);
+	for (const FSynchronizedMusicSource& Entry : SynchronizedMusicSources)
+		if (UAudioComponent* Source = Entry.Component.Get()) Source->SetPitchMultiplier(Entry.BasePitch);
+	SynchronizedMusicSources.Reset();
 	MusicSource.Reset();
 	CurrentMusicGain = 1.f;
 	DuckHoldRemaining = 0.f;
 	bRunning = false;
+	CurrentPlaybackRate = TargetPlaybackRate = 1.f;
+}
+
+void UBeatClockSubsystem::RegisterSynchronizedMusicComponent(UAudioComponent* Component)
+{
+	if (!IsValid(Component)) return;
+	for (const FSynchronizedMusicSource& Entry : SynchronizedMusicSources)
+		if (Entry.Component.Get() == Component) return;
+	SynchronizedMusicSources.Add({Component, Component->PitchMultiplier});
+	Component->SetPitchMultiplier(Component->PitchMultiplier * CurrentPlaybackRate);
+}
+
+void UBeatClockSubsystem::UnregisterSynchronizedMusicComponent(UAudioComponent* Component)
+{
+	for (int32 Index = SynchronizedMusicSources.Num() - 1; Index >= 0; --Index)
+	{
+		if (SynchronizedMusicSources[Index].Component.Get() == Component)
+		{
+			if (IsValid(Component)) Component->SetPitchMultiplier(SynchronizedMusicSources[Index].BasePitch);
+			SynchronizedMusicSources.RemoveAt(Index);
+		}
+	}
+}
+
+void UBeatClockSubsystem::SetMusicalPlaybackRate(float TargetRate, float BlendSeconds)
+{
+	TargetPlaybackRate = FMath::Clamp(TargetRate, .35f, 1.f);
+	PlaybackRateInterpSpeed = FMath::Abs(TargetPlaybackRate - CurrentPlaybackRate) /
+		FMath::Max(BlendSeconds, .001f);
+	UE_LOG(LogTemp, Display, TEXT("BeatCinematic: musical rate %.3f -> %.3f blend=%.3fs"),
+		CurrentPlaybackRate, TargetPlaybackRate, BlendSeconds);
+}
+
+void UBeatClockSubsystem::RestoreMusicalPlaybackRate(float BlendSeconds)
+{
+	SetMusicalPlaybackRate(1.f, BlendSeconds);
 }
 
 void UBeatClockSubsystem::TriggerImpactDuck(float MusicGain, float HoldSeconds, float ReleaseSpeed)
@@ -104,7 +148,7 @@ double UBeatClockSubsystem::GetAudioNowSeconds() const
 {
 	// 读取 Unreal 从关卡开始运行后经过的音频时间，单位是秒。
 	// 游戏暂停时，这个时间也会暂停。
-	return UGameplayStatics::GetAudioTimeSeconds(GetWorld());
+	return bRunning ? MusicalAudioSeconds : UGameplayStatics::GetAudioTimeSeconds(GetWorld());
 }
 
 double UBeatClockSubsystem::GetSecondsPerBeat() const
@@ -188,6 +232,20 @@ void UBeatClockSubsystem::Tick(float DeltaTime)
 	if (!bRunning)
 	{
 		return;
+	}
+	const double RawNow = UGameplayStatics::GetAudioTimeSeconds(GetWorld());
+	const double RawDelta = FMath::Max(0.0, RawNow - LastRawAudioSeconds);
+	LastRawAudioSeconds = RawNow;
+	const float PreviousRate = CurrentPlaybackRate;
+	CurrentPlaybackRate = FMath::FInterpConstantTo(CurrentPlaybackRate, TargetPlaybackRate,
+		static_cast<float>(RawDelta), PlaybackRateInterpSpeed);
+	MusicalAudioSeconds += RawDelta * (PreviousRate + CurrentPlaybackRate) * .5;
+	for (int32 Index = SynchronizedMusicSources.Num() - 1; Index >= 0; --Index)
+	{
+		FSynchronizedMusicSource& Entry = SynchronizedMusicSources[Index];
+		if (UAudioComponent* Source = Entry.Component.Get())
+			Source->SetPitchMultiplier(Entry.BasePitch * CurrentPlaybackRate);
+		else SynchronizedMusicSources.RemoveAt(Index);
 	}
 	if (UAudioComponent* Source = MusicSource.Get(); Source && CurrentMusicGain < .999f)
 	{

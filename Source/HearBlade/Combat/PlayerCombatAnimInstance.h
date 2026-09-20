@@ -12,8 +12,12 @@ class HEARBLADE_API UPlayerCombatAnimInstance : public UAnimInstance
 public:
 	UPlayerCombatAnimInstance();
 	UPROPERTY(Transient) TObjectPtr<class UBlendSpace> Locomotion;
+	UPROPERTY(Transient) TObjectPtr<class UBlendSpace> DirectionalHit;
 	FVector LocomotionPosition = FVector::ZeroVector;
 	void PlayCombatAction(class UAnimSequence* Sequence, bool bLooping, float Duration, float ChainGrace = .10f);
+	void StartDirectionalHit(FVector2D ReactionDirection, float Duration);
+	void EndDirectionalHit();
+	bool IsDirectionalHitActive() const { return bDirectionalHitActive; }
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 protected:
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
@@ -21,4 +25,10 @@ protected:
 private:
 	UPROPERTY(Transient) TObjectPtr<UAnimMontage> VisualAction;
 	double ReleaseAtWorldSeconds = -1.0;
+	FVector HitBlendPosition = FVector(-1.0, 0.0, 0.0);
+	float HitBlendAlpha = 0.0f;
+	int32 HitReactionSerial = 0;
+	bool bDirectionalHitActive = false;
+	double HitReactionEndWorldSeconds = -1.0;
+	friend struct FPlayerCombatAnimProxy;
 };

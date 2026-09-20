@@ -69,18 +69,38 @@ void AlignBossToGround(AActor* Boss, AActor* Target)
 UBeatSyncedComboComponent::UBeatSyncedComboComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
-	LocomotionAnimClass = TSoftClassPtr<UAnimInstance>(FSoftObjectPath(
-		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/ABP_DragonKnight_Movement.ABP_DragonKnight_Movement_C")));
+	FinalImpactCinematic.bEnabled = true;
+	FinalImpactCinematic.MusicAndBossRate = .88f;
+	FinalImpactCinematic.LeadBeats = 0.f;
+	FinalImpactCinematic.HoldAfterImpactBeats = .16f;
+	FinalImpactCinematic.RecoverySeconds = .14f;
+	FinalImpactCinematic.TriggerChance = 1.f;
+	FinalImpactCinematic.CameraStrength = 1.f;
+	FinalImpactCinematic.ClashActorRate = .48f;
+	FinalImpactCinematic.ClashActorSlowSeconds = .11f;
+	LocomotionAnimClass = UBossLocomotionAnimInstance::StaticClass();
+	BloodHitMetalEffect = LoadObject<UNiagaraSystem>(nullptr,
+		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/Stylized/P_Splash_Hit_Metal_Stylized.P_Splash_Hit_Metal_Stylized"));
+	BloodHeavyMetalEffect = LoadObject<UNiagaraSystem>(nullptr,
+		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/Stylized/P_BigSplash_Hit_Metal_Stylized.P_BigSplash_Hit_Metal_Stylized"));
 }
 
 void UBeatSyncedComboComponent::ReceiveBossDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
 {
-	ApplyBossDamage(Damage);
+	ApplyBossDamageFrom(Damage, DamageCauser);
 }
 
 void UBeatSyncedComboComponent::ApplyBossDamage(float Damage)
 {
+	ApplyBossDamageFrom(Damage, AttackTarget.Get());
+}
+
+void UBeatSyncedComboComponent::ApplyBossDamageFrom(float Damage, const AActor* DamageSource, bool bForceHeavyBlood)
+{
 	if (!FMath::IsFinite(Damage) || Damage <= 0.f || BossHealth <= 0.f) return;
+	const float PoiseDamage = Damage * PoiseDamagePerHealthDamage;
+	const bool bHeavyBlood = bForceHeavyBlood || PoiseDamage >= BossPoise || Damage >= BossHealth;
+	SpawnBossBlood(DamageSource, bHeavyBlood);
 	BossHealth = FMath::Clamp(BossHealth - Damage, 0.f, MaxBossHealth);
 	UE_LOG(LogTemp, Display, TEXT("BossHealth: %.0f / %.0f"), BossHealth, MaxBossHealth);
 	if (BossHealth <= 0.f)
@@ -89,6 +109,92 @@ void UBeatSyncedComboComponent::ApplyBossDamage(float Damage)
 		for (TActorIterator<ABossBeatDirector> It(GetWorld()); It; ++It)
 			if (It->BossActor == GetOwner() && It->BehaviorTreeComponent)
 				It->BehaviorTreeComponent->StopTree(EBTStopMode::Forced);
+		return;
+	}
+	ApplyBossPoiseDamage(PoiseDamage, DamageSource);
+}
+
+void UBeatSyncedComboComponent::SpawnBossBlood(const AActor* DamageSource, bool bHeavy) const
+{
+	if (!GetWorld() || !GetOwner()) return;
+	UNiagaraSystem* Effect = bHeavy ? BloodHeavyMetalEffect.Get() : BloodHitMetalEffect.Get();
+	if (!Effect) return;
+	FVector Direction = DamageSource
+		? GetOwner()->GetActorLocation() - DamageSource->GetActorLocation()
+		: GetOwner()->GetActorForwardVector();
+	Direction.Z = FMath::Clamp(Direction.Z, -0.25f, 0.25f);
+	if (!Direction.Normalize()) Direction = GetOwner()->GetActorForwardVector();
+	const UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(GetOwner()->GetRootComponent());
+	const float Height = Capsule ? Capsule->GetScaledCapsuleHalfHeight() * 0.82f : 95.0f;
+	const FVector Location = GetOwner()->GetActorLocation() + FVector(0, 0, Height);
+	const float Scale = bHeavy ? BloodHeavyScale : BloodHitScale;
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, Location,
+		Direction.Rotation(), FVector(Scale));
+	UE_LOG(LogTemp, Display, TEXT("BossBloodVFX: heavy=%d effect=%s location=%s"),
+		bHeavy ? 1 : 0, *GetNameSafe(Effect), *Location.ToString());
+}
+
+void UBeatSyncedComboComponent::ApplyBossPoiseDamage(float Amount, const AActor* DamageSource)
+{
+	if (!GetWorld() || Amount <= 0.0f || BossHealth <= 0.0f) return;
+	const bool bWasAttacking = bQueued || bPlaying;
+	BossPoise = FMath::Max(0.0f, BossPoise - Amount);
+	LastBossPoiseDamageWorldSeconds = GetWorld()->GetTimeSeconds();
+	UE_LOG(LogTemp, Display, TEXT("BossPoise: damage=%.1f remaining=%.1f/%.1f attacking=%d"),
+		Amount, BossPoise, MaxBossPoise, bWasAttacking ? 1 : 0);
+	if (BossPoise <= KINDA_SMALL_NUMBER)
+	{
+		StartBossHitReaction(DamageSource, HeavyHitReactionSeconds, true);
+		BossPoise = MaxBossPoise;
+	}
+	else if (!bWasAttacking && !bBossHitReacting)
+	{
+		StartBossHitReaction(DamageSource, LightHitReactionSeconds, false);
+	}
+}
+
+void UBeatSyncedComboComponent::StartBossHitReaction(const AActor* DamageSource, float Duration, bool bInterruptAttack)
+{
+	if (!GetWorld() || !GetOwner() || BossHealth <= 0.0f) return;
+	FVector ReactionDirection = DamageSource
+		? GetOwner()->GetActorLocation() - DamageSource->GetActorLocation()
+		: -GetOwner()->GetActorForwardVector();
+	ReactionDirection.Z = 0.0f;
+	if (!ReactionDirection.Normalize()) ReactionDirection = -GetOwner()->GetActorForwardVector();
+	const FVector Local = GetOwner()->GetActorTransform().InverseTransformVectorNoScale(ReactionDirection).GetSafeNormal2D();
+	if (bInterruptAttack) CancelCombo();
+	bBossHitReacting = true;
+	BossHitReactionEndWorldSeconds = GetWorld()->GetTimeSeconds() + FMath::Max(0.12f, Duration);
+	LocomotionResumeWorldSeconds = BossHitReactionEndWorldSeconds + 0.08;
+	TArray<USkeletalMeshComponent*> Meshes;
+	GetOwner()->GetComponents<USkeletalMeshComponent>(Meshes);
+	int32 ReactingMeshCount = 0;
+	for (USkeletalMeshComponent* Mesh : Meshes)
+	{
+		if (!IsValid(Mesh)) continue;
+		if (UBossLocomotionAnimInstance* Animation = Cast<UBossLocomotionAnimInstance>(Mesh->GetAnimInstance()))
+		{
+			Animation->SetLocomotion(0.0f, FVector::ZeroVector, 0.0f);
+			Animation->StartDirectionalHit(FVector2D(Local.X, Local.Y), Duration);
+			++ReactingMeshCount;
+		}
+	}
+	UE_LOG(LogTemp, Display, TEXT("BossHitReaction: direction=(%.2f,%.2f) duration=%.2f interrupt=%d meshes=%d"),
+		Local.X, Local.Y, Duration, bInterruptAttack ? 1 : 0, ReactingMeshCount);
+}
+
+void UBeatSyncedComboComponent::EndBossHitReaction()
+{
+	if (!bBossHitReacting) return;
+	bBossHitReacting = false;
+	BossHitReactionEndWorldSeconds = -1.0;
+	TArray<USkeletalMeshComponent*> Meshes;
+	GetOwner()->GetComponents<USkeletalMeshComponent>(Meshes);
+	for (USkeletalMeshComponent* Mesh : Meshes)
+	{
+		if (!IsValid(Mesh)) continue;
+		if (UBossLocomotionAnimInstance* Animation = Cast<UBossLocomotionAnimInstance>(Mesh->GetAnimInstance()))
+			Animation->EndDirectionalHit();
 	}
 }
 
@@ -96,6 +202,7 @@ void UBeatSyncedComboComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	BossHealth = FMath::Max(1.f, MaxBossHealth);
+	BossPoise = FMath::Max(1.f, MaxBossPoise);
 	GetOwner()->OnTakeAnyDamage.AddUniqueDynamic(this, &UBeatSyncedComboComponent::ReceiveBossDamage);
 	// The Boss is an Actor rather than a Character. Its root capsule is the only
 	// primitive swept by locomotion and montage root motion. Old placed instances
@@ -139,7 +246,9 @@ void UBeatSyncedComboComponent::BeginPlay()
 	GetOwner()->GetComponents<UPrimitiveComponent>(BossPrimitives);
 	for (UPrimitiveComponent* Primitive : BossPrimitives)
 		if (IsValid(Primitive)) Primitive->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-	UClass* AnimClass = LocomotionAnimClass.LoadSynchronous();
+	// The native graph owns locomotion, the attack slot and directional hit blending.
+	// This keeps hit reactions compatible with the existing montage system.
+	UClass* AnimClass = UBossLocomotionAnimInstance::StaticClass();
 	if (!AnimClass) return;
 	const USkeleton* BossSkeleton = LoadObject<USkeleton>(nullptr,
 		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/MESHES/UE5/SK_Mannequin.SK_Mannequin"));
@@ -258,6 +367,12 @@ void UBeatSyncedComboComponent::BeginPlay()
 	UE_LOG(LogTemp, Display, TEXT("BossStrongBeat: swordMaterials=%d overlayMeshes=%d overlay=%s anchor=%s socket=%s strongSound=%s weakSound=%s"),
 		SwordGlowTargets.Num(), BeatOverlayMeshes.Num(), *GetNameSafe(BeatOverlayMaterial), *GetNameSafe(WeaponAnchor), *WeaponSocket.ToString(),
 		*GetNameSafe(StrongBeatSound), *GetNameSafe(WeakBladeSound));
+}
+
+void UBeatSyncedComboComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	EndCinematicAccent(true);
+	Super::EndPlay(EndPlayReason);
 }
 
 float UBeatSyncedComboComponent::GetWalkClipLengthSeconds() const
@@ -399,9 +514,153 @@ void UBeatSyncedComboComponent::ResetStrongBeatPresentation()
 
 bool UBeatSyncedComboComponent::QueueAttack(UAttackDataAsset* InAttackData)
 {
-	if (bQueued || bPlaying || !IsValid(InAttackData)) return false;
+	if (bQueued || bPlaying || bBossHitReacting || !IsValid(InAttackData)) return false;
 	AttackData = InAttackData;
 	return QueueCombo();
+}
+
+void UBeatSyncedComboComponent::SelectRuntimeResponsePattern()
+{
+	RuntimeImpactMarkers.Reset();
+	ActiveResponsePattern = NAME_None;
+	if (!IsValid(AttackData)) return;
+	RuntimeImpactMarkers = AttackData->ImpactMarkers;
+
+	float TotalWeight = 0.0f;
+	for (const FAttackResponsePattern& Pattern : AttackData->ResponsePatterns)
+	{
+		if (Pattern.Weight > 0.0f && !Pattern.Instructions.IsEmpty() &&
+			Pattern.FirstImpactIndex >= 0 &&
+			Pattern.FirstImpactIndex + Pattern.Instructions.Num() <= RuntimeImpactMarkers.Num())
+		{
+			TotalWeight += Pattern.Weight;
+		}
+	}
+	if (TotalWeight <= 0.0f) return;
+
+	float Choice = FMath::FRandRange(0.0f, TotalWeight);
+	const FAttackResponsePattern* Selected = nullptr;
+	for (const FAttackResponsePattern& Pattern : AttackData->ResponsePatterns)
+	{
+		if (Pattern.Weight <= 0.0f || Pattern.Instructions.IsEmpty() ||
+			Pattern.FirstImpactIndex < 0 ||
+			Pattern.FirstImpactIndex + Pattern.Instructions.Num() > RuntimeImpactMarkers.Num()) continue;
+		Choice -= Pattern.Weight;
+		if (Choice <= 0.0f)
+		{
+			Selected = &Pattern;
+			break;
+		}
+	}
+	if (!Selected) return;
+
+	for (int32 InstructionIndex = 0; InstructionIndex < Selected->Instructions.Num(); ++InstructionIndex)
+	{
+		FAttackImpactMarker& Marker = RuntimeImpactMarkers[Selected->FirstImpactIndex + InstructionIndex];
+		const FAttackResponseInstruction& Instruction = Selected->Instructions[InstructionIndex];
+		Marker.RequiredResponse = Instruction.RequiredResponse;
+		Marker.HoldMarker = Instruction.RequiredResponse == ERhythmResponseType::HoldBlock
+			? Instruction.HoldMarker : ERhythmHoldMarkerType::None;
+		Marker.HoldGroup = Instruction.RequiredResponse == ERhythmResponseType::HoldBlock
+			? Instruction.HoldGroup : NAME_None;
+	}
+	ActiveResponsePattern = Selected->PatternName;
+	UE_LOG(LogTemp, Display, TEXT("BeatSyncedCombo: ResponsePattern Attack=%s Pattern=%s"),
+		*GetNameSafe(AttackData), *ActiveResponsePattern.ToString());
+}
+
+void UBeatSyncedComboComponent::SelectRuntimeCinematicAccents()
+{
+	RuntimeCinematicEnabled.Init(false, RuntimeImpactMarkers.Num());
+	bool bHasAuthoredAccent = false;
+	for (int32 Index = 0; Index < RuntimeImpactMarkers.Num(); ++Index)
+	{
+		const FImpactCinematicSettings& Settings = RuntimeImpactMarkers[Index].Cinematic;
+		if (!Settings.bEnabled) continue;
+		bHasAuthoredAccent = true;
+		RuntimeCinematicEnabled[Index] = FMath::FRand() <= Settings.TriggerChance;
+	}
+	if (!bHasAuthoredAccent && bEnableOccasionalFinalImpactCinematic && !RuntimeImpactMarkers.IsEmpty() &&
+		FMath::FRand() <= FinalImpactCinematicChance)
+	{
+		RuntimeImpactMarkers.Last().Cinematic = FinalImpactCinematic;
+		RuntimeCinematicEnabled.Last() = true;
+	}
+	ActiveCinematicImpactIndex = INDEX_NONE;
+	bCinematicAccentActive = false;
+}
+
+void UBeatSyncedComboComponent::UpdateCinematicAccent(UBeatClockSubsystem* Clock, double AudioNow)
+{
+	if (!Clock || !Clock->IsRunning() || !IsValid(AttackData)) return;
+	if (bCinematicAccentActive && GetWorld() && GetWorld()->GetTimeSeconds() >= CinematicActorSlowEndWorldSeconds)
+	{
+		if (AActor* Boss = GetOwner()) Boss->CustomTimeDilation = SavedBossCustomTimeDilation;
+		if (AActor* Player = CinematicPlayerActor.Get()) Player->CustomTimeDilation = SavedPlayerCustomTimeDilation;
+		CinematicPlayerActor.Reset();
+		CinematicActorSlowEndWorldSeconds = TNumericLimits<double>::Max();
+	}
+	if (bCinematicAccentActive && RuntimeImpactMarkers.IsValidIndex(ActiveCinematicImpactIndex))
+	{
+		const FAttackImpactMarker& Marker = RuntimeImpactMarkers[ActiveCinematicImpactIndex];
+		const double ImpactTime = Clock->GetBeatTimeSeconds(FirstImpactBeat + Marker.BeatOffset);
+		if (AudioNow >= ImpactTime + Marker.Cinematic.HoldAfterImpactBeats * Clock->GetSecondsPerBeat())
+			EndCinematicAccent(false);
+	}
+}
+
+void UBeatSyncedComboComponent::TriggerCinematicClash(int32 ImpactIndex, const FVector& ClashLocation, bool bStrongBeat)
+{
+	if (ImpactIndex != GetImpactCount() - 1 || !RuntimeCinematicEnabled.IsValidIndex(ImpactIndex) ||
+		!RuntimeCinematicEnabled[ImpactIndex] || !RuntimeImpactMarkers.IsValidIndex(ImpactIndex)) return;
+	UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
+	if (!Clock || !Clock->IsRunning()) return;
+	const FImpactCinematicSettings& Settings = RuntimeImpactMarkers[ImpactIndex].Cinematic;
+	RuntimeCinematicEnabled[ImpactIndex] = false;
+	ActiveCinematicImpactIndex = ImpactIndex;
+	bCinematicAccentActive = true;
+	Clock->SetMusicalPlaybackRate(Settings.MusicAndBossRate, .025f);
+	if (AActor* Boss = GetOwner())
+	{
+		SavedBossCustomTimeDilation = Boss->CustomTimeDilation;
+		Boss->CustomTimeDilation = Settings.ClashActorRate;
+	}
+	if (AActor* Player = AttackTarget.Get())
+	{
+		CinematicPlayerActor = Player;
+		SavedPlayerCustomTimeDilation = Player->CustomTimeDilation;
+		Player->CustomTimeDilation = Settings.ClashActorRate;
+	}
+	CinematicActorSlowEndWorldSeconds = GetWorld()->GetTimeSeconds() + Settings.ClashActorSlowSeconds;
+	OnCinematicAccentImpact.Broadcast(Settings.CameraStrength, bStrongBeat, ClashLocation);
+	UE_LOG(LogTemp, Display, TEXT("BeatCinematicClash: impact=%d rate=%.2f holdBeats=%.2f location=%s"),
+		ImpactIndex + 1, Settings.MusicAndBossRate, Settings.HoldAfterImpactBeats, *ClashLocation.ToString());
+}
+
+void UBeatSyncedComboComponent::EndCinematicAccent(bool bImmediate)
+{
+	if (!bCinematicAccentActive) return;
+	float Recovery = .28f;
+	if (RuntimeImpactMarkers.IsValidIndex(ActiveCinematicImpactIndex))
+		Recovery = RuntimeImpactMarkers[ActiveCinematicImpactIndex].Cinematic.RecoverySeconds;
+	if (UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr)
+		Clock->RestoreMusicalPlaybackRate(bImmediate ? .015f : Recovery);
+	if (AActor* Boss = GetOwner()) Boss->CustomTimeDilation = SavedBossCustomTimeDilation;
+	if (AActor* Player = CinematicPlayerActor.Get()) Player->CustomTimeDilation = SavedPlayerCustomTimeDilation;
+	CinematicPlayerActor.Reset();
+	CinematicActorSlowEndWorldSeconds = -1000.0;
+	UE_LOG(LogTemp, Display, TEXT("BeatCinematic: END impact=%d recovery=%.3f"),
+		ActiveCinematicImpactIndex + 1, bImmediate ? .015f : Recovery);
+	bCinematicAccentActive = false;
+	ActiveCinematicImpactIndex = INDEX_NONE;
+	OnCinematicAccentEnded.Broadcast();
+}
+
+const FAttackImpactMarker& UBeatSyncedComboComponent::GetImpactMarker(int32 Index) const
+{
+	if (RuntimeImpactMarkers.IsValidIndex(Index)) return RuntimeImpactMarkers[Index];
+	check(AttackData && AttackData->ImpactMarkers.IsValidIndex(Index));
+	return AttackData->ImpactMarkers[Index];
 }
 
 void UBeatSyncedComboComponent::ConfigureNextBlink(const FBeatBlinkSettings& Settings)
@@ -500,6 +759,7 @@ void UBeatSyncedComboComponent::UpdateWarpTarget(float AnimationPosition)
 
 int32 UBeatSyncedComboComponent::GetImpactCount() const
 {
+	if (!RuntimeImpactMarkers.IsEmpty()) return RuntimeImpactMarkers.Num();
 	return AttackData && !AttackData->ImpactMarkers.IsEmpty() ? AttackData->ImpactMarkers.Num() : 1;
 }
 
@@ -507,7 +767,7 @@ float UBeatSyncedComboComponent::GetImpactTime(int32 Index) const
 {
 	return AttackData->ImpactMarkers.IsEmpty()
 		? AttackData->AuthoredImpactTime
-		: AttackData->ImpactMarkers[Index].AnimationTimeSeconds;
+		: GetImpactMarker(Index).AnimationTimeSeconds;
 }
 
 bool UBeatSyncedComboComponent::GetNextImpactDodgeTiming(double& OutImpactAudioSeconds, float& OutIdealLeadSeconds) const
@@ -517,7 +777,7 @@ bool UBeatSyncedComboComponent::GetNextImpactDodgeTiming(double& OutImpactAudioS
 	const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(NextImpactIndex)) - ClipStartElapsed;
 	OutImpactAudioSeconds = ScheduledStartAudioSeconds + MarkerElapsed;
 	OutIdealLeadSeconds = AttackData->ImpactMarkers.IsValidIndex(NextImpactIndex)
-		? AttackData->ImpactMarkers[NextImpactIndex].IdealDodgeLeadSeconds : 0.14f;
+		? GetImpactMarker(NextImpactIndex).IdealDodgeLeadSeconds : 0.14f;
 	return true;
 }
 
@@ -534,11 +794,11 @@ void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>
 		const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(Index)) - ClipStartElapsed;
 		Cue.ImpactAudioSeconds = ScheduledStartAudioSeconds + MarkerElapsed;
 		Cue.IdealDodgeLeadSeconds = AttackData->ImpactMarkers.IsValidIndex(Index)
-			? AttackData->ImpactMarkers[Index].IdealDodgeLeadSeconds : 0.14f;
+			? GetImpactMarker(Index).IdealDodgeLeadSeconds : 0.14f;
 		Cue.ImpactIndex = Index;
 		if (AttackData->ImpactMarkers.IsValidIndex(Index))
 		{
-			const FAttackImpactMarker& Marker = AttackData->ImpactMarkers[Index];
+			const FAttackImpactMarker& Marker = GetImpactMarker(Index);
 			Cue.PromptLeadBeats = Marker.PromptLeadBeats;
 			Cue.RequiredResponse = Marker.RequiredResponse;
 			Cue.HoldMarker = Marker.HoldMarker;
@@ -550,11 +810,11 @@ void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>
 			Cue.IconColor = Marker.PromptIconColor;
 		}
 		const double BeatOffset = AttackData->ImpactMarkers.IsValidIndex(Index)
-			? AttackData->ImpactMarkers[Index].BeatOffset : 0.0;
+			? GetImpactMarker(Index).BeatOffset : 0.0;
 		const double TargetBeat = FirstImpactBeat + BeatOffset;
 		const int32 RoundedBeat = FMath::RoundToInt(TargetBeat);
 		Cue.bStrongBeat = (AttackData->ImpactMarkers.IsValidIndex(Index) &&
-			AttackData->ImpactMarkers[Index].bForceStrongAccent) ||
+			GetImpactMarker(Index).bForceStrongAccent) ||
 			(FMath::Abs(TargetBeat - RoundedBeat) < .05 && RoundedBeat % BeatsPerBar == 0);
 	}
 }
@@ -571,6 +831,8 @@ bool UBeatSyncedComboComponent::QueueCombo()
 		UE_LOG(LogTemp, Warning, TEXT("BeatSyncedCombo: 动作尚未标定命中时间，请先在攻击数据中添加 ImpactMarkers"));
 		return false;
 	}
+	SelectRuntimeResponsePattern();
+	SelectRuntimeCinematicAccents();
 
 	UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	if (!Clock || !Clock->IsRunning() || AttackData->PlayRate <= 0.0f)
@@ -659,6 +921,7 @@ bool UBeatSyncedComboComponent::QueueCombo()
 
 void UBeatSyncedComboComponent::CancelCombo()
 {
+	EndCinematicAccent(true);
 	ClearBlink();
 	ClearWarping();
 	if (bPlaying && IsValid(AttackData) && IsValid(AttackData->AttackMontage))
@@ -722,7 +985,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	{
 		const FAttackImpactMarker Defaults;
 		const FAttackImpactMarker& Marker = AttackData->ImpactMarkers.IsValidIndex(NextDamageWindowIndex)
-			? AttackData->ImpactMarkers[NextDamageWindowIndex] : Defaults;
+			? GetImpactMarker(NextDamageWindowIndex) : Defaults;
 		const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(NextDamageWindowIndex)) - ClipStartElapsed;
 		const double MarkerTime = ScheduledStartAudioSeconds + MarkerElapsed;
 		float WindowAfter = Marker.DamageWindowAfterSeconds;
@@ -751,7 +1014,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	const int32 WindowIndex = NextDamageWindowIndex;
 	const FAttackImpactMarker Defaults;
 	const FAttackImpactMarker& WindowMarker = AttackData->ImpactMarkers.IsValidIndex(WindowIndex)
-		? AttackData->ImpactMarkers[WindowIndex] : Defaults;
+		? GetImpactMarker(WindowIndex) : Defaults;
 	const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(WindowIndex)) - ClipStartElapsed;
 	const double MarkerAudioTime = ScheduledStartAudioSeconds + MarkerElapsed;
 	if (AudioNow < MarkerAudioTime - WindowMarker.DamageWindowBeforeSeconds) return;
@@ -811,7 +1074,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 
 	bActiveDamageResolved = true;
 	const FAttackImpactMarker& Marker = AttackData->ImpactMarkers.IsValidIndex(WindowIndex)
-		? AttackData->ImpactMarkers[WindowIndex] : Defaults;
+		? GetImpactMarker(WindowIndex) : Defaults;
 	const double Offset = AttackData->ImpactMarkers.IsEmpty() ? 0.0 : Marker.BeatOffset;
 	const double TargetBeat = FirstImpactBeat + Offset;
 	const int32 NearestBeat = FMath::RoundToInt(TargetBeat);
@@ -828,15 +1091,17 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 			(PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ||
 			 PlayerState->LastJudgment == ERhythmDodgeJudgment::Good))
 		{
+			const bool bPerfectCounter = PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect;
 			FVector Away = (GetOwner()->GetActorLocation() - Target->GetActorLocation()).GetSafeNormal2D();
-			ApplyBossDamage(CounterDamage * (PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ? 1.f : .5f));
+			ApplyBossDamageFrom(CounterDamage * (bPerfectCounter ? 1.f : .5f), Target, bPerfectCounter);
 			if (Away.IsNearlyZero()) Away = -GetOwner()->GetActorForwardVector();
 			FHitResult StaggerHit;
-			GetOwner()->AddActorWorldOffset(Away * (PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ? 95.f : 45.f), true, &StaggerHit);
+			GetOwner()->AddActorWorldOffset(Away * (bPerfectCounter ? 95.f : 45.f), true, &StaggerHit);
 			UE_LOG(LogTemp, Display, TEXT("RhythmCounter: Boss interrupted grade=%s knockback=%.0f"),
 				*UEnum::GetValueAsString(PlayerState->LastJudgment),
-				PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ? 95.f : 45.f);
-			CancelCombo();
+				bPerfectCounter ? 95.f : 45.f);
+			StartBossHitReaction(Target, bPerfectCounter ? HeavyHitReactionSeconds : LightHitReactionSeconds, true);
+			TriggerCinematicClash(WindowIndex, ClosestBladeFeedbackLocation, bStrong);
 			return;
 		}
 		if (bAvoided && Marker.RequiredResponse == ERhythmResponseType::HoldBlock &&
@@ -847,6 +1112,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 			if (Away.IsNearlyZero()) Away = -GetOwner()->GetActorForwardVector();
 			FHitResult ShockHit;
 			GetOwner()->AddActorWorldOffset(Away * 70.0f, true, &ShockHit);
+			ApplyBossPoiseDamage(45.0f, Target);
 			UE_LOG(LogTemp, Display, TEXT("PerfectHoldShock: boss knockback=70 resonance=%.1f"), PlayerState->Resonance);
 		}
 		UE_LOG(LogTemp, Display, TEXT("BossDamageSweep: impact=%d blade=%s sweepDistance=%.1f radius=%.1f fallback=%d avoided=%d"),
@@ -861,7 +1127,7 @@ void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex
 		ImpactIndex < 0 || ImpactIndex >= GetImpactCount()) return;
 	const FAttackImpactMarker Defaults;
 	const FAttackImpactMarker& Marker = AttackData->ImpactMarkers.IsValidIndex(ImpactIndex)
-		? AttackData->ImpactMarkers[ImpactIndex] : Defaults;
+		? GetImpactMarker(ImpactIndex) : Defaults;
 	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds);
 	const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(ImpactIndex)) - ClipStartElapsed;
 	const double MarkerAudioTime = ScheduledStartAudioSeconds + MarkerElapsed;
@@ -974,6 +1240,15 @@ bool UBeatSyncedComboComponent::StartPlayback(double AudioNowSeconds)
 void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (GetWorld())
+	{
+		const double WorldNow = GetWorld()->GetTimeSeconds();
+		if (bBossHitReacting && WorldNow >= BossHitReactionEndWorldSeconds)
+			EndBossHitReaction();
+		else if (!bBossHitReacting && BossPoise < MaxBossPoise &&
+			WorldNow - LastBossPoiseDamageWorldSeconds >= BossPoiseRecoveryDelay)
+			BossPoise = FMath::Min(MaxBossPoise, BossPoise + BossPoiseRecoveryPerSecond * DeltaTime);
+	}
 	if (BossHealth <= 0.f) return;
 	if (USkeletalMeshComponent* Mesh = LocomotionMesh.Get())
 	{
@@ -985,7 +1260,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		bLastLocomotionBlocked = false;
 		// A queued attack may be waiting for the next downbeat. Keep locomotion alive
 		// until montage playback actually starts so the Boss does not freeze in place.
-		if (!bPlaying && GetWorld()->GetTimeSeconds() >= LocomotionResumeWorldSeconds &&
+		if (!bPlaying && !bBossHitReacting && GetWorld()->GetTimeSeconds() >= LocomotionResumeWorldSeconds &&
 			Anim && Anim->bIsMoving && DirectionalWalkAnimations.IsValidIndex(0))
 		{
 			// All eight walk samples share the same duration and root travel. The Blend Space
@@ -1056,6 +1331,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		return;
 	}
 	const double Now = Clock->GetAudioNowSeconds();
+	UpdateCinematicAccent(Clock, Now);
 	if (bQueued || bPlaying)
 	{
 		const double WarningTime = ScheduledFirstImpactAudioSeconds - BlinkSettings.WarningBeats * Clock->GetSecondsPerBeat();
@@ -1272,6 +1548,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			}
 		}
 		bPlaying = false;
+		EndCinematicAccent(false);
 		bLastAttackCompleted = true;
 		RootMotionMesh.Reset();
 		LocomotionResumeWorldSeconds = GetWorld()->GetTimeSeconds() + 0.2;

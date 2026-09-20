@@ -4,12 +4,20 @@
 #include "BossLocomotionAnimInstance.generated.h"
 
 // The Anim Blueprint reads GroundSpeed to blend the Dragon Knight's idle/walk poses.
-UCLASS(Blueprintable)
+UCLASS(Transient, Blueprintable)
 class HEARBLADE_API UBossLocomotionAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
 
 public:
+	UBossLocomotionAnimInstance();
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UBlendSpace> Locomotion;
+
+	UPROPERTY(Transient)
+	TObjectPtr<class UBlendSpace> DirectionalHit;
+
 	UPROPERTY(BlueprintReadOnly, Category="Boss Locomotion")
 	float GroundSpeed = 0.0f;
 
@@ -52,4 +60,21 @@ public:
 		bDirectionBit1 = (MoveDirectionIndex & 2) != 0;
 		bDirectionBit2 = (MoveDirectionIndex & 4) != 0;
 	}
+
+	void StartDirectionalHit(const FVector2D& ReactionDirection, float Duration);
+	void EndDirectionalHit();
+	bool IsDirectionalHitActive() const { return bDirectionalHitActive; }
+	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
+
+protected:
+	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
+	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override;
+
+private:
+	FVector HitBlendPosition = FVector(-1.0, 0.0, 0.0);
+	float HitBlendAlpha = 0.0f;
+	int32 HitReactionSerial = 0;
+	bool bDirectionalHitActive = false;
+	double HitReactionEndWorldSeconds = -1.0;
+	friend struct FBossCombatAnimProxy;
 };

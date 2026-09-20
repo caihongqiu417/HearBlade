@@ -36,6 +36,9 @@ private:
 	UFUNCTION() void HandleBlink(FVector Landing, double TargetAudioSeconds);
 	UFUNCTION() void HandleCancelled();
 	UFUNCTION() void HandleConfirmedHit();
+	UFUNCTION() void HandleCinematicStarted(float Strength, bool bStrongBeat);
+	UFUNCTION() void HandleCinematicImpact(float Strength, bool bStrongBeat, FVector ClashLocation);
+	UFUNCTION() void HandleCinematicEnded();
 	void BindCombo(UBeatSyncedComboComponent* Combo);
 	void CancelFeedback();
 	const UBossCameraConfig* Settings() const;
@@ -51,4 +54,6 @@ private:
 	float ManualYaw = 0.f;
 	float ManualPitch = 0.f;
 	float LastLookInputTime = -100.f;
+	FVector CinematicFocusLocation = FVector::ZeroVector;
+	double CinematicFocusEndWorldSeconds = -1000.0;
 };

@@ -74,6 +74,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="节奏闪避", meta=(ClampMin="1.0"))
 	float MaxResonance = 100.0f;
 
+	// Resonance starts falling after the player stops landing successful rhythm
+	// responses. The short grace period keeps individual gains readable.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节奏闪避|共鸣衰减", meta=(ClampMin="0.0"))
+	float ResonanceDecayDelaySeconds = 1.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节奏闪避|共鸣衰减", meta=(ClampMin="0.0"))
+	float ResonanceDecayPerSecond = 6.0f;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="节奏闪避")
 	int32 ComboCount = 0;
 
@@ -85,6 +93,13 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="节奏闪避")
 	float LastJudgmentErrorMs = 0.0f;
+
+	// Hidden combat resource. The HUD intentionally does not draw this value.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="韧性", meta=(ClampMin="1.0"))
+	float MaxPoise = 100.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="韧性")
+	float Poise = 100.0f;
 
 	UPROPERTY(BlueprintAssignable, Category="生命")
 	FOnPlayerHealthChanged OnHealthChanged;
@@ -116,8 +131,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category="节奏防御") void EndBlock();
 	UFUNCTION(BlueprintCallable, Category="节奏防御") bool TryCounter();
 	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsBlocking() const { return bBlocking; }
+	// The visual starts after a very short sustained press, then remains active
+	// through authored HoldBlock markers. A tap block therefore stays clean while
+	// a player who deliberately holds guard gets immediate readable feedback.
+	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsSustainedHoldActive() const
+	{
+		return bBlocking && !bActiveHoldBroken && GetWorld() &&
+			GetWorld()->GetTimeSeconds() - BlockStartWorldSeconds >= HoldArmorActivationSeconds;
+	}
 	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsInDefensePose() const { return bBlocking || bBlockRecovering || bCountering; }
-	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsPerformingAction() const { return bDodging || bBlocking || bCountering || bBlockRecovering; }
+	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsPerformingAction() const { return bDodging || bBlocking || bCountering || bBlockRecovering || bPoiseBroken; }
+	UFUNCTION(BlueprintPure, Category="韧性") bool IsPoiseBroken() const { return bPoiseBroken; }
+	UFUNCTION(BlueprintPure, Category="韧性") float GetPoiseFraction() const { return MaxPoise > 0.0f ? Poise / MaxPoise : 0.0f; }
 
 	// Called only when the real blade volume reaches the player capsule.
 	bool ResolveBossContact(double ContactAudioSeconds, double TargetBeat, float Damage,
@@ -155,6 +180,7 @@ protected:
 
 private:
 	double LastJudgmentWorldSeconds = -1000.0;
+	double LastResonanceGainWorldSeconds = -1000.0;
 	double LastDodgeInputAudioSeconds = -1000.0;
 	double DodgeStartWorldSeconds = -1000.0;
 	FVector DodgeDirection = FVector::ForwardVector;
@@ -168,7 +194,11 @@ private:
 	TArray<double> BlockInputHistory;
 	TArray<double> CounterInputHistory;
 	bool bCountering = false;
+	bool bPoiseBroken = false;
+	double PoiseBreakStartWorldSeconds = -1000.0;
+	double LastPoiseDamageWorldSeconds = -1000.0;
 	double LastBlockStartAudioSeconds = -1000.0;
+	double BlockStartWorldSeconds = -1000.0;
 	double LastBlockReleaseAudioSeconds = -1000.0;
 	double LastCounterInputAudioSeconds = -1000.0;
 	double DefenseAnimationStartWorldSeconds = -1000.0;
@@ -238,6 +268,39 @@ private:
 	UPROPERTY(EditAnywhere, Category="节奏防御|动作", meta=(ClampMin="0.25", ClampMax="1.5"))
 	float CounterDurationSeconds = 0.62f;
 
+	UPROPERTY(EditAnywhere, Category="节奏防御|霸体视觉", meta=(ClampMin="0.0", ClampMax="0.5"))
+	float HoldArmorActivationSeconds = 0.14f;
+
+	UPROPERTY(EditAnywhere, Category="韧性", meta=(ClampMin="1.0"))
+	float BadPoiseDamage = 38.0f;
+
+	UPROPERTY(EditAnywhere, Category="韧性", meta=(ClampMin="1.0"))
+	float DirectHitPoiseDamage = 55.0f;
+
+	UPROPERTY(EditAnywhere, Category="韧性", meta=(ClampMin="0.05", ClampMax="1.0"))
+	float PoiseBreakInputLockSeconds = 0.28f;
+
+	UPROPERTY(EditAnywhere, Category="韧性", meta=(ClampMin="0.1", ClampMax="1.5"))
+	float PoiseBreakDurationSeconds = 0.62f;
+
+	UPROPERTY(EditAnywhere, Category="韧性", meta=(ClampMin="0.0", ClampMax="5.0"))
+	float PoiseRecoveryDelaySeconds = 1.10f;
+
+	UPROPERTY(EditAnywhere, Category="韧性", meta=(ClampMin="1.0", ClampMax="200.0"))
+	float PoiseRecoveryPerSecond = 40.0f;
+
+	UPROPERTY(EditAnywhere, Category="受击|血液特效")
+	TObjectPtr<class UNiagaraSystem> BloodHitEffect;
+
+	UPROPERTY(EditAnywhere, Category="受击|血液特效")
+	TObjectPtr<class UNiagaraSystem> BloodPoiseBreakEffect;
+
+	UPROPERTY(EditAnywhere, Category="受击|血液特效", meta=(ClampMin="0.1", ClampMax="3.0"))
+	float BloodHitScale = 0.65f;
+
+	UPROPERTY(EditAnywhere, Category="受击|血液特效", meta=(ClampMin="0.1", ClampMax="3.0"))
+	float BloodPoiseBreakScale = 0.9f;
+
 	UPROPERTY(Transient) TObjectPtr<class UAnimSequence> DodgeForwardAnimation;
 	UPROPERTY(Transient) TObjectPtr<class UAnimSequence> DodgeBackwardAnimation;
 	UPROPERTY(Transient) TObjectPtr<class UAnimSequence> DodgeLeftAnimation;
@@ -256,6 +319,12 @@ private:
 	void ProcessBufferedInput();
 	double ConsumeClosestInput(TArray<double>& History, double IdealAudioSeconds);
 	void CancelDodgeForTransition();
+	void ApplyPoiseDamage(float Amount, FVector ImpactLocation, FVector AttackDirection);
+	void StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection);
+	void EndPoiseBreak();
+	void SpawnBloodFeedback(FVector ImpactLocation, FVector AttackDirection, bool bPoiseBreak) const;
+	bool BufferWhilePoiseLocked(EBufferedRhythmAction Action, double InputAudioSeconds,
+		FVector Direction = FVector::ZeroVector);
 	bool StartDodge(FVector WorldDirection, double InputAudioSeconds);
 	bool StartBlock(double InputAudioSeconds);
 	bool StartCounter(double InputAudioSeconds);

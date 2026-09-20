@@ -32,6 +32,10 @@ UPlayerRhythmCombatComponent::UPlayerRhythmCombatComponent()
 	BlockImpactEffect = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/SwordAnim/demo/FX/P_Spark.P_Spark"));
 	CounterImpactEffect = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/SwordAnim/demo/FX/P_Hit.P_Hit"));
 	PerfectHoldShockEffect = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Combat/Feedback/NS_PerfectDodge_Ring.NS_PerfectDodge_Ring"));
+	BloodHitEffect = LoadObject<UNiagaraSystem>(nullptr,
+		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/Stylized/P_Splash_Hit_Stylized.P_Splash_Hit_Stylized"));
+	BloodPoiseBreakEffect = LoadObject<UNiagaraSystem>(nullptr,
+		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/Stylized/P_SplashWithBurst_Hit_Stylized.P_SplashWithBurst_Hit_Stylized"));
 }
 
 void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -55,6 +59,13 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 			bBlockRecovering = false;
 		if (bCountering && WorldNow - CounterStartWorldSeconds >= CounterDurationSeconds)
 			bCountering = false;
+		if (bPoiseBroken && WorldNow - PoiseBreakStartWorldSeconds >= PoiseBreakDurationSeconds)
+			EndPoiseBreak();
+		else if (!bPoiseBroken && Poise < MaxPoise &&
+			WorldNow - LastPoiseDamageWorldSeconds >= PoiseRecoveryDelaySeconds)
+			Poise = FMath::Min(MaxPoise, Poise + PoiseRecoveryPerSecond * DeltaTime);
+		if (Resonance > 0.0f && WorldNow - LastResonanceGainWorldSeconds >= ResonanceDecayDelaySeconds)
+			Resonance = FMath::Max(0.0f, Resonance - ResonanceDecayPerSecond * DeltaTime);
 	}
 	ProcessBufferedInput();
 	if (bHUDPreviewMode && GetWorld() && HUDPreviewStep < 6 && GetWorld()->GetTimeSeconds() >= NextHUDPreviewWorldSeconds)
@@ -199,6 +210,8 @@ void UPlayerRhythmCombatComponent::BeginPlay()
 	PerfectWindowMs = FMath::Max(PerfectWindowMs, 80.f);
 	GoodWindowMs = FMath::Max(GoodWindowMs, 160.f);
 	Health = FMath::Clamp(Health, 0.0f, MaxHealth);
+	Poise = FMath::Clamp(Poise, 0.0f, MaxPoise);
+	LastResonanceGainWorldSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
 	bAutomationFailureTestMode = FParse::Param(FCommandLine::Get(), TEXT("RhythmCombatFailureTest"));
 	bAutomationTestMode = FParse::Param(FCommandLine::Get(), TEXT("RhythmCombatAutoTest")) || bAutomationFailureTestMode;
 	if (bAutomationTestMode)
@@ -245,6 +258,7 @@ void UPlayerRhythmCombatComponent::SubmitDodgeJudgment(ERhythmDodgeJudgment Grad
 		const float BaseGain = Grade == ERhythmDodgeJudgment::Perfect ? 12.0f : 6.0f;
 		const float ComboMultiplier = ComboCount >= 8 ? 1.5f : (ComboCount >= 4 ? 1.25f : 1.0f);
 		Resonance = FMath::Clamp(Resonance + BaseGain * ComboMultiplier * (bStrongBeat ? 1.25f : 1.0f), 0.0f, MaxResonance);
+		LastResonanceGainWorldSeconds = LastJudgmentWorldSeconds;
 	}
 	else if (Grade == ERhythmDodgeJudgment::Bad || Grade == ERhythmDodgeJudgment::Miss)
 	{
@@ -254,6 +268,7 @@ void UPlayerRhythmCombatComponent::SubmitDodgeJudgment(ERhythmDodgeJudgment Grad
 	{
 		++ComboCount;
 		Resonance = FMath::Clamp(Resonance + 20.0f, 0.0f, MaxResonance);
+		LastResonanceGainWorldSeconds = LastJudgmentWorldSeconds;
 	}
 	else if (Grade == ERhythmDodgeJudgment::HoldBreak)
 	{
@@ -275,10 +290,13 @@ void UPlayerRhythmCombatComponent::ResetCombatState()
 	LastJudgment = ERhythmDodgeJudgment::None;
 	LastJudgmentErrorMs = 0.0f;
 	LastJudgmentWorldSeconds = -1000.0;
+	LastResonanceGainWorldSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
 	ActiveHoldGroup = NAME_None;
 	bActiveHoldBroken = false;
 	ReportedHoldBreakGroups.Reset();
 	BufferedAction = EBufferedRhythmAction::None;
+	bPoiseBroken = false;
+	Poise = MaxPoise;
 	OnHealthChanged.Broadcast(Health, MaxHealth);
 	BlockInputHistory.Reset();
 	CounterInputHistory.Reset();
@@ -288,6 +306,8 @@ bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 {
 	if (!GetWorld() || !GetOwner()) return false;
 	const double InputAudioSeconds = GetCurrentInputAudioSeconds();
+	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Dodge, InputAudioSeconds, WorldDirection)) return true;
+	if (bPoiseBroken) EndPoiseBreak();
 	if (bBlocking) EndBlock();
 	if (bCountering)
 	{
@@ -315,6 +335,7 @@ bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 bool UPlayerRhythmCombatComponent::StartDodge(FVector WorldDirection, double InputAudioSeconds)
 {
 	if (!GetWorld() || !GetOwner()) return false;
+	if (bPoiseBroken) EndPoiseBreak();
 	BufferedAction = EBufferedRhythmAction::None;
 	bBlockRecovering = false;
 	bBlockReleasePending = false;
@@ -372,6 +393,8 @@ bool UPlayerRhythmCombatComponent::TryBlockStart()
 	const double InputAudioSeconds = GetCurrentInputAudioSeconds();
 	BlockInputHistory.Add(InputAudioSeconds);
 	if (BlockInputHistory.Num() > 16) BlockInputHistory.RemoveAt(0);
+	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Block, InputAudioSeconds)) return true;
+	if (bPoiseBroken) EndPoiseBreak();
 	if (bDodging)
 	{
 		const double Elapsed = GetWorld()->GetTimeSeconds() - DodgeStartWorldSeconds;
@@ -404,6 +427,7 @@ bool UPlayerRhythmCombatComponent::StartBlock(double InputAudioSeconds)
 	bActiveHoldBroken = false;
 	DefenseAnimationStartWorldSeconds = GetWorld()->GetTimeSeconds();
 	LastBlockStartAudioSeconds = InputAudioSeconds;
+	BlockStartWorldSeconds = GetWorld()->GetTimeSeconds();
 	PlayDefenseAnimation(BlockStartAnimation, false);
 	return true;
 }
@@ -441,6 +465,8 @@ bool UPlayerRhythmCombatComponent::TryCounter()
 	const double InputAudioSeconds = GetCurrentInputAudioSeconds();
 	CounterInputHistory.Add(InputAudioSeconds);
 	if (CounterInputHistory.Num() > 16) CounterInputHistory.RemoveAt(0);
+	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Counter, InputAudioSeconds)) return true;
+	if (bPoiseBroken) EndPoiseBreak();
 	// Counter is an intentional transition out of guard. Requiring the block key
 	// to finish its release event first made LMB appear unreliable in fast command
 	// strings and replaced the player's real timing with a later animation time.
@@ -513,6 +539,96 @@ void UPlayerRhythmCombatComponent::CancelDodgeForTransition()
 	}
 }
 
+bool UPlayerRhythmCombatComponent::BufferWhilePoiseLocked(EBufferedRhythmAction Action,
+	double InputAudioSeconds, FVector Direction)
+{
+	if (!bPoiseBroken || !GetWorld()) return false;
+	if (GetWorld()->GetTimeSeconds() - PoiseBreakStartWorldSeconds >= PoiseBreakInputLockSeconds)
+		return false;
+	BufferInput(Action, InputAudioSeconds, Direction);
+	return true;
+}
+
+void UPlayerRhythmCombatComponent::ApplyPoiseDamage(float Amount, FVector ImpactLocation, FVector AttackDirection)
+{
+	if (Amount <= 0.0f || bPoiseBroken || !GetWorld()) return;
+	Poise = FMath::Max(0.0f, Poise - Amount);
+	LastPoiseDamageWorldSeconds = GetWorld()->GetTimeSeconds();
+	UE_LOG(LogTemp, Display, TEXT("PlayerPoise: damage=%.1f remaining=%.1f/%.1f"), Amount, Poise, MaxPoise);
+	if (Poise <= KINDA_SMALL_NUMBER) StartPoiseBreak(ImpactLocation, AttackDirection);
+}
+
+void UPlayerRhythmCombatComponent::SpawnBloodFeedback(FVector ImpactLocation, FVector AttackDirection,
+	bool bPoiseBreak) const
+{
+	if (!GetWorld() || !GetOwner()) return;
+	UNiagaraSystem* Effect = bPoiseBreak ? BloodPoiseBreakEffect.Get() : BloodHitEffect.Get();
+	if (!Effect) return;
+	const FVector Torso = GetOwner()->GetActorLocation() + FVector(0, 0, 85.0f);
+	if (ImpactLocation.IsNearlyZero() || FVector::DistSquared(ImpactLocation, Torso) > FMath::Square(190.0f))
+		ImpactLocation = Torso;
+	if (!AttackDirection.Normalize()) AttackDirection = -GetOwner()->GetActorForwardVector();
+	const float Scale = bPoiseBreak ? BloodPoiseBreakScale : BloodHitScale;
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, ImpactLocation,
+		AttackDirection.Rotation(), FVector(Scale));
+	UE_LOG(LogTemp, Display, TEXT("PlayerBloodVFX: heavy=%d effect=%s location=%s"),
+		bPoiseBreak ? 1 : 0, *GetNameSafe(Effect), *ImpactLocation.ToString());
+}
+
+void UPlayerRhythmCombatComponent::StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection)
+{
+	if (!GetWorld() || !GetOwner()) return;
+	bPoiseBroken = true;
+	Poise = 0.0f;
+	PoiseBreakStartWorldSeconds = GetWorld()->GetTimeSeconds();
+	bDodging = false;
+	bBlocking = false;
+	bBlockRecovering = false;
+	bBlockReleasePending = false;
+	bCountering = false;
+	bActiveHoldBroken = true;
+	if (UBossCombatCameraComponent* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
+		Camera->StopHoldFeedback(.04f);
+
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (!Character || !Character->GetMesh()) return;
+	Character->ConsumeMovementInputVector();
+	Character->SetAnimRootMotionTranslationScale(0.0f);
+	if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+	{
+		Movement->SetMovementMode(MOVE_Walking);
+		Movement->StopMovementImmediately();
+	}
+	FVector ReactionDirection = Character->GetActorLocation() - ImpactLocation;
+	ReactionDirection.Z = 0.0f;
+	if (!ReactionDirection.Normalize()) ReactionDirection = -AttackDirection.GetSafeNormal2D();
+	if (ReactionDirection.IsNearlyZero()) ReactionDirection = -Character->GetActorForwardVector();
+	const FVector Local = Character->GetActorTransform().InverseTransformVectorNoScale(ReactionDirection).GetSafeNormal2D();
+	// A small capsule-swept displacement makes the break readable while keeping
+	// the player close enough to continue the rhythm exchange.
+	FHitResult PushHit;
+	Character->AddActorWorldOffset(ReactionDirection * 34.0f, true, &PushHit);
+	if (UPlayerCombatAnimInstance* Animation = Cast<UPlayerCombatAnimInstance>(Character->GetMesh()->GetAnimInstance()))
+		Animation->StartDirectionalHit(FVector2D(Local.X, Local.Y), PoiseBreakDurationSeconds);
+	UE_LOG(LogTemp, Display, TEXT("PlayerPoise: BROKEN reactionLocal=(%.2f,%.2f) lock=%.2fs duration=%.2fs"),
+		Local.X, Local.Y, PoiseBreakInputLockSeconds, PoiseBreakDurationSeconds);
+}
+
+void UPlayerRhythmCombatComponent::EndPoiseBreak()
+{
+	if (!bPoiseBroken) return;
+	bPoiseBroken = false;
+	Poise = MaxPoise;
+	if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
+	{
+		if (UPlayerCombatAnimInstance* Animation = Cast<UPlayerCombatAnimInstance>(Character->GetMesh()->GetAnimInstance()))
+			Animation->EndDirectionalHit();
+		if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+			Movement->SetMovementMode(MOVE_Walking);
+	}
+	UE_LOG(LogTemp, Display, TEXT("PlayerPoise: recovered %.1f/%.1f"), Poise, MaxPoise);
+}
+
 void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 {
 	if (BufferedAction == EBufferedRhythmAction::None || !GetWorld()) return;
@@ -525,6 +641,8 @@ void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 	}
 	if (bDodging && Now - DodgeStartWorldSeconds < DodgeChainStartSeconds) return;
 	if (bCountering && Now - CounterStartWorldSeconds < CounterCancelStartSeconds) return;
+	if (bPoiseBroken && Now - PoiseBreakStartWorldSeconds < PoiseBreakInputLockSeconds) return;
+	if (bPoiseBroken) EndPoiseBreak();
 
 	const EBufferedRhythmAction Action = BufferedAction;
 	const double OriginalInputAudioSeconds = BufferedInputAudioSeconds;
@@ -739,6 +857,20 @@ bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, do
 	if (RequiredResponse == ERhythmResponseType::Dodge && Grade == ERhythmDodgeJudgment::Perfect)
 		BroadcastPerfectFeedback(ErrorMs, bStrongBeat, BladeWorldLocation, AttackDirection);
 	if (!bDefended && Damage > 0.0f) ApplyCombatDamage(Damage * DamageMultiplier);
+	if (!bDuplicateHoldBreak)
+	{
+		if (Grade == ERhythmDodgeJudgment::Bad)
+		{
+			if (bPhysicalContact && !bDefended && Damage > 0.0f)
+				SpawnBloodFeedback(BladeWorldLocation, AttackDirection, Poise <= BadPoiseDamage);
+			ApplyPoiseDamage(BadPoiseDamage, BladeWorldLocation, AttackDirection);
+		}
+		else if (bPhysicalContact && !bDefended && Damage > 0.0f)
+		{
+			SpawnBloodFeedback(BladeWorldLocation, AttackDirection, Poise <= DirectHitPoiseDamage);
+			ApplyPoiseDamage(DirectHitPoiseDamage, BladeWorldLocation, AttackDirection);
+		}
+	}
 	UE_LOG(LogTemp, Display, TEXT("RhythmResponse: type=%s hold=%s grade=%s errorMs=%.1f defended=%d damage=%.1f beat=%.2f"),
 		*UEnum::GetValueAsString(RequiredResponse), *UEnum::GetValueAsString(HoldMarker),
 		*UEnum::GetValueAsString(Grade), ErrorMs, bDefended ? 1 : 0, bDefended ? 0.0f : Damage, TargetBeat);

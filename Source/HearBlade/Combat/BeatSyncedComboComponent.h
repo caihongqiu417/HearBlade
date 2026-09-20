@@ -50,6 +50,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBossBlinkWarning, FVector, Landi
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBossBlinkSucceeded, FVector, LandingLocation, double, TargetAudioSeconds);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBossBlinkCancelled);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBossConfirmedHit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnBossCinematicAccent, float, Strength, bool, bStrongBeat);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnBossCinematicClash, float, Strength, bool, bStrongBeat, FVector, ClashLocation);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBossCinematicAccentEnded);
 
 // A read-only snapshot used by player-facing HUD. Times come from the same audio clock
 // that drives the combo, so the cue never invents a separate visual rhythm timer.
@@ -84,6 +87,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Boss生命") void ApplyBossDamage(float Damage);
 	UFUNCTION() void ReceiveBossDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
 
+	// Hidden poise prevents light attacks from stun-locking the Boss. Idle hits react
+	// immediately; attacks are interrupted only by a counter or a poise break.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|韧性", meta=(ClampMin="1.0"))
+	float MaxBossPoise = 160.0f;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Boss受击|韧性")
+	float BossPoise = 160.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|韧性", meta=(ClampMin="0.0"))
+	float PoiseDamagePerHealthDamage = 0.8f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|韧性", meta=(ClampMin="0.0"))
+	float BossPoiseRecoveryDelay = 1.35f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|韧性", meta=(ClampMin="1.0"))
+	float BossPoiseRecoveryPerSecond = 48.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|动作", meta=(ClampMin="0.1", ClampMax="1.5"))
+	float LightHitReactionSeconds = 0.34f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|动作", meta=(ClampMin="0.1", ClampMax="2.0"))
+	float HeavyHitReactionSeconds = 0.58f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|血液特效")
+	TObjectPtr<UNiagaraSystem> BloodHitMetalEffect;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|血液特效")
+	TObjectPtr<UNiagaraSystem> BloodHeavyMetalEffect;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|血液特效", meta=(ClampMin="0.1", ClampMax="3.0"))
+	float BloodHitScale = 0.75f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Boss受击|血液特效", meta=(ClampMin="0.1", ClampMax="3.0"))
+	float BloodHeavyScale = 1.05f;
+	UFUNCTION(BlueprintPure, Category="Boss受击") bool IsHitReacting() const { return bBossHitReacting; }
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招")
 	TObjectPtr<UAttackDataAsset> AttackData;
 
@@ -111,6 +140,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category="节拍连招|相机") FOnBossBlinkSucceeded OnBlinkSucceeded;
 	UPROPERTY(BlueprintAssignable, Category="节拍连招|相机") FOnBossBlinkCancelled OnBlinkCancelled;
 	UPROPERTY(BlueprintAssignable, Category="节拍连招|相机") FOnBossConfirmedHit OnConfirmedHit;
+	UPROPERTY(BlueprintAssignable, Category="节拍连招|关键慢放") FOnBossCinematicAccent OnCinematicAccentStarted;
+	UPROPERTY(BlueprintAssignable, Category="节拍连招|关键慢放") FOnBossCinematicClash OnCinematicAccentImpact;
+	UPROPERTY(BlueprintAssignable, Category="节拍连招|关键慢放") FOnBossCinematicAccentEnded OnCinematicAccentEnded;
 	// Call this from actual damage confirmation, not from an animation impact marker.
 	UFUNCTION(BlueprintCallable, Category="节拍连招|相机") void NotifyConfirmedHit() { OnConfirmedHit.Broadcast(); }
 
@@ -148,6 +180,15 @@ public:
 	float GetLastLocomotionSpeed() const { return LastLocomotionSpeed; }
 	bool WasLastLocomotionBlocked() const { return bLastLocomotionBlocked; }
 	float GetWalkClipLengthSeconds() const;
+
+	// If no marker is explicitly authored, selected final hits can still receive
+	// an occasional accent. Disable this to use marker settings exclusively.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|关键慢放")
+	bool bEnableOccasionalFinalImpactCinematic = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|关键慢放", meta=(ClampMin="0.0", ClampMax="1.0", EditCondition="bEnableOccasionalFinalImpactCinematic"))
+	float FinalImpactCinematicChance = .35f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|关键慢放", meta=(EditCondition="bEnableOccasionalFinalImpactCinematic"))
+	FImpactCinematicSettings FinalImpactCinematic;
 
 	// The existing fire effects breathe on the music beat, including while idle.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="节拍连招|节奏感", meta=(ClampMin="0.0", ClampMax="0.3"))
@@ -204,8 +245,11 @@ public:
 
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
+	void SelectRuntimeResponsePattern();
+	const FAttackImpactMarker& GetImpactMarker(int32 Index) const;
 	float GetImpactTime(int32 Index) const;
 	int32 GetImpactCount() const;
 	bool StartPlayback(double AudioNowSeconds);
@@ -221,10 +265,28 @@ private:
 	void UpdateDamageSweep(double AudioNow);
 	void ResolveUncontactedDamageWindow(int32 ImpactIndex);
 	UMeshComponent* FindBladeMesh() const;
+	void ApplyBossDamageFrom(float Damage, const AActor* DamageSource, bool bForceHeavyBlood = false);
+	void ApplyBossPoiseDamage(float Amount, const AActor* DamageSource);
+	void StartBossHitReaction(const AActor* DamageSource, float Duration, bool bInterruptAttack);
+	void EndBossHitReaction();
+	void SpawnBossBlood(const AActor* DamageSource, bool bHeavy) const;
+	void SelectRuntimeCinematicAccents();
+	void UpdateCinematicAccent(UBeatClockSubsystem* Clock, double AudioNow);
+	void EndCinematicAccent(bool bImmediate);
+	void TriggerCinematicClash(int32 ImpactIndex, const FVector& ClashLocation, bool bStrongBeat);
 
 	bool bQueued = false;
 	bool bPlaying = false;
 	bool bLastAttackCompleted = false;
+	TArray<FAttackImpactMarker> RuntimeImpactMarkers;
+	TArray<bool> RuntimeCinematicEnabled;
+	int32 ActiveCinematicImpactIndex = INDEX_NONE;
+	bool bCinematicAccentActive = false;
+	TWeakObjectPtr<AActor> CinematicPlayerActor;
+	float SavedBossCustomTimeDilation = 1.f;
+	float SavedPlayerCustomTimeDilation = 1.f;
+	double CinematicActorSlowEndWorldSeconds = -1000.0;
+	FName ActiveResponsePattern = NAME_None;
 	int32 FirstImpactBeat = 0;
 	int32 NextImpactIndex = 0;
 	int32 NextBladeSoundIndex = 0;
@@ -251,6 +313,9 @@ private:
 	TArray<TObjectPtr<UAnimSequence>> DirectionalWalkAnimations;
 	float LocomotionAnimationTime = 0.0f;
 	TWeakObjectPtr<AActor> AttackTarget;
+	bool bBossHitReacting = false;
+	double BossHitReactionEndWorldSeconds = -1.0;
+	double LastBossPoiseDamageWorldSeconds = -1000.0;
 	struct FFirePulseTarget
 	{
 		TWeakObjectPtr<UNiagaraComponent> Component;

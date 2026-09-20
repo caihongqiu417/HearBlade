@@ -52,6 +52,9 @@ void UBossCombatCameraComponent::BindCombo(UBeatSyncedComboComponent* Combo)
 		Old->OnBlinkSucceeded.RemoveDynamic(this, &ThisClass::HandleBlink);
 		Old->OnBlinkCancelled.RemoveDynamic(this, &ThisClass::HandleCancelled);
 		Old->OnConfirmedHit.RemoveDynamic(this, &ThisClass::HandleConfirmedHit);
+		Old->OnCinematicAccentStarted.RemoveDynamic(this, &ThisClass::HandleCinematicStarted);
+		Old->OnCinematicAccentImpact.RemoveDynamic(this, &ThisClass::HandleCinematicImpact);
+		Old->OnCinematicAccentEnded.RemoveDynamic(this, &ThisClass::HandleCinematicEnded);
 	}
 	BoundCombo = Combo;
 	if (Combo)
@@ -60,6 +63,9 @@ void UBossCombatCameraComponent::BindCombo(UBeatSyncedComboComponent* Combo)
 		Combo->OnBlinkSucceeded.AddUniqueDynamic(this, &ThisClass::HandleBlink);
 		Combo->OnBlinkCancelled.AddUniqueDynamic(this, &ThisClass::HandleCancelled);
 		Combo->OnConfirmedHit.AddUniqueDynamic(this, &ThisClass::HandleConfirmedHit);
+		Combo->OnCinematicAccentStarted.AddUniqueDynamic(this, &ThisClass::HandleCinematicStarted);
+		Combo->OnCinematicAccentImpact.AddUniqueDynamic(this, &ThisClass::HandleCinematicImpact);
+		Combo->OnCinematicAccentEnded.AddUniqueDynamic(this, &ThisClass::HandleCinematicEnded);
 	}
 }
 
@@ -208,6 +214,36 @@ void UBossCombatCameraComponent::HandleConfirmedHit()
 	}
 }
 
+void UBossCombatCameraComponent::HandleCinematicStarted(float Strength, bool bStrongBeat)
+{
+	if (UBossCameraModifier* M = Modifier.Get())
+	{
+		const float Accent = FMath::Clamp(Strength, .25f, 2.f) * (bStrongBeat ? 1.12f : 1.f);
+		// A measured lens push announces the slow section without hiding the attack read.
+		M->Trigger(3.4f * Accent, .035f * Accent, .10f, .08f, .42f);
+		UE_LOG(LogTemp, Display, TEXT("BeatCinematicCamera: PREP strength=%.2f strong=%d"), Accent, bStrongBeat ? 1 : 0);
+	}
+}
+
+void UBossCombatCameraComponent::HandleCinematicImpact(float Strength, bool bStrongBeat, FVector ClashLocation)
+{
+	CinematicFocusLocation = ClashLocation;
+	CinematicFocusEndWorldSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() + .22 : -1000.0;
+	if (UBossCameraModifier* M = Modifier.Get())
+	{
+		const float Accent = FMath::Clamp(Strength, .25f, 2.f) * (bStrongBeat ? 1.18f : 1.f);
+		M->TriggerPerfectDodge(4.2f * Accent, .16f * Accent,
+			5.f * Accent, 7.f * Accent, .14f * Accent, -.08f * Accent,
+			1.f, .18f, .025f, .04f, .26f);
+		UE_LOG(LogTemp, Display, TEXT("BeatCinematicCamera: IMPACT strength=%.2f strong=%d"), Accent, bStrongBeat ? 1 : 0);
+	}
+}
+
+void UBossCombatCameraComponent::HandleCinematicEnded()
+{
+	UE_LOG(LogTemp, Verbose, TEXT("BeatCinematicCamera: recovery"));
+}
+
 void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* Tick)
 {
 	Super::TickComponent(DeltaTime, Type, Tick);
@@ -260,6 +296,8 @@ void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
 		const FVector Chest = Locked->GetActorLocation() + FVector(0,0,125);
 		FVector Focus = FMath::Lerp(Eye, Chest, FMath::Lerp(C->BossFocusWeight * .75f, C->BossFocusWeight, 1.f - Near));
 		if (bWarning) Focus = FMath::Lerp(Focus, WarningLanding + FVector(0,0,70), C->WarningLandingWeight);
+		const bool bClashFocus = GetWorld()->GetTimeSeconds() < CinematicFocusEndWorldSeconds;
+		if (bClashFocus) Focus = FMath::Lerp(Focus, CinematicFocusLocation, .72f);
 		// Use the unobstructed spring arm endpoint for lock-on aiming. The real
 		// camera may be retracted by a wall; feeding that position back into the
 		// desired rotation creates a visible back-and-forth near obstructions.
@@ -277,8 +315,9 @@ void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
 		Aim.Yaw += ManualYaw;
 		Aim.Pitch += ManualPitch;
 		PC->SetControlRotation(FMath::RInterpTo(PC->GetControlRotation(), Aim, DeltaTime, C->RotationSpeed));
-		const float DesiredArm = FMath::Clamp(FMath::Max(C->CombatArmLengthAtCloseRange,
+		float DesiredArm = FMath::Clamp(FMath::Max(C->CombatArmLengthAtCloseRange,
 			400.f + Distance * .12f), C->FreeArmLength, C->MaxCombatArmLength);
+		if (bClashFocus) DesiredArm *= .72f;
 		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, DesiredArm, DeltaTime, C->DistanceSpeed);
 		const float DesiredFOV = FMath::Max(FMath::Lerp(C->FreeFOV, C->CloseRangeFOV, Near),
 			FMath::GetMappedRangeValueClamped(FVector2D(500.f, 1800.f),
