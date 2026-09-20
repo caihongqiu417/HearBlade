@@ -571,6 +571,8 @@ void UBeatSyncedComboComponent::SelectRuntimeResponsePattern()
 
 void UBeatSyncedComboComponent::SelectRuntimeCinematicAccents()
 {
+	// Never discard an active accent flag before restoring music and actor rates.
+	EndCinematicAccent(true);
 	RuntimeCinematicEnabled.Init(false, RuntimeImpactMarkers.Num());
 	bool bHasAuthoredAccent = false;
 	for (int32 Index = 0; Index < RuntimeImpactMarkers.Num(); ++Index)
@@ -592,21 +594,18 @@ void UBeatSyncedComboComponent::SelectRuntimeCinematicAccents()
 
 void UBeatSyncedComboComponent::UpdateCinematicAccent(UBeatClockSubsystem* Clock, double AudioNow)
 {
-	if (!Clock || !Clock->IsRunning() || !IsValid(AttackData)) return;
+	if (!Clock || !Clock->IsRunning()) return;
 	if (bCinematicAccentActive && GetWorld() && GetWorld()->GetTimeSeconds() >= CinematicActorSlowEndWorldSeconds)
 	{
 		if (AActor* Boss = GetOwner()) Boss->CustomTimeDilation = SavedBossCustomTimeDilation;
 		if (AActor* Player = CinematicPlayerActor.Get()) Player->CustomTimeDilation = SavedPlayerCustomTimeDilation;
 		CinematicPlayerActor.Reset();
-		CinematicActorSlowEndWorldSeconds = TNumericLimits<double>::Max();
+		CinematicActorSlowEndWorldSeconds = -1000.0;
 	}
-	if (bCinematicAccentActive && RuntimeImpactMarkers.IsValidIndex(ActiveCinematicImpactIndex))
-	{
-		const FAttackImpactMarker& Marker = RuntimeImpactMarkers[ActiveCinematicImpactIndex];
-		const double ImpactTime = Clock->GetBeatTimeSeconds(FirstImpactBeat + Marker.BeatOffset);
-		if (AudioNow >= ImpactTime + Marker.Cinematic.HoldAfterImpactBeats * Clock->GetSecondsPerBeat())
-			EndCinematicAccent(false);
-	}
+	// End by unscaled world time. Musical time itself is slowed, so using it as the
+	// release clock can leave the system waiting on the very clock it has slowed.
+	if (bCinematicAccentActive && GetWorld() && GetWorld()->GetTimeSeconds() >= CinematicAccentEndWorldSeconds)
+		EndCinematicAccent(false);
 }
 
 void UBeatSyncedComboComponent::TriggerCinematicClash(int32 ImpactIndex, const FVector& ClashLocation, bool bStrongBeat)
@@ -619,7 +618,11 @@ void UBeatSyncedComboComponent::TriggerCinematicClash(int32 ImpactIndex, const F
 	RuntimeCinematicEnabled[ImpactIndex] = false;
 	ActiveCinematicImpactIndex = ImpactIndex;
 	bCinematicAccentActive = true;
-	Clock->SetMusicalPlaybackRate(Settings.MusicAndBossRate, .025f);
+	const float MusicHoldSeconds = FMath::Max(.04f,
+		Settings.HoldAfterImpactBeats * static_cast<float>(Clock->GetSecondsPerBeat()));
+	CinematicAccentEndWorldSeconds = GetWorld()->GetTimeSeconds() + MusicHoldSeconds;
+	Clock->SetTemporaryMusicalPlaybackRate(Settings.MusicAndBossRate, .025f,
+		MusicHoldSeconds + FMath::Max(.05f, Settings.RecoverySeconds) + .15f);
 	if (AActor* Boss = GetOwner())
 	{
 		SavedBossCustomTimeDilation = Boss->CustomTimeDilation;
@@ -649,6 +652,7 @@ void UBeatSyncedComboComponent::EndCinematicAccent(bool bImmediate)
 	if (AActor* Player = CinematicPlayerActor.Get()) Player->CustomTimeDilation = SavedPlayerCustomTimeDilation;
 	CinematicPlayerActor.Reset();
 	CinematicActorSlowEndWorldSeconds = -1000.0;
+	CinematicAccentEndWorldSeconds = -1000.0;
 	UE_LOG(LogTemp, Display, TEXT("BeatCinematic: END impact=%d recovery=%.3f"),
 		ActiveCinematicImpactIndex + 1, bImmediate ? .015f : Recovery);
 	bCinematicAccentActive = false;

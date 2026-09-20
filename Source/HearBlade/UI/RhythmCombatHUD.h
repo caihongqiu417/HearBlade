@@ -31,6 +31,7 @@ private:
 
 	void DrawPlayerPanel(const UPlayerRhythmCombatComponent* State, float Scale, double Now);
 	void DrawJudgment(const UPlayerRhythmCombatComponent* State, float Scale, double Now);
+	void DrawFailureFeedback(float Scale, double Now);
 	void DrawAttackTimingCue(const UPlayerRhythmCombatComponent* State, float Scale);
 	void DrawLockMarker();
 	void DrawBossHealth(float Scale);
@@ -70,6 +71,9 @@ private:
 	int32 LastComboTier = 0;
 	double ComboTierUpWorldSeconds = -1000.0;
 	double LastCapturedJudgmentSeconds = -1000.0;
+	double FailureFeedbackStartSeconds = -1000.0;
+	ERhythmDodgeJudgment FailureFeedbackGrade = ERhythmDodgeJudgment::None;
+	float FailureFeedbackErrorMs = 0.0f;
 	double LastPromptedImpactAudioSeconds = -1000.0;
 	TWeakObjectPtr<UBeatSyncedComboComponent> CachedCueCombo;
 };

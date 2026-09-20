@@ -38,6 +38,37 @@ void DrawSolidTriangle(UCanvas* Canvas, const FVector2D& A, const FVector2D& B, 
 	Triangle.SetColor(Color);
 	Canvas->DrawItem(Triangle);
 }
+
+void DrawBladeBar(UCanvas* Canvas, float X, float Y, float Width, float Height, float Fraction,
+	const FLinearColor& Color)
+{
+	if (!Canvas || !Canvas->Canvas || !GWhiteTexture || Width <= 0.0f || Height <= 0.0f) return;
+	const float FillX = X + Width * FMath::Clamp(Fraction, 0.0f, 1.0f);
+	if (FillX <= X + .5f) return;
+	const float Tip = FMath::Min(Height * .72f, Width * .08f);
+	TArray<FVector2D, TInlineAllocator<8>> Polygon = {
+		FVector2D(X, Y + Height * .5f), FVector2D(X + Tip, Y),
+		FVector2D(X + Width - Tip, Y), FVector2D(X + Width, Y + Height * .5f),
+		FVector2D(X + Width - Tip, Y + Height), FVector2D(X + Tip, Y + Height)
+	};
+	TArray<FVector2D, TInlineAllocator<8>> Clipped;
+	for (int32 Index = 0; Index < Polygon.Num(); ++Index)
+	{
+		const FVector2D A = Polygon[Index];
+		const FVector2D B = Polygon[(Index + 1) % Polygon.Num()];
+		const bool bAInside = A.X <= FillX;
+		const bool bBInside = B.X <= FillX;
+		if (bAInside) Clipped.Add(A);
+		if (bAInside != bBInside)
+		{
+			const float T = (FillX - A.X) / (B.X - A.X);
+			Clipped.Add(FMath::Lerp(A, B, T));
+		}
+	}
+	if (Clipped.Num() < 3) return;
+	for (int32 Index = 1; Index + 1 < Clipped.Num(); ++Index)
+		DrawSolidTriangle(Canvas, Clipped[0], Clipped[Index], Clipped[Index + 1], Color);
+}
 }
 
 ARhythmCombatHUD::ARhythmCombatHUD()
@@ -55,7 +86,7 @@ ARhythmCombatHUD::ARhythmCombatHUD()
 	static ConstructorHelpers::FObjectFinder<UTexture2D> MissWord(TEXT("/Game/UI/RhythmCombat/T_HUD_Word_MISS.T_HUD_Word_MISS"));
 	static ConstructorHelpers::FObjectFinder<UTexture2D> ComboWord(TEXT("/Game/UI/RhythmCombat/T_HUD_Word_COMBO.T_HUD_Word_COMBO"));
 	static ConstructorHelpers::FObjectFinder<UTexture2D> AttackTimingRail(TEXT("/Game/UI/RhythmCombat/T_HUD_RhythmRail_Clean.T_HUD_RhythmRail_Clean"));
-	static ConstructorHelpers::FObjectFinder<UTexture2D> BossFrame(TEXT("/Game/UI/RhythmCombat/T_HUD_BossHealthFrame.T_HUD_BossHealthFrame"));
+	static ConstructorHelpers::FObjectFinder<UTexture2D> BossFrame(TEXT("/Game/UI/RhythmCombat/T_HUD_BossHealthFrame_Gold.T_HUD_BossHealthFrame_Gold"));
 	if (BossFrame.Succeeded()) BossHealthFrameTexture = BossFrame.Object;
 	static ConstructorHelpers::FObjectFinder<UTexture2D> AttackSlash(TEXT("/Game/UI/RhythmCombat/T_HUD_AttackSlash.T_HUD_AttackSlash"));
 	static ConstructorHelpers::FObjectFinder<UTexture2D> DodgeIcon(TEXT("/Game/UI/RhythmCombat/Responses/T_Response_Dodge_Minimal.T_Response_Dodge_Minimal"));
@@ -99,6 +130,7 @@ void ARhythmCombatHUD::DrawHUD()
 	DrawBossHealth(Scale);
 	DrawLockMarker();
 	DrawJudgment(State, Scale, Now);
+	DrawFailureFeedback(Scale, Now);
 }
 
 void ARhythmCombatHUD::DrawBossHealth(float Scale)
@@ -119,22 +151,34 @@ void ARhythmCombatHUD::DrawBossHealth(float Scale)
 		// Health stays restrained so its fill remains easy to read.
 		PulseScale += BeatImpulse * (bDownbeat ? .007f : .004f);
 	}
-	const float BaseW = FMath::Min(1000.f * Scale, Canvas->SizeX * .72f);
+	const float BaseW = FMath::Min(850.f * Scale, Canvas->SizeX * .60f);
 	const float W = BaseW * PulseScale;
 	const float X = (Canvas->SizeX - W) * .5f;
-	const float Y = Canvas->SizeY * .18f;
-	const float H = 12.f * Scale;
-	DrawRect(FLinearColor(.015f,.008f,.008f,.94f), X + W*.08f, Y-H*.5f, W*.84f, H);
-	DrawRect(FLinearColor(.52f,.28f,.09f,1.f), X + W*.08f, Y-H*.5f, W*.84f*BossHealthTrail, H);
-	DrawRect(FLinearColor(.53f,.035f,.025f,1.f), X + W*.08f, Y-H*.5f, W*.84f*Health, H);
+	const float FrameH = W / 6.03f;
+	const float FrameY = Canvas->SizeY * .045f;
+	// Generated frame center is transparent. Fill and trail are drawn underneath
+	// so the gold outline remains crisp at every health value.
+	const float RailX = X + W * .13f;
+	const float RailY = FrameY + FrameH * .452f;
+	const float RailW = W * .74f;
+	const float RailH = FrameH * .09f;
+	DrawBladeBar(Canvas, RailX, RailY, RailW, RailH, 1.0f, FLinearColor(.025f, .008f, .012f, .96f));
+	DrawBladeBar(Canvas, RailX, RailY, RailW, RailH, BossHealthTrail, FLinearColor(.58f, .16f, .018f, .82f));
+	DrawBladeBar(Canvas, RailX, RailY, RailW, RailH, Health, FLinearColor(.46f, .012f, .016f, 1.f));
+	for (int32 Segment = 1; Segment < 6; ++Segment)
+		DrawRect(FLinearColor(.02f, .012f, .014f, .72f), RailX + RailW * Segment / 6.f,
+			RailY + 2.f * Scale, 2.f * Scale, RailH - 4.f * Scale);
 	if (BossHealthFrameTexture)
 	{
-		FCanvasTileItem Frame(FVector2D(X,Y-W/6.f), BossHealthFrameTexture->GetResource(), FVector2D(W,W/3.f), FLinearColor::White);
-		Frame.BlendMode = SE_BLEND_Translucent; Canvas->DrawItem(Frame);
+		const float BeatAlpha = FMath::Clamp((PulseScale - 1.f) * 130.f, 0.f, 1.f);
+		const FLinearColor Tint = FMath::Lerp(FLinearColor::White, FLinearColor(1.f,.73f,.28f,1.f), BeatAlpha * .24f);
+		FCanvasTileItem Frame(FVector2D(X, FrameY), BossHealthFrameTexture->GetResource(), FVector2D(W, FrameH), Tint);
+		Frame.BlendMode = SE_BLEND_Translucent;
+		Canvas->DrawItem(Frame);
 	}
-	const float BaseX = (Canvas->SizeX - BaseW) * .5f;
-	FCanvasTextItem Name(FVector2D(BaseX+BaseW*.08f,Y-34.f*Scale), Boss->BossDisplayName, GEngine->GetMediumFont(), FLinearColor(.88f,.81f,.65f,1.f));
-	Name.Scale = FVector2D(Scale); Name.EnableShadow(FLinearColor::Black); Canvas->DrawItem(Name);
+	FCanvasTextItem Name(FVector2D(X + W * .18f, FrameY + FrameH * .20f), Boss->BossDisplayName,
+		GEngine->GetMediumFont(), FLinearColor(.94f,.92f,.86f,1.f));
+	Name.Scale = FVector2D(.78f * Scale); Name.EnableShadow(FLinearColor::Black); Canvas->DrawItem(Name);
 }
 
 void ARhythmCombatHUD::DrawLockMarker()
@@ -673,7 +717,9 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 
 void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State, float Scale, double Now)
 {
-	const FVector2D Origin(18.0f * Scale, 10.0f * Scale);
+	// The texture contains generous transparent padding. A slightly negative
+	// origin places the visible health and resonance closer to the top-left.
+	const FVector2D Origin(-34.0f * Scale, -24.0f * Scale);
 	float FrameBeatScale = 1.0f;
 	float BeatHighlight = 0.0f;
 	bool bDownbeat = false;
@@ -761,6 +807,19 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 			JudgmentFeed[Index].TargetSlot = static_cast<float>(FirstSlot + Index);
 		QueueAnimationStartSeconds = Now;
 		LastCapturedJudgmentSeconds = JudgmentTime;
+		if (State->LastJudgment == ERhythmDodgeJudgment::Bad ||
+			State->LastJudgment == ERhythmDodgeJudgment::Miss ||
+			State->LastJudgment == ERhythmDodgeJudgment::HoldBreak)
+		{
+			FailureFeedbackStartSeconds = Now;
+			FailureFeedbackGrade = State->LastJudgment;
+			FailureFeedbackErrorMs = State->LastJudgmentErrorMs;
+			if (const APawn* Pawn = PlayerOwner ? PlayerOwner->GetPawn() : nullptr)
+			{
+				if (UBossCombatCameraComponent* CombatCamera = Pawn->FindComponentByClass<UBossCombatCameraComponent>())
+					CombatCamera->TriggerFailureFeedback(State->LastJudgment != ERhythmDodgeJudgment::Bad);
+			}
+		}
 		UE_LOG(LogTemp, Display, TEXT("RhythmHUDQueue: enqueue=%s cards=%d oldest=%s newest=%s combo=%d"),
 			*UEnum::GetValueAsString(State->LastJudgment), JudgmentFeed.Num(),
 			JudgmentFeed.Num() ? *UEnum::GetValueAsString(JudgmentFeed[0].Grade) : TEXT("None"),
@@ -903,6 +962,70 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 		Count.Scale = FVector2D(1.20f * Scale * ComboPunch * JudgmentBeatPulse);
 		Count.EnableShadow(FLinearColor::Black); Canvas->DrawItem(Count);
 	}
+}
+
+void ARhythmCombatHUD::DrawFailureFeedback(float Scale, double Now)
+{
+	if (!Canvas || FailureFeedbackGrade == ERhythmDodgeJudgment::None) return;
+	const bool bMiss = FailureFeedbackGrade == ERhythmDodgeJudgment::Miss ||
+		FailureFeedbackGrade == ERhythmDodgeJudgment::HoldBreak;
+	const float Duration = bMiss ? .26f : .23f;
+	const float Age = static_cast<float>(Now - FailureFeedbackStartSeconds);
+	if (Age < 0.0f || Age >= Duration)
+	{
+		if (Age >= Duration) FailureFeedbackGrade = ERhythmDodgeJudgment::None;
+		return;
+	}
+
+	// A fast arrival and softer tail make the cue feel like a hit instead of a modal warning.
+	const float Attack = FMath::Clamp(Age / .045f, 0.0f, 1.0f);
+	const float Tail = 1.0f - FMath::Clamp((Age - .045f) / (Duration - .045f), 0.0f, 1.0f);
+	const float Alpha = Attack * FMath::Pow(Tail, .72f);
+	const float Punch = 1.0f + .04f * FMath::Sin(FMath::Min(Age / .10f, 1.0f) * UE_PI);
+	// Timing correction sits just above the command rail instead of covering the clash point.
+	// A true miss still appears nearer the action because it represents a broken sequence.
+	const FVector2D Center(Canvas->SizeX * .50f, Canvas->SizeY * (bMiss ? .405f : .70f));
+	const FLinearColor Accent = bMiss
+		? FLinearColor(.88f, .08f, .055f, Alpha * .78f)
+		: FLinearColor(1.0f, .45f, .08f, Alpha * .86f);
+	const FLinearColor Dark(.035f, .006f, .01f, Alpha * .46f);
+
+	// Two broken brush brackets converge, but the middle remains transparent so the next cue stays readable.
+	const float HalfW = (bMiss ? 138.0f : 58.0f) * Scale * Punch;
+	const float HalfH = (bMiss ? 35.0f : 13.0f) * Scale * Punch;
+	const float Cut = (bMiss ? 28.0f : 43.0f) * Scale;
+	const float OuterReach = (bMiss ? 18.0f : 5.0f) * Scale;
+	const float InnerReach = (bMiss ? 16.0f : 4.0f) * Scale;
+	const float AccentOuterReach = (bMiss ? 10.0f : 3.0f) * Scale;
+	const float AccentInnerReach = (bMiss ? 8.0f : 3.0f) * Scale;
+	const float AccentLift = (bMiss ? 7.0f : 3.0f) * Scale;
+	const float AccentInnerLift = (bMiss ? 12.0f : 4.0f) * Scale;
+	const float AccentOuterLift = (bMiss ? 9.0f : 3.0f) * Scale;
+	DrawSolidQuad(Canvas,
+		Center + FVector2D(-HalfW, -HalfH), Center + FVector2D(-Cut, -HalfH * .72f),
+		Center + FVector2D(-Cut - InnerReach, -HalfH * .43f), Center + FVector2D(-HalfW - OuterReach, -HalfH * .64f), Dark);
+	DrawSolidQuad(Canvas,
+		Center + FVector2D(Cut, HalfH * .43f), Center + FVector2D(HalfW + OuterReach, HalfH * .64f),
+		Center + FVector2D(HalfW, HalfH), Center + FVector2D(Cut + InnerReach, HalfH * .72f), Dark);
+	DrawSolidQuad(Canvas,
+		Center + FVector2D(-HalfW, -HalfH + AccentLift), Center + FVector2D(-Cut, -HalfH * .72f + AccentLift),
+		Center + FVector2D(-Cut - AccentInnerReach, -HalfH * .58f + AccentInnerLift), Center + FVector2D(-HalfW - AccentOuterReach, -HalfH * .52f + AccentOuterLift), Accent);
+	DrawSolidQuad(Canvas,
+		Center + FVector2D(Cut, HalfH * .43f - AccentLift), Center + FVector2D(HalfW + AccentOuterReach, HalfH * .52f - AccentOuterLift),
+		Center + FVector2D(HalfW, HalfH - AccentLift), Center + FVector2D(Cut + AccentInnerReach, HalfH * .58f - AccentInnerLift), Accent);
+
+	const FString MainText = bMiss ? TEXT("MISS") : (FailureFeedbackErrorMs < 0.0f ? TEXT("EARLY") : TEXT("LATE"));
+	const FString SubText = bMiss ? TEXT("COMBO BREAK") : FString::Printf(TEXT("BAD  %+.0f ms"), FailureFeedbackErrorMs);
+	FCanvasTextItem Main(Center + FVector2D(0.0f, -7.0f * Scale), FText::FromString(MainText),
+		GEngine ? GEngine->GetLargeFont() : nullptr, FLinearColor(1.0f, .93f, .86f, Alpha));
+	Main.bCentreX = true; Main.bCentreY = true;
+	Main.Scale = FVector2D((bMiss ? 1.02f : .92f) * Scale * Punch);
+	Main.EnableShadow(FLinearColor(.05f, 0.0f, 0.0f, Alpha));
+	Canvas->DrawItem(Main);
+	FCanvasTextItem Sub(Center + FVector2D(0.0f, 28.0f * Scale), FText::FromString(SubText),
+		GEngine ? GEngine->GetSmallFont() : nullptr, Accent);
+	Sub.bCentreX = true; Sub.bCentreY = true; Sub.Scale = FVector2D(.66f * Scale);
+	Sub.EnableShadow(FLinearColor::Black); Canvas->DrawItem(Sub);
 }
 
 UTexture2D* ARhythmCombatHUD::GetJudgmentWordTexture(ERhythmDodgeJudgment Grade) const

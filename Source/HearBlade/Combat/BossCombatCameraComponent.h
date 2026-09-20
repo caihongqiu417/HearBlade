@@ -25,6 +25,7 @@ public:
 		FVector BladeWorldLocation, FVector AttackDirection, bool bStrongBeat,
 		float LateralShiftCm, float DollyShiftCm, float YawKickDegrees, float PitchKickDegrees,
 		float ReboundStrength);
+	void TriggerFailureFeedback(bool bMiss);
 	void StartHoldFeedback(float ShakeDegrees);
 	void TriggerHoldImpact(float ShakeDegrees, float DurationSeconds);
 	void StopHoldFeedback(float FadeSeconds);

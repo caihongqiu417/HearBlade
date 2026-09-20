@@ -146,6 +146,7 @@ public:
 	// Changes musical time and audio pitch together. Gameplay input and camera
 	// stay at normal world speed while beat-authored animation remains aligned.
 	void SetMusicalPlaybackRate(float TargetRate, float BlendSeconds = 0.06f);
+	void SetTemporaryMusicalPlaybackRate(float TargetRate, float BlendSeconds, float MaximumDurationSeconds);
 	void RestoreMusicalPlaybackRate(float BlendSeconds = 0.24f);
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 	float GetMusicalPlaybackRate() const { return CurrentPlaybackRate; }
@@ -186,4 +187,5 @@ private:
 	float CurrentPlaybackRate = 1.f;
 	float TargetPlaybackRate = 1.f;
 	float PlaybackRateInterpSpeed = 100.f;
+	double PlaybackRateRestoreRawAudioSeconds = -1.0;
 };

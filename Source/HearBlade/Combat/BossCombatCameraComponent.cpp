@@ -151,6 +151,33 @@ void UBossCombatCameraComponent::TriggerPerfectDodgeFeedback(float FOVExpansionD
 		SideSign, bStrongBeat ? 1 : 0, FinalStrength, LateralShiftCm * FinalStrength, YawKickDegrees * FinalStrength);
 }
 
+void UBossCombatCameraComponent::TriggerFailureFeedback(bool bMiss)
+{
+	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
+	UBossCameraModifier* CameraModifier = Modifier.Get();
+	if (!Player || !CameraModifier) return;
+
+	float ObstructionScale = 1.0f;
+	if (const USpringArmComponent* Boom = Player->GetCameraBoom())
+	{
+		const float ActualArm = FVector::Dist(Boom->GetComponentLocation(), Player->GetFollowCamera()->GetComponentLocation());
+		if (Boom->TargetArmLength > 1.0f && ActualArm / Boom->TargetArmLength < .72f)
+			ObstructionScale = .25f;
+	}
+	if (Target.IsValid() && FVector::Dist2D(Target->GetActorLocation(), Player->GetActorLocation()) < 170.f)
+		ObstructionScale = FMath::Min(ObstructionScale, .35f);
+
+	// Failure is a brief loss of stability: a tiny pull-back and downward hitch. It is deliberately
+	// weaker than PERFECT feedback, and never rolls or permanently changes player camera input.
+	const float Shake = (bMiss ? .18f : .10f) * ObstructionScale;
+	const float Dolly = (bMiss ? -3.2f : -1.4f) * ObstructionScale;
+	const float Pitch = (bMiss ? -.12f : -.055f) * ObstructionScale;
+	CameraModifier->TriggerPerfectDodge(0.0f, Shake, 0.0f, Dolly, 0.0f, Pitch,
+		1.0f, 0.0f, .018f, .012f, bMiss ? .18f : .14f);
+	UE_LOG(LogTemp, Verbose, TEXT("RhythmFailureCamera: miss=%d shake=%.2f obstruction=%.2f"),
+		bMiss ? 1 : 0, Shake, ObstructionScale);
+}
+
 void UBossCombatCameraComponent::HandleWarning(FVector Landing, double)
 {
 	bWarning = true;

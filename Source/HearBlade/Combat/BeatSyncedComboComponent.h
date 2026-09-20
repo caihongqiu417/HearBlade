@@ -286,6 +286,7 @@ private:
 	float SavedBossCustomTimeDilation = 1.f;
 	float SavedPlayerCustomTimeDilation = 1.f;
 	double CinematicActorSlowEndWorldSeconds = -1000.0;
+	double CinematicAccentEndWorldSeconds = -1000.0;
 	FName ActiveResponsePattern = NAME_None;
 	int32 FirstImpactBeat = 0;
 	int32 NextImpactIndex = 0;

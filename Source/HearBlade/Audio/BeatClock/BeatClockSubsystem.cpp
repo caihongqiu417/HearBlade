@@ -51,6 +51,7 @@ void UBeatClockSubsystem::StartClock(FBeatClockSettings InSettings)
 	MusicalAudioSeconds = LastRawAudioSeconds;
 	CurrentPlaybackRate = TargetPlaybackRate = 1.f;
 	PlaybackRateInterpSpeed = 100.f;
+	PlaybackRateRestoreRawAudioSeconds = -1.0;
 	ClockStartAudioSeconds = MusicalAudioSeconds;
 	LastEmittedBeat = -1;
 	bRunning = true;
@@ -85,6 +86,7 @@ void UBeatClockSubsystem::StopClock()
 	DuckHoldRemaining = 0.f;
 	bRunning = false;
 	CurrentPlaybackRate = TargetPlaybackRate = 1.f;
+	PlaybackRateRestoreRawAudioSeconds = -1.0;
 }
 
 void UBeatClockSubsystem::RegisterSynchronizedMusicComponent(UAudioComponent* Component)
@@ -117,8 +119,17 @@ void UBeatClockSubsystem::SetMusicalPlaybackRate(float TargetRate, float BlendSe
 		CurrentPlaybackRate, TargetPlaybackRate, BlendSeconds);
 }
 
+void UBeatClockSubsystem::SetTemporaryMusicalPlaybackRate(float TargetRate, float BlendSeconds,
+	float MaximumDurationSeconds)
+{
+	SetMusicalPlaybackRate(TargetRate, BlendSeconds);
+	PlaybackRateRestoreRawAudioSeconds = UGameplayStatics::GetAudioTimeSeconds(GetWorld()) +
+		FMath::Max(.05f, MaximumDurationSeconds);
+}
+
 void UBeatClockSubsystem::RestoreMusicalPlaybackRate(float BlendSeconds)
 {
+	PlaybackRateRestoreRawAudioSeconds = -1.0;
 	SetMusicalPlaybackRate(1.f, BlendSeconds);
 }
 
@@ -234,6 +245,11 @@ void UBeatClockSubsystem::Tick(float DeltaTime)
 		return;
 	}
 	const double RawNow = UGameplayStatics::GetAudioTimeSeconds(GetWorld());
+	if (PlaybackRateRestoreRawAudioSeconds > 0.0 && RawNow >= PlaybackRateRestoreRawAudioSeconds)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("BeatCinematic: failsafe restored musical playback rate"));
+		RestoreMusicalPlaybackRate(.10f);
+	}
 	const double RawDelta = FMath::Max(0.0, RawNow - LastRawAudioSeconds);
 	LastRawAudioSeconds = RawNow;
 	const float PreviousRate = CurrentPlaybackRate;
