@@ -245,6 +245,13 @@ void AHearBladeCharacter::UpdateCombatFacing(float DeltaSeconds)
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	AActor* TargetActor = CombatCamera ? CombatCamera->GetCombatTarget() : nullptr;
 	if (!Movement) return;
+	// The hit component turns toward the actual blade source before playing its
+	// backward reaction; lock-on facing must not rotate against that short turn.
+	if (RhythmCombat && RhythmCombat->IsHitReacting())
+	{
+		Movement->bOrientRotationToMovement = false;
+		return;
+	}
 
 	if (!TargetActor)
 	{

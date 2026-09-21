@@ -342,8 +342,11 @@ void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
 		Aim.Yaw += ManualYaw;
 		Aim.Pitch += ManualPitch;
 		PC->SetControlRotation(FMath::RInterpTo(PC->GetControlRotation(), Aim, DeltaTime, C->RotationSpeed));
+		// Bring both actors slightly closer without changing the established
+		// framing, lock-on aim, or FOV behavior. Keep the configured distance
+		// limits authoritative even when the data asset overrides C++ defaults.
 		float DesiredArm = FMath::Clamp(FMath::Max(C->CombatArmLengthAtCloseRange,
-			400.f + Distance * .12f), C->FreeArmLength, C->MaxCombatArmLength);
+			400.f + Distance * .12f), C->FreeArmLength, C->MaxCombatArmLength) * .92f;
 		if (bClashFocus) DesiredArm *= .72f;
 		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, DesiredArm, DeltaTime, C->DistanceSpeed);
 		const float DesiredFOV = FMath::Max(FMath::Lerp(C->FreeFOV, C->CloseRangeFOV, Near),
@@ -355,7 +358,7 @@ void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
 	{
 		Boom->TargetOffset = FMath::VInterpTo(Boom->TargetOffset, FVector::ZeroVector, DeltaTime, 4.f);
 		Boom->SocketOffset = FMath::VInterpTo(Boom->SocketOffset, FVector::ZeroVector, DeltaTime, 4.f);
-		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, C->FreeArmLength, DeltaTime, 4.f);
+		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, C->FreeArmLength * .92f, DeltaTime, 4.f);
 		Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, C->FreeFOV, DeltaTime, 5.f));
 	}
 }

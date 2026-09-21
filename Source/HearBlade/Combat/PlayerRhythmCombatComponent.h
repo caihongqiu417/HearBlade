@@ -140,14 +140,16 @@ public:
 			GetWorld()->GetTimeSeconds() - BlockStartWorldSeconds >= HoldArmorActivationSeconds;
 	}
 	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsInDefensePose() const { return bBlocking || bBlockRecovering || bCountering; }
-	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsPerformingAction() const { return bDodging || bBlocking || bCountering || bBlockRecovering || bPoiseBroken; }
+	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsPerformingAction() const { return bDodging || bBlocking || bCountering || bBlockRecovering || bPoiseBroken || bHitReacting; }
 	UFUNCTION(BlueprintPure, Category="韧性") bool IsPoiseBroken() const { return bPoiseBroken; }
+	UFUNCTION(BlueprintPure, Category="受击") bool IsHitReacting() const { return bHitReacting || bPoiseBroken; }
 	UFUNCTION(BlueprintPure, Category="韧性") float GetPoiseFraction() const { return MaxPoise > 0.0f ? Poise / MaxPoise : 0.0f; }
 
 	// Called only when the real blade volume reaches the player capsule.
 	bool ResolveBossContact(double ContactAudioSeconds, double TargetBeat, float Damage,
 		float IdealDodgeLeadSeconds, bool bStrongBeat, FVector BladeWorldLocation, FVector AttackDirection,
-		ERhythmResponseType RequiredResponse, ERhythmHoldMarkerType HoldMarker, FName HoldGroup);
+		ERhythmResponseType RequiredResponse, ERhythmHoldMarkerType HoldMarker, FName HoldGroup,
+		FVector AttackerWorldLocation);
 
 	// Called when a real blade window ends without touching the player. This awards one timing
 	// judgment when the player actually displaced out of the sweep with a dodge.
@@ -195,6 +197,11 @@ private:
 	TArray<double> CounterInputHistory;
 	bool bCountering = false;
 	bool bPoiseBroken = false;
+	bool bHitReacting = false;
+	bool bHitTurnPending = false;
+	FRotator HitFacingRotation = FRotator::ZeroRotator;
+	double HitTurnEndWorldSeconds = -1000.0;
+	double HitReactionEndWorldSeconds = -1000.0;
 	double PoiseBreakStartWorldSeconds = -1000.0;
 	double LastPoiseDamageWorldSeconds = -1000.0;
 	double LastBlockStartAudioSeconds = -1000.0;
@@ -283,6 +290,13 @@ private:
 	UPROPERTY(EditAnywhere, Category="韧性", meta=(ClampMin="0.1", ClampMax="1.5"))
 	float PoiseBreakDurationSeconds = 0.62f;
 
+	UPROPERTY(EditAnywhere, Category="受击", meta=(ClampMin="0.05", ClampMax="0.5"))
+	float LightHitDurationSeconds = 0.34f;
+	UPROPERTY(EditAnywhere, Category="受击", meta=(ClampMin="0.0", ClampMax="0.2"))
+	float HitTurnSeconds = 0.07f;
+	UPROPERTY(EditAnywhere, Category="受击", meta=(ClampMin="0.0", ClampMax="0.5"))
+	float LightHitInputLockSeconds = 0.22f;
+
 	UPROPERTY(EditAnywhere, Category="韧性", meta=(ClampMin="0.0", ClampMax="5.0"))
 	float PoiseRecoveryDelaySeconds = 1.10f;
 
@@ -319,9 +333,14 @@ private:
 	void ProcessBufferedInput();
 	double ConsumeClosestInput(TArray<double>& History, double IdealAudioSeconds);
 	void CancelDodgeForTransition();
-	void ApplyPoiseDamage(float Amount, FVector ImpactLocation, FVector AttackDirection);
-	void StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection);
+	void ApplyPoiseDamage(float Amount, FVector ImpactLocation, FVector AttackDirection,
+		FVector AttackerWorldLocation = FVector::ZeroVector);
+	void StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection,
+		FVector AttackerWorldLocation = FVector::ZeroVector);
 	void EndPoiseBreak();
+	void StartHitReaction(FVector ImpactLocation, FVector AttackDirection, bool bHeavy,
+		FVector AttackerWorldLocation = FVector::ZeroVector);
+	void FinishHitReaction();
 	void SpawnBloodFeedback(FVector ImpactLocation, FVector AttackDirection, bool bPoiseBreak) const;
 	bool BufferWhilePoiseLocked(EBufferedRhythmAction Action, double InputAudioSeconds,
 		FVector Direction = FVector::ZeroVector);
@@ -332,7 +351,8 @@ private:
 	ERhythmDodgeJudgment JudgeCounterInput(double InputAudioSeconds, double IdealAudioSeconds) const;
 	bool ResolveResponse(double ImpactAudioSeconds, double TargetBeat, float Damage, float IdealLeadSeconds,
 		bool bStrongBeat, FVector BladeWorldLocation, FVector AttackDirection, ERhythmResponseType RequiredResponse,
-		ERhythmHoldMarkerType HoldMarker, FName HoldGroup, bool bPhysicalContact);
+		ERhythmHoldMarkerType HoldMarker, FName HoldGroup, bool bPhysicalContact,
+		FVector AttackerWorldLocation = FVector::ZeroVector);
 	void PlayDefenseAnimation(class UAnimSequence* Animation, bool bLooping, float DesiredDuration = 0.0f);
 	void PlayResponseFeedback(ERhythmResponseType Response, ERhythmDodgeJudgment Grade,
 		FVector WorldLocation, FVector AttackDirection, bool bStrongBeat);

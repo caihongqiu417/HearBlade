@@ -1,6 +1,7 @@
 #include "UI/RhythmCombatHUD.h"
 
 #include "Audio/BeatClock/BeatClockSubsystem.h"
+#include "AudioMixerBlueprintLibrary.h"
 #include "Combat/BeatSyncedComboComponent.h"
 #include "Combat/BossBeatDirector.h"
 #include "Combat/BossCombatCameraComponent.h"
@@ -126,11 +127,132 @@ void ARhythmCombatHUD::DrawHUD()
 	const float Scale = FMath::Clamp(Canvas->SizeX / 1920.0f, 0.65f, 1.35f) * 0.84f;
 	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
 	DrawPlayerPanel(State, Scale, Now);
+	DrawAudioVisualizer(Scale);
 	DrawAttackTimingCue(State, Scale);
 	DrawBossHealth(Scale);
 	DrawLockMarker();
 	DrawJudgment(State, Scale, Now);
 	DrawFailureFeedback(Scale, Now);
+}
+
+void ARhythmCombatHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (bSpectrumAnalysisStarted && GetWorld())
+		UAudioMixerBlueprintLibrary::StopAnalyzingOutput(GetWorld(), nullptr);
+	bSpectrumAnalysisStarted = false;
+	Super::EndPlay(EndPlayReason);
+}
+
+void ARhythmCombatHUD::DrawAudioVisualizer(float Scale)
+{
+	if (!Canvas || !GetWorld()) return;
+	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
+	if (!Clock || !Clock->IsRunning()) return;
+
+	constexpr int32 BandCount = 18;
+	static const TArray<float> Frequencies = {
+		55.f, 75.f, 100.f, 135.f, 180.f, 240.f, 320.f, 430.f, 580.f,
+		780.f, 1050.f, 1400.f, 1900.f, 2550.f, 3400.f, 4600.f, 6200.f, 8400.f
+	};
+	if (!bSpectrumAnalysisStarted)
+	{
+		UAudioMixerBlueprintLibrary::StartAnalyzingOutput(GetWorld(), nullptr);
+		bSpectrumAnalysisStarted = true;
+		SmoothedSpectrum.Init(0.0f, BandCount);
+	}
+
+	TArray<float> Magnitudes;
+	UAudioMixerBlueprintLibrary::GetMagnitudeForFrequencies(GetWorld(), Frequencies, Magnitudes, nullptr);
+	if (SmoothedSpectrum.Num() != BandCount) SmoothedSpectrum.Init(0.0f, BandCount);
+	const float DeltaSeconds = FMath::Clamp(GetWorld()->GetDeltaSeconds(), 0.0f, 0.1f);
+	float CurrentPeak = 0.0f;
+	for (const float Magnitude : Magnitudes) CurrentPeak = FMath::Max(CurrentPeak, Magnitude);
+	SpectrumAutoPeak = FMath::Max(CurrentPeak,
+		FMath::FInterpTo(SpectrumAutoPeak, 0.0025f, DeltaSeconds, 0.65f));
+
+	const double Beat = Clock->GetCurrentBeat();
+	const float BeatPhase = static_cast<float>(Beat - FMath::FloorToDouble(Beat));
+	const float BeatGlow = FMath::Exp(-BeatPhase * 7.0f);
+	const bool bDownbeat = Clock->GetCurrentBeatInBar() == 0;
+	for (int32 Index = 0; Index < BandCount; ++Index)
+	{
+		const float Raw = Magnitudes.IsValidIndex(Index) ? Magnitudes[Index] : 0.0f;
+		const float AudioValue = FMath::Sqrt(FMath::Clamp(Raw / FMath::Max(SpectrumAutoPeak, 0.0001f), 0.0f, 1.0f));
+		// A quiet beat floor keeps the display musically alive during sparse
+		// passages while the FFT remains the main source of its silhouette.
+		const float BeatShape = 0.5f + 0.5f * FMath::Sin(Index * 1.71f + static_cast<float>(Beat) * 0.41f);
+		const float Target = FMath::Clamp(0.06f + AudioValue * 0.84f + BeatGlow * BeatShape * 0.16f, 0.0f, 1.0f);
+		const float Speed = Target > SmoothedSpectrum[Index] ? 20.0f : 7.0f;
+		SmoothedSpectrum[Index] = FMath::FInterpTo(SmoothedSpectrum[Index], Target, DeltaSeconds, Speed);
+	}
+	float SpectrumMin = 1.0f;
+	float SpectrumMax = 0.0f;
+	for (const float Value : SmoothedSpectrum)
+	{
+		SpectrumMin = FMath::Min(SpectrumMin, Value);
+		SpectrumMax = FMath::Max(SpectrumMax, Value);
+	}
+
+	// Horizontal mirrored waveform inspired by the supplied reference. It uses
+	// the live FFT but stays completely transparent over the game scene.
+	const FVector2D WaveStart(20.0f * Scale, Canvas->SizeY * 0.53f);
+	const float WaveWidth = 230.0f * Scale;
+	constexpr int32 BarCount = 96;
+	const float FlowTime = static_cast<float>(GetWorld()->GetTimeSeconds());
+
+	FCanvasLineItem Baseline(WaveStart, WaveStart + FVector2D(WaveWidth, 0.0f));
+	Baseline.SetColor(FLinearColor(0.34f, 0.025f, 0.018f, 0.34f + BeatGlow * 0.14f));
+	Baseline.LineThickness = 0.8f * Scale;
+	Canvas->DrawItem(Baseline);
+
+	for (int32 Bar = 0; Bar < BarCount; ++Bar)
+	{
+		const float T = static_cast<float>(Bar) / (BarCount - 1);
+		const float BandPosition = T * (BandCount - 1) * 2.0f;
+		const float MirroredBand = BandPosition <= BandCount - 1
+			? BandPosition : 2.0f * (BandCount - 1) - BandPosition;
+		const int32 I0 = FMath::Clamp(FMath::FloorToInt(MirroredBand), 0, BandCount - 1);
+		const int32 I1 = FMath::Min(I0 + 1, BandCount - 1);
+		const float BaseValue = FMath::Lerp(SmoothedSpectrum[I0], SmoothedSpectrum[I1], MirroredBand - I0);
+		const float RelativeValue = (BaseValue - SpectrumMin) / FMath::Max(SpectrumMax - SpectrumMin, 0.035f);
+		const float FineMotion = FMath::Square(0.5f + 0.5f * FMath::Sin(
+			Bar * 0.43f - FlowTime * (2.6f + I0 * 0.06f)));
+		const float Value = FMath::Clamp(0.05f + BaseValue * 0.42f + RelativeValue * 0.68f
+			+ FineMotion * (0.06f + BeatGlow * 0.10f), 0.0f, 1.0f);
+		const float HalfHeight = (1.0f + FMath::Pow(Value, 1.18f) * 40.0f
+			+ BeatGlow * (0.6f + Value * 3.2f)) * Scale;
+		const float X = WaveStart.X + T * WaveWidth;
+
+		const FLinearColor DarkRed(0.38f, 0.008f, 0.014f, 0.72f);
+		const FLinearColor Scarlet(0.92f, 0.035f, 0.018f, 0.92f);
+		const FLinearColor WarmGold(0.95f, 0.48f, 0.055f, 0.96f);
+		FLinearColor Color = T < 0.58f
+			? FMath::Lerp(DarkRed, Scarlet, T / 0.58f)
+			: FMath::Lerp(Scarlet, WarmGold, (T - 0.58f) / 0.42f);
+		if (bDownbeat)
+			Color = FMath::Lerp(Color, WarmGold, BeatGlow * (0.18f + Value * 0.34f));
+
+		const FVector2D Top(X, WaveStart.Y - HalfHeight);
+		const FVector2D Base(X, WaveStart.Y);
+		FCanvasLineItem Glow(Top, Base);
+		Glow.SetColor(FLinearColor(Color.R, Color.G, Color.B, 0.025f + Value * 0.045f));
+		Glow.LineThickness = (1.7f + Value * 0.7f) * Scale;
+		Canvas->DrawItem(Glow);
+		FCanvasLineItem BarLine(Top, Base);
+		BarLine.SetColor(Color);
+		BarLine.LineThickness = (0.58f + Value * 0.34f) * Scale;
+		Canvas->DrawItem(BarLine);
+
+		if (Value > 0.58f)
+		{
+			const float Tip = (1.2f + Value * 2.0f) * Scale;
+			const FLinearColor TipColor(1.0f, 0.82f, 0.46f, 0.76f + Value * 0.22f);
+			FCanvasLineItem TopTip(FVector2D(X, Top.Y), FVector2D(X, Top.Y + Tip));
+			TopTip.SetColor(TipColor);
+			TopTip.LineThickness = 1.0f * Scale;
+			Canvas->DrawItem(TopTip);
+		}
+	}
 }
 
 void ARhythmCombatHUD::DrawBossHealth(float Scale)

@@ -12,6 +12,7 @@ public class HearBlade : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"AudioMixer",
 			"AnimGraphRuntime",
 			"InputCore",
 			"EnhancedInput",

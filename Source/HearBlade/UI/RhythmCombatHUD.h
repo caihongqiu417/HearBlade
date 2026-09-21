@@ -17,6 +17,7 @@ class HEARBLADE_API ARhythmCombatHUD : public AHUD
 public:
 	ARhythmCombatHUD();
 	virtual void DrawHUD() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
 	struct FJudgmentFeedEntry
@@ -35,6 +36,7 @@ private:
 	void DrawAttackTimingCue(const UPlayerRhythmCombatComponent* State, float Scale);
 	void DrawLockMarker();
 	void DrawBossHealth(float Scale);
+	void DrawAudioVisualizer(float Scale);
 	UPROPERTY() TObjectPtr<UTexture2D> BossHealthFrameTexture;
 	float BossHealthTrail = 1.f;
 	TWeakObjectPtr<UBeatSyncedComboComponent> HealthBarTarget;
@@ -76,4 +78,7 @@ private:
 	float FailureFeedbackErrorMs = 0.0f;
 	double LastPromptedImpactAudioSeconds = -1000.0;
 	TWeakObjectPtr<UBeatSyncedComboComponent> CachedCueCombo;
+	bool bSpectrumAnalysisStarted = false;
+	TArray<float> SmoothedSpectrum;
+	float SpectrumAutoPeak = 0.01f;
 };

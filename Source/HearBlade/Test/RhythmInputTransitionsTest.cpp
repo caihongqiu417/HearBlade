@@ -113,6 +113,23 @@ bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
     Combat->ProcessBufferedInput();
     TestTrue(TEXT("Buffered counter exits hit stun after the lock"), Combat->bCountering && !Combat->bPoiseBroken);
     TestEqual(TEXT("Poise resets after hit stun"), Combat->Poise, Combat->MaxPoise);
+
+    ACharacter* HitCharacter = World->SpawnActor<ACharacter>();
+    UPlayerRhythmCombatComponent* HitCombat = NewObject<UPlayerRhythmCombatComponent>(HitCharacter);
+    HitCharacter->AddInstanceComponent(HitCombat);
+    HitCombat->RegisterComponent();
+    HitCharacter->SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
+    HitCombat->StartHitReaction(FVector(100.0f, 0.0f, 85.0f), FVector::ForwardVector, false,
+        FVector(-100.0f, 0.0f, 0.0f));
+    TestTrue(TEXT("Every ordinary damaging contact can start a hit reaction"), HitCombat->IsHitReacting());
+    TestTrue(TEXT("Hit waits for the turn before playing the backward clip"), HitCombat->bHitTurnPending);
+    TestTrue(TEXT("Hit turns toward the incoming attack"),
+        FMath::Abs(FMath::FindDeltaAngleDegrees(HitCombat->HitFacingRotation.Yaw, 180.0f)) < 1.0f);
+    HitCombat->HitTurnEndWorldSeconds = -1.0;
+    HitCombat->TickComponent(.08f, LEVELTICK_All, nullptr);
+    TestFalse(TEXT("Turning finishes before the backward hit animation"), HitCombat->bHitTurnPending);
+    TestTrue(TEXT("Character faces the blade source"),
+        FMath::Abs(FMath::FindDeltaAngleDegrees(HitCharacter->GetActorRotation().Yaw, 180.0f)) < 1.0f);
     World->DestroyWorld(false);
     return true;
 }
@@ -133,6 +150,18 @@ bool FRhythmAnimationBlendTest::RunTest(const FString& Parameters)
         World->DestroyWorld(false);
         return false;
     }
+	if (TestNotNull(TEXT("Player directional hit Blend Space loaded"), Anim->DirectionalHit.Get()))
+	{
+		bool bFrontalHitRecoilFound = false;
+		for (const FBlendSample& Sample : Anim->DirectionalHit->GetBlendSamples())
+		{
+			if (Sample.Animation && Sample.Animation->GetName().Contains(TEXT("Hit_Alert_Fwd")) &&
+				FMath::IsNearlyEqual(Sample.SampleValue.X, 1.0f) &&
+				FMath::IsNearlyZero(Sample.SampleValue.Y))
+				bFrontalHitRecoilFound = true;
+		}
+		TestTrue(TEXT("Frontal hit selects backward recoil sample"), bFrontalHitRecoilFound);
+	}
     auto Step = [&](int32 Frames)
     {
         for (int32 Frame = 0; Frame < Frames; ++Frame)

@@ -44,6 +44,25 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	if (GetWorld())
 	{
 		const double WorldNow = GetWorld()->GetTimeSeconds();
+		if (bHitReacting)
+		{
+			if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
+			{
+				const float TurnSpeed = HitTurnSeconds > KINDA_SMALL_NUMBER ? 1.0f / HitTurnSeconds * 5.0f : 1000.0f;
+				Character->SetActorRotation(FMath::RInterpTo(Character->GetActorRotation(), HitFacingRotation, DeltaTime, TurnSpeed));
+				if (bHitTurnPending && WorldNow >= HitTurnEndWorldSeconds)
+				{
+					Character->SetActorRotation(HitFacingRotation);
+					bHitTurnPending = false;
+					if (UPlayerCombatAnimInstance* Animation = Cast<UPlayerCombatAnimInstance>(Character->GetMesh()->GetAnimInstance()))
+						// The asset's Fwd sample recoils backward from a frontal strike.
+						// Its Bwd sample is a strike from behind and lunges forward.
+						Animation->StartDirectionalHit(FVector2D(1.0f, 0.0f),
+							FMath::Max(0.10f, static_cast<float>(HitReactionEndWorldSeconds - WorldNow)));
+				}
+			}
+			if (WorldNow >= HitReactionEndWorldSeconds) FinishHitReaction();
+		}
 		if (bBlockReleasePending && WorldNow - DefenseAnimationStartWorldSeconds >= .22)
 		{
 			bBlockReleasePending = false;
@@ -296,6 +315,7 @@ void UPlayerRhythmCombatComponent::ResetCombatState()
 	ReportedHoldBreakGroups.Reset();
 	BufferedAction = EBufferedRhythmAction::None;
 	bPoiseBroken = false;
+	FinishHitReaction();
 	Poise = MaxPoise;
 	OnHealthChanged.Broadcast(Health, MaxHealth);
 	BlockInputHistory.Reset();
@@ -307,6 +327,7 @@ bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 	if (!GetWorld() || !GetOwner()) return false;
 	const double InputAudioSeconds = GetCurrentInputAudioSeconds();
 	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Dodge, InputAudioSeconds, WorldDirection)) return true;
+	if (bHitReacting) FinishHitReaction();
 	if (bPoiseBroken) EndPoiseBreak();
 	if (bBlocking) EndBlock();
 	if (bCountering)
@@ -394,6 +415,7 @@ bool UPlayerRhythmCombatComponent::TryBlockStart()
 	BlockInputHistory.Add(InputAudioSeconds);
 	if (BlockInputHistory.Num() > 16) BlockInputHistory.RemoveAt(0);
 	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Block, InputAudioSeconds)) return true;
+	if (bHitReacting) FinishHitReaction();
 	if (bPoiseBroken) EndPoiseBreak();
 	if (bDodging)
 	{
@@ -466,6 +488,7 @@ bool UPlayerRhythmCombatComponent::TryCounter()
 	CounterInputHistory.Add(InputAudioSeconds);
 	if (CounterInputHistory.Num() > 16) CounterInputHistory.RemoveAt(0);
 	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Counter, InputAudioSeconds)) return true;
+	if (bHitReacting) FinishHitReaction();
 	if (bPoiseBroken) EndPoiseBreak();
 	// Counter is an intentional transition out of guard. Requiring the block key
 	// to finish its release event first made LMB appear unreliable in fast command
@@ -542,20 +565,24 @@ void UPlayerRhythmCombatComponent::CancelDodgeForTransition()
 bool UPlayerRhythmCombatComponent::BufferWhilePoiseLocked(EBufferedRhythmAction Action,
 	double InputAudioSeconds, FVector Direction)
 {
-	if (!bPoiseBroken || !GetWorld()) return false;
-	if (GetWorld()->GetTimeSeconds() - PoiseBreakStartWorldSeconds >= PoiseBreakInputLockSeconds)
-		return false;
+	if (!GetWorld()) return false;
+	const double Now = GetWorld()->GetTimeSeconds();
+	const bool bPoiseLocked = bPoiseBroken && Now - PoiseBreakStartWorldSeconds < PoiseBreakInputLockSeconds;
+	const bool bHitLocked = bHitReacting && Now < HitReactionEndWorldSeconds -
+		FMath::Max(0.0f, LightHitDurationSeconds - LightHitInputLockSeconds);
+	if (!bPoiseLocked && !bHitLocked) return false;
 	BufferInput(Action, InputAudioSeconds, Direction);
 	return true;
 }
 
-void UPlayerRhythmCombatComponent::ApplyPoiseDamage(float Amount, FVector ImpactLocation, FVector AttackDirection)
+void UPlayerRhythmCombatComponent::ApplyPoiseDamage(float Amount, FVector ImpactLocation, FVector AttackDirection,
+	FVector AttackerWorldLocation)
 {
 	if (Amount <= 0.0f || bPoiseBroken || !GetWorld()) return;
 	Poise = FMath::Max(0.0f, Poise - Amount);
 	LastPoiseDamageWorldSeconds = GetWorld()->GetTimeSeconds();
 	UE_LOG(LogTemp, Display, TEXT("PlayerPoise: damage=%.1f remaining=%.1f/%.1f"), Amount, Poise, MaxPoise);
-	if (Poise <= KINDA_SMALL_NUMBER) StartPoiseBreak(ImpactLocation, AttackDirection);
+	if (Poise <= KINDA_SMALL_NUMBER) StartPoiseBreak(ImpactLocation, AttackDirection, AttackerWorldLocation);
 }
 
 void UPlayerRhythmCombatComponent::SpawnBloodFeedback(FVector ImpactLocation, FVector AttackDirection,
@@ -575,43 +602,24 @@ void UPlayerRhythmCombatComponent::SpawnBloodFeedback(FVector ImpactLocation, FV
 		bPoiseBreak ? 1 : 0, *GetNameSafe(Effect), *ImpactLocation.ToString());
 }
 
-void UPlayerRhythmCombatComponent::StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection)
+void UPlayerRhythmCombatComponent::StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection,
+	FVector AttackerWorldLocation)
 {
 	if (!GetWorld() || !GetOwner()) return;
 	bPoiseBroken = true;
 	Poise = 0.0f;
 	PoiseBreakStartWorldSeconds = GetWorld()->GetTimeSeconds();
-	bDodging = false;
-	bBlocking = false;
-	bBlockRecovering = false;
-	bBlockReleasePending = false;
-	bCountering = false;
 	bActiveHoldBroken = true;
-	if (UBossCombatCameraComponent* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
-		Camera->StopHoldFeedback(.04f);
-
+	StartHitReaction(ImpactLocation, AttackDirection, true, AttackerWorldLocation);
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (!Character || !Character->GetMesh()) return;
-	Character->ConsumeMovementInputVector();
-	Character->SetAnimRootMotionTranslationScale(0.0f);
-	if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
-	{
-		Movement->SetMovementMode(MOVE_Walking);
-		Movement->StopMovementImmediately();
-	}
-	FVector ReactionDirection = Character->GetActorLocation() - ImpactLocation;
-	ReactionDirection.Z = 0.0f;
-	if (!ReactionDirection.Normalize()) ReactionDirection = -AttackDirection.GetSafeNormal2D();
-	if (ReactionDirection.IsNearlyZero()) ReactionDirection = -Character->GetActorForwardVector();
-	const FVector Local = Character->GetActorTransform().InverseTransformVectorNoScale(ReactionDirection).GetSafeNormal2D();
+	FVector ReactionDirection = -HitFacingRotation.Vector();
 	// A small capsule-swept displacement makes the break readable while keeping
 	// the player close enough to continue the rhythm exchange.
 	FHitResult PushHit;
 	Character->AddActorWorldOffset(ReactionDirection * 34.0f, true, &PushHit);
-	if (UPlayerCombatAnimInstance* Animation = Cast<UPlayerCombatAnimInstance>(Character->GetMesh()->GetAnimInstance()))
-		Animation->StartDirectionalHit(FVector2D(Local.X, Local.Y), PoiseBreakDurationSeconds);
-	UE_LOG(LogTemp, Display, TEXT("PlayerPoise: BROKEN reactionLocal=(%.2f,%.2f) lock=%.2fs duration=%.2fs"),
-		Local.X, Local.Y, PoiseBreakInputLockSeconds, PoiseBreakDurationSeconds);
+	UE_LOG(LogTemp, Display, TEXT("PlayerPoise: BROKEN facingYaw=%.1f lock=%.2fs duration=%.2fs"),
+		HitFacingRotation.Yaw, PoiseBreakInputLockSeconds, PoiseBreakDurationSeconds);
 }
 
 void UPlayerRhythmCombatComponent::EndPoiseBreak()
@@ -619,14 +627,65 @@ void UPlayerRhythmCombatComponent::EndPoiseBreak()
 	if (!bPoiseBroken) return;
 	bPoiseBroken = false;
 	Poise = MaxPoise;
+	FinishHitReaction();
 	if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
 	{
-		if (UPlayerCombatAnimInstance* Animation = Cast<UPlayerCombatAnimInstance>(Character->GetMesh()->GetAnimInstance()))
-			Animation->EndDirectionalHit();
 		if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
 			Movement->SetMovementMode(MOVE_Walking);
 	}
 	UE_LOG(LogTemp, Display, TEXT("PlayerPoise: recovered %.1f/%.1f"), Poise, MaxPoise);
+}
+
+void UPlayerRhythmCombatComponent::StartHitReaction(FVector ImpactLocation, FVector AttackDirection, bool bHeavy,
+	FVector AttackerWorldLocation)
+{
+	ACharacter* Character = Cast<ACharacter>(GetOwner());
+	if (!GetWorld() || !Character || !Character->GetMesh()) return;
+	FVector TowardAttacker = AttackerWorldLocation.IsNearlyZero()
+		? FVector::ZeroVector
+		: (AttackerWorldLocation - Character->GetActorLocation()).GetSafeNormal2D();
+	if (TowardAttacker.IsNearlyZero())
+		TowardAttacker = (ImpactLocation - Character->GetActorLocation()).GetSafeNormal2D();
+	if (TowardAttacker.IsNearlyZero())
+		TowardAttacker = -AttackDirection.GetSafeNormal2D();
+	if (TowardAttacker.IsNearlyZero())
+		TowardAttacker = Character->GetActorForwardVector().GetSafeNormal2D();
+	HitFacingRotation = FRotator(0.0f, TowardAttacker.Rotation().Yaw, 0.0f);
+	const double Now = GetWorld()->GetTimeSeconds();
+	const float Duration = bHeavy ? PoiseBreakDurationSeconds : LightHitDurationSeconds;
+	bHitReacting = true;
+	bHitTurnPending = true;
+	HitTurnEndWorldSeconds = Now + HitTurnSeconds;
+	HitReactionEndWorldSeconds = Now + HitTurnSeconds + Duration;
+	bDodging = false;
+	bBlocking = false;
+	bBlockRecovering = false;
+	bBlockReleasePending = false;
+	bCountering = false;
+	Character->ConsumeMovementInputVector();
+	Character->SetAnimRootMotionTranslationScale(0.0f);
+	if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+	{
+		Movement->SetMovementMode(MOVE_Walking);
+		Movement->StopMovementImmediately();
+	}
+	if (UAnimInstance* Animation = Character->GetMesh()->GetAnimInstance())
+		Animation->Montage_Stop(.04f);
+	if (UBossCombatCameraComponent* Camera = Character->FindComponentByClass<UBossCombatCameraComponent>())
+		Camera->StopHoldFeedback(.04f);
+	UE_LOG(LogTemp, Display, TEXT("PlayerHitReaction: heavy=%d turnYaw=%.1f turn=%.2fs duration=%.2fs"),
+		bHeavy ? 1 : 0, HitFacingRotation.Yaw, HitTurnSeconds, Duration);
+}
+
+void UPlayerRhythmCombatComponent::FinishHitReaction()
+{
+	if (!bHitReacting) return;
+	bHitReacting = false;
+	bHitTurnPending = false;
+	HitReactionEndWorldSeconds = -1000.0;
+	if (const ACharacter* Character = Cast<ACharacter>(GetOwner()))
+		if (UPlayerCombatAnimInstance* Animation = Cast<UPlayerCombatAnimInstance>(Character->GetMesh()->GetAnimInstance()))
+			Animation->EndDirectionalHit();
 }
 
 void UPlayerRhythmCombatComponent::ProcessBufferedInput()
@@ -642,7 +701,10 @@ void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 	if (bDodging && Now - DodgeStartWorldSeconds < DodgeChainStartSeconds) return;
 	if (bCountering && Now - CounterStartWorldSeconds < CounterCancelStartSeconds) return;
 	if (bPoiseBroken && Now - PoiseBreakStartWorldSeconds < PoiseBreakInputLockSeconds) return;
+	if (bHitReacting && Now < HitReactionEndWorldSeconds -
+		FMath::Max(0.0f, LightHitDurationSeconds - LightHitInputLockSeconds)) return;
 	if (bPoiseBroken) EndPoiseBreak();
+	if (bHitReacting) FinishHitReaction();
 
 	const EBufferedRhythmAction Action = BufferedAction;
 	const double OriginalInputAudioSeconds = BufferedInputAudioSeconds;
@@ -728,10 +790,12 @@ bool UPlayerRhythmCombatComponent::IsInvulnerable() const
 
 bool UPlayerRhythmCombatComponent::ResolveBossContact(double ContactAudioSeconds, double TargetBeat, float Damage,
 	float IdealDodgeLeadSeconds, bool bStrongBeat, FVector BladeWorldLocation, FVector AttackDirection,
-	ERhythmResponseType RequiredResponse, ERhythmHoldMarkerType HoldMarker, FName HoldGroup)
+	ERhythmResponseType RequiredResponse, ERhythmHoldMarkerType HoldMarker, FName HoldGroup,
+	FVector AttackerWorldLocation)
 {
 	return ResolveResponse(ContactAudioSeconds, TargetBeat, Damage, IdealDodgeLeadSeconds, bStrongBeat,
-		BladeWorldLocation, AttackDirection, RequiredResponse, HoldMarker, HoldGroup, true);
+		BladeWorldLocation, AttackDirection, RequiredResponse, HoldMarker, HoldGroup, true,
+		AttackerWorldLocation);
 }
 
 bool UPlayerRhythmCombatComponent::ResolveBossAvoidance(double ImpactAudioSeconds, double TargetBeat,
@@ -744,7 +808,8 @@ bool UPlayerRhythmCombatComponent::ResolveBossAvoidance(double ImpactAudioSecond
 
 bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, double TargetBeat, float Damage,
 	float IdealLeadSeconds, bool bStrongBeat, FVector BladeWorldLocation, FVector AttackDirection,
-	ERhythmResponseType RequiredResponse, ERhythmHoldMarkerType HoldMarker, FName HoldGroup, bool bPhysicalContact)
+	ERhythmResponseType RequiredResponse, ERhythmHoldMarkerType HoldMarker, FName HoldGroup, bool bPhysicalContact,
+	FVector AttackerWorldLocation)
 {
 	const int64 ImpactKey = FMath::RoundToInt64(ImpactAudioSeconds * 10000.0);
 	if (ResolvedImpactKeys.Contains(ImpactKey)) return true;
@@ -863,14 +928,18 @@ bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, do
 		{
 			if (bPhysicalContact && !bDefended && Damage > 0.0f)
 				SpawnBloodFeedback(BladeWorldLocation, AttackDirection, Poise <= BadPoiseDamage);
-			ApplyPoiseDamage(BadPoiseDamage, BladeWorldLocation, AttackDirection);
+			ApplyPoiseDamage(BadPoiseDamage, BladeWorldLocation, AttackDirection, AttackerWorldLocation);
 		}
 		else if (bPhysicalContact && !bDefended && Damage > 0.0f)
 		{
 			SpawnBloodFeedback(BladeWorldLocation, AttackDirection, Poise <= DirectHitPoiseDamage);
-			ApplyPoiseDamage(DirectHitPoiseDamage, BladeWorldLocation, AttackDirection);
+			ApplyPoiseDamage(DirectHitPoiseDamage, BladeWorldLocation, AttackDirection, AttackerWorldLocation);
 		}
 	}
+	// Every blade contact that really damages the player now produces a visible
+	// reaction. A poise break already starts the stronger version above.
+	if (bPhysicalContact && !bDefended && Damage > 0.0f && !bPoiseBroken)
+		StartHitReaction(BladeWorldLocation, AttackDirection, false, AttackerWorldLocation);
 	UE_LOG(LogTemp, Display, TEXT("RhythmResponse: type=%s hold=%s grade=%s errorMs=%.1f defended=%d damage=%.1f beat=%.2f"),
 		*UEnum::GetValueAsString(RequiredResponse), *UEnum::GetValueAsString(HoldMarker),
 		*UEnum::GetValueAsString(Grade), ErrorMs, bDefended ? 1 : 0, bDefended ? 0.0f : Damage, TargetBeat);

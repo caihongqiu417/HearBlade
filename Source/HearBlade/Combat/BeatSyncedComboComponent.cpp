@@ -1089,7 +1089,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	{
 		const bool bAvoided = PlayerState->ResolveBossContact(MarkerAudioTime, TargetBeat, Marker.Damage,
 			Marker.IdealDodgeLeadSeconds, bStrong, ClosestBladeFeedbackLocation, ClosestBladeAttackDirection,
-			Marker.RequiredResponse, Marker.HoldMarker, Marker.HoldGroup);
+			Marker.RequiredResponse, Marker.HoldMarker, Marker.HoldGroup, GetOwner()->GetActorLocation());
 		if (!bAvoided) NotifyConfirmedHit();
 		if (bAvoided && Marker.RequiredResponse == ERhythmResponseType::Counter &&
 			(PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect ||
