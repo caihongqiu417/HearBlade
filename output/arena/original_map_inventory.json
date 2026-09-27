@@ -1,0 +1,727 @@
+[
+  {
+    "name": "WorldDataLayers",
+    "class": "WorldDataLayers",
+    "location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1E60) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "SM_Cube8",
+    "class": "StaticMeshActor",
+    "location": [
+      1500.0,
+      -1200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1FA0) {pitch: 0.000000, yaw: -89.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Ramp10",
+    "class": "StaticMeshActor",
+    "location": [
+      200.0,
+      -500.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1E60) {pitch: 0.000000, yaw: -179.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_Ramp9",
+    "class": "StaticMeshActor",
+    "location": [
+      -500.0,
+      -200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1FA0) {pitch: 0.000000, yaw: 90.000002, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_Cylinder",
+    "class": "StaticMeshActor",
+    "location": [
+      0.0,
+      -10.0,
+      200.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1E60) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cylinder.SM_Cylinder"
+  },
+  {
+    "name": "SM_QuarterCylinder12",
+    "class": "StaticMeshActor",
+    "location": [
+      200.0,
+      -200.000014,
+      -100.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E2130) {pitch: 0.000000, yaw: -89.999996, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Ramp11",
+    "class": "StaticMeshActor",
+    "location": [
+      500.0,
+      200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1E60) {pitch: 0.000000, yaw: -90.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_SkySphere",
+    "class": "StaticMeshActor",
+    "location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E2130) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Engine/EngineSky/SM_SkySphere.SM_SkySphere"
+  },
+  {
+    "name": "SM_Ramp8",
+    "class": "StaticMeshActor",
+    "location": [
+      -1500.0,
+      1200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1E60) {pitch: 0.000000, yaw: -179.999995, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_QuarterCylinder4",
+    "class": "StaticMeshActor",
+    "location": [
+      -1500.000021,
+      1500.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E26D0) {pitch: 0.000000, yaw: -89.999996, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube10",
+    "class": "StaticMeshActor",
+    "location": [
+      -1200.0,
+      -1500.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1E60) {pitch: 0.000000, yaw: -179.999998, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "VolumetricCloud",
+    "class": "VolumetricCloud",
+    "location": [
+      0.0,
+      0.0,
+      820.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E26D0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "SM_Cylinder9",
+    "class": "StaticMeshActor",
+    "location": [
+      1900.0,
+      -10.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1E60) {pitch: 0.000000, yaw: 89.999999, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_QuarterCylinder5",
+    "class": "StaticMeshActor",
+    "location": [
+      200.0,
+      209.999986,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: 0.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cylinder8",
+    "class": "StaticMeshActor",
+    "location": [
+      1900.0,
+      -10.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E1E60) {pitch: 0.000000, yaw: 179.999998, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube14",
+    "class": "StaticMeshActor",
+    "location": [
+      200.0,
+      210.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: 89.999999, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "BP_BeatClockTestActor",
+    "class": "BP_BeatClockTestActor_C",
+    "location": [
+      30.0,
+      -120.0,
+      210.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E2FE0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "SM_Cylinder2",
+    "class": "StaticMeshActor",
+    "location": [
+      10.0,
+      -1900.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube12",
+    "class": "StaticMeshActor",
+    "location": [
+      -1500.0,
+      1200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E2FE0) {pitch: 0.000000, yaw: 90.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Cylinder5",
+    "class": "StaticMeshActor",
+    "location": [
+      10.0,
+      1900.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: -179.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube3",
+    "class": "StaticMeshActor",
+    "location": [
+      -2000.0,
+      -2000.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E2FE0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Cube20",
+    "class": "StaticMeshActor",
+    "location": [
+      -2000.0,
+      -2000.0,
+      200.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Ramp2",
+    "class": "StaticMeshActor",
+    "location": [
+      1200.0,
+      1500.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E2FE0) {pitch: 0.000000, yaw: 90.000002, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_Cube17",
+    "class": "StaticMeshActor",
+    "location": [
+      1900.0,
+      -2000.0,
+      200.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_QuarterCylinder10",
+    "class": "StaticMeshActor",
+    "location": [
+      -199.999966,
+      209.999986,
+      -100.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E3260) {pitch: 0.000000, yaw: 90.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Ramp6",
+    "class": "StaticMeshActor",
+    "location": [
+      -1200.0,
+      -1500.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: -89.999996, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_Ramp4",
+    "class": "StaticMeshActor",
+    "location": [
+      1500.0,
+      -1200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E3260) {pitch: 0.000000, yaw: 0.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_Cube9",
+    "class": "StaticMeshActor",
+    "location": [
+      -1500.000014,
+      -1200.000014,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: -179.999998, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Ramp5",
+    "class": "StaticMeshActor",
+    "location": [
+      -1800.000014,
+      -1200.00003,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E3260) {pitch: 0.000000, yaw: 0.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_Ramp7",
+    "class": "StaticMeshActor",
+    "location": [
+      -1200.000045,
+      1800.000021,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: -89.999996, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_QuarterCylinder7",
+    "class": "StaticMeshActor",
+    "location": [
+      -199.999966,
+      209.999986,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x0000025165696630) {pitch: 0.000000, yaw: 90.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube5",
+    "class": "StaticMeshActor",
+    "location": [
+      -1800.0,
+      2000.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: -89.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Cylinder4",
+    "class": "StaticMeshActor",
+    "location": [
+      10.0,
+      1900.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x0000025165696630) {pitch: 0.000000, yaw: -90.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube19",
+    "class": "StaticMeshActor",
+    "location": [
+      -1900.0,
+      2000.0,
+      200.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251760E27C0) {pitch: 0.000000, yaw: -89.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Ramp12",
+    "class": "StaticMeshActor",
+    "location": [
+      -200.0,
+      510.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x0000025165696630) {pitch: 0.000000, yaw: -0.000001, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "DirectionalLight",
+    "class": "DirectionalLight",
+    "location": [
+      0.0,
+      0.0,
+      920.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x0000025165696EA0) {pitch: -60.779152, yaw: -14.988161, roll: 25.555014}>"
+  },
+  {
+    "name": "SM_QuarterCylinder11",
+    "class": "StaticMeshActor",
+    "location": [
+      -200.0,
+      -200.000014,
+      -100.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251656BAD60) {pitch: 0.000000, yaw: -179.999998, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cylinder3",
+    "class": "StaticMeshActor",
+    "location": [
+      10.0,
+      -1900.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x0000025165696EA0) {pitch: 0.000000, yaw: 89.999999, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube7",
+    "class": "StaticMeshActor",
+    "location": [
+      1200.000007,
+      -1500.000007,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251656BAD60) {pitch: 0.000000, yaw: -89.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "BP_Dragon_Knight_UE5_Fire",
+    "class": "BP_Dragon_Knight_UE5_Fire_C",
+    "location": [
+      1000.0,
+      220.0,
+      110.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251656BB6C0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "SM_QuarterCylinder6",
+    "class": "StaticMeshActor",
+    "location": [
+      200.0,
+      -200.000014,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251656BB670) {pitch: 0.000000, yaw: -89.999996, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "WorldPartitionMiniMap",
+    "class": "WorldPartitionMiniMap",
+    "location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BAA40) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "SM_QuarterCylinder2",
+    "class": "StaticMeshActor",
+    "location": [
+      1500.000007,
+      -1500.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BB9E0) {pitch: 0.000000, yaw: 90.000002, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_QuarterCylinder9",
+    "class": "StaticMeshActor",
+    "location": [
+      200.0,
+      209.999986,
+      -100.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BB940) {pitch: 0.000000, yaw: 0.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube16",
+    "class": "StaticMeshActor",
+    "location": [
+      -500.0,
+      -200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BB9E0) {pitch: 0.000000, yaw: 0.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Ramp3",
+    "class": "StaticMeshActor",
+    "location": [
+      1200.000015,
+      -1800.000007,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BB940) {pitch: 0.000000, yaw: 90.000002, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "SM_QuarterCylinder",
+    "class": "StaticMeshActor",
+    "location": [
+      1500.0,
+      1500.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BB990) {pitch: 0.000000, yaw: -179.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "Boss Beat BT Test Director",
+    "class": "BossBeatDirector",
+    "location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBC10) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "SM_Cube11",
+    "class": "StaticMeshActor",
+    "location": [
+      -1200.000021,
+      1500.000021,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BB990) {pitch: 0.000000, yaw: 90.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Cube",
+    "class": "StaticMeshActor",
+    "location": [
+      1200.0,
+      1500.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBC10) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Cube13",
+    "class": "StaticMeshActor",
+    "location": [
+      -200.0,
+      -200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BB990) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Cube6",
+    "class": "StaticMeshActor",
+    "location": [
+      1500.0,
+      1200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBC10) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_QuarterCylinder8",
+    "class": "StaticMeshActor",
+    "location": [
+      -200.0,
+      -200.000014,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBAD0) {pitch: 0.000000, yaw: -179.999998, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cylinder6",
+    "class": "StaticMeshActor",
+    "location": [
+      -1900.0,
+      -9.999908,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBC10) {pitch: 0.000000, yaw: -0.000001, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SkyAtmosphere",
+    "class": "SkyAtmosphere",
+    "location": [
+      0.0,
+      0.0,
+      1020.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBAD0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "PlayerStart",
+    "class": "PlayerStart",
+    "location": [
+      0.0,
+      0.0,
+      302.012643
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBC10) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "SM_Cylinder7",
+    "class": "StaticMeshActor",
+    "location": [
+      -1900.0,
+      -9.999908,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBAD0) {pitch: 0.000000, yaw: -90.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_QuarterCylinder3",
+    "class": "StaticMeshActor",
+    "location": [
+      -1500.0,
+      -1500.000014,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBC60) {pitch: 0.000000, yaw: 0.000003, roll: -0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_QuarterCylinder.SM_QuarterCylinder"
+  },
+  {
+    "name": "SM_Cube18",
+    "class": "StaticMeshActor",
+    "location": [
+      -1900.0,
+      -1900.0,
+      200.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBAD0) {pitch: 0.000000, yaw: -89.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SkyLight",
+    "class": "SkyLight",
+    "location": [
+      0.0,
+      0.0,
+      690.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBC60) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "Floor",
+    "class": "StaticMeshActor",
+    "location": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBAD0) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Engine/MapTemplates/SM_Template_Map_Floor.SM_Template_Map_Floor"
+  },
+  {
+    "name": "SM_Cube4",
+    "class": "StaticMeshActor",
+    "location": [
+      -1800.0,
+      -1800.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBC60) {pitch: 0.000000, yaw: -89.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Ramp",
+    "class": "StaticMeshActor",
+    "location": [
+      1800.0,
+      1200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBAD0) {pitch: 0.000000, yaw: -179.999999, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Ramp.SM_Ramp"
+  },
+  {
+    "name": "ExponentialHeightFog",
+    "class": "ExponentialHeightFog",
+    "location": [
+      -5600.0,
+      -50.0,
+      -6850.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761D9230) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  },
+  {
+    "name": "SM_Cube15",
+    "class": "StaticMeshActor",
+    "location": [
+      -200.0,
+      -200.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761BBAD0) {pitch: 0.000000, yaw: -90.000002, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "SM_Cube2",
+    "class": "StaticMeshActor",
+    "location": [
+      1800.0,
+      -2000.0,
+      0.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761D9230) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>",
+    "mesh": "/Game/LevelPrototyping/Meshes/SM_Cube.SM_Cube"
+  },
+  {
+    "name": "PostProcessVolume",
+    "class": "PostProcessVolume",
+    "location": [
+      100.0,
+      100.0,
+      500.0
+    ],
+    "rotation": "<Struct 'Rotator' (0x00000251761D9E60) {pitch: 0.000000, yaw: 0.000000, roll: 0.000000}>"
+  }
+]

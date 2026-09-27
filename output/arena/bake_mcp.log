@@ -1,0 +1,30 @@
+<frozen runpy>:128: RuntimeWarning: 'blender_mcp.server' found in sys.modules after import of package 'blender_mcp', but prior to execution of 'blender_mcp.server'; this may result in unpredictable behaviour
+2026-09-27 15:19:37,672 - BlenderMCPServer - INFO - BlenderMCP server starting up
+2026-09-27 15:19:37,672 - BlenderMCPServer - WARNING - MCP for Blender addon not found in any Blender addons folder. Run `uvx mcp-for-blender install-addon` to install it.
+2026-09-27 15:19:37,673 - BlenderMCPServer - INFO - Connected to Blender at 127.0.0.1:9876
+2026-09-27 15:19:37,673 - BlenderMCPServer - INFO - Created new persistent connection to Blender
+2026-09-27 15:19:37,673 - BlenderMCPServer - INFO - Sending command: get_addon_info with params: None
+2026-09-27 15:19:37,673 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:19:37,717 - BlenderMCPServer - INFO - Received complete response (421 bytes)
+2026-09-27 15:19:37,717 - BlenderMCPServer - INFO - Received 421 bytes of data
+2026-09-27 15:19:37,718 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:19:37,718 - BlenderMCPServer - INFO - Blender addon up to date (protocol 11, addon [1, 7], Blender 5.0.1)
+2026-09-27 15:19:37,718 - BlenderMCPServer - INFO - Successfully connected to Blender on startup
+2026-09-27 15:19:37,723 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-09-27 15:19:37,724 - BlenderMCPServer - INFO - Sending command: execute_code with params: {'code': "import bpy,os\nOUT='D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2'\nbpy.ops.object.select_all(action='DESELECT')\nbpy.ops.mesh.primitive_plane_add(size=2,location=(0,0,-100));plane=bpy.context.object;plane.name='TextureBakePlane'\nscene=bpy.context.scene;scene.render.engine='CYCLES';scene.cycles.samples=8\nfor name,roughness in [('HC_Ivory',.58),('HC_Blue',.32),('HC_Gold',.36)]:\n    material=bpy.data.materials[name];plane.data.materials.clear();plane.data.materials.append(material)\n    nodes=material.node_tree.nodes;links=material.node_tree.links;out=next(n for n in nodes if n.type=='OUTPUT_MATERIAL');p=nodes.get('Principled BSDF')\n    base_link=p.inputs['Base Color'].links[0].from_socket\n    for channel in ['Color','Roughness']:\n        image=bpy.data.images.new('T_'+name+'_'+channel,width=1024,height=1024,alpha=False)\n        image.colorspace_settings.name='sRGB' if channel=='Color' else 'Non-Color'\n        node=nodes.new('ShaderNodeTexImage');node.image=image;nodes.active=node\n        emit=nodes.new('ShaderNodeEmission')\n        if channel=='Color':links.new(base_link,emit.inputs['Color'])\n        else:\n            emit.inputs['Color'].default_value=(roughness,roughness,roughness,1)\n        links.new(emit.outputs[0],out.inputs['Surface'])\n        bpy.ops.object.bake(type='EMIT',margin=16)\n        image.filepath_raw=OUT+'/'+image.name+'.png';image.file_format='PNG';image.save()\n        nodes.remove(emit);nodes.remove(node);links.new(p.outputs[0],out.inputs['Surface'])\nbpy.data.objects.remove(plane,do_unlink=True)\nbpy.ops.wm.save_as_mainfile(filepath=OUT+'/HarmonicCourtV2.blend')\nprint('HC2_TEXTURES_BAKED')\n"}
+2026-09-27 15:19:37,724 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:19:39,878 - BlenderMCPServer - INFO - Received complete response (565 bytes)
+2026-09-27 15:19:39,878 - BlenderMCPServer - INFO - Received 565 bytes of data
+2026-09-27 15:19:39,878 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:19:39,881 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-09-27 15:19:39,885 - BlenderMCPServer - INFO - Disconnecting from Blender on shutdown
+2026-09-27 15:19:39,886 - BlenderMCPServer - INFO - BlenderMCP server shut down
+Code executed successfully: Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Baking map saved to internal image, save it externally or pack it
+Info: Saved as "HarmonicCourtV2.blend"
+HC2_TEXTURES_BAKED
+

@@ -1,0 +1,479 @@
+[
+  {
+    "name": "SM_HC2_Static_000",
+    "mode": "Static",
+    "location": [
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_001",
+    "mode": "BeatSpeaker",
+    "location": [
+      17.347179412841797,
+      3.5164475440979004,
+      2.1499998569488525
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_002",
+    "mode": "BeatSpeaker",
+    "location": [
+      17.347179412841797,
+      3.5164475440979004,
+      4.699999809265137
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatCrown_003",
+    "mode": "BeatCrown",
+    "location": [
+      18.425251007080078,
+      3.734983444213867,
+      6.75
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_004",
+    "mode": "BeatShard",
+    "location": [
+      18.425251007080078,
+      3.734983444213867,
+      7.900000095367432
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_005",
+    "mode": "BeatSpeaker",
+    "location": [
+      11.002496719360352,
+      13.864886283874512,
+      2.1499998569488525
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_006",
+    "mode": "BeatSpeaker",
+    "location": [
+      11.002496719360352,
+      13.864886283874512,
+      4.6999993324279785
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatCrown_007",
+    "mode": "BeatCrown",
+    "location": [
+      11.686267852783203,
+      14.726546287536621,
+      6.75
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_008",
+    "mode": "BeatShard",
+    "location": [
+      11.686267852783203,
+      14.726546287536621,
+      7.900000095367432
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_009",
+    "mode": "BeatSpeaker",
+    "location": [
+      0.014094984158873558,
+      17.699993133544922,
+      2.1500000953674316
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_010",
+    "mode": "BeatSpeaker",
+    "location": [
+      0.014094984158873558,
+      17.699993133544922,
+      4.699999809265137
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatCrown_011",
+    "mode": "BeatCrown",
+    "location": [
+      0.01497094240039587,
+      18.79999351501465,
+      6.75
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_012",
+    "mode": "BeatShard",
+    "location": [
+      0.01497094240039587,
+      18.79999351501465,
+      7.900000095367432
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_013",
+    "mode": "BeatSpeaker",
+    "location": [
+      -10.980401039123535,
+      13.882392883300781,
+      2.1499998569488525
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_014",
+    "mode": "BeatSpeaker",
+    "location": [
+      -10.980401039123535,
+      13.882392883300781,
+      4.699999809265137
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatCrown_015",
+    "mode": "BeatCrown",
+    "location": [
+      -11.662798881530762,
+      14.74514102935791,
+      6.749999523162842
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_016",
+    "mode": "BeatShard",
+    "location": [
+      -11.662797927856445,
+      14.745139122009277,
+      7.900000095367432
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_017",
+    "mode": "BeatSpeaker",
+    "location": [
+      -17.341554641723633,
+      3.5440704822540283,
+      2.1500000953674316
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_018",
+    "mode": "BeatSpeaker",
+    "location": [
+      -17.341554641723633,
+      3.5440704822540283,
+      4.700000286102295
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatCrown_019",
+    "mode": "BeatCrown",
+    "location": [
+      -18.419279098510742,
+      3.7643237113952637,
+      6.749999523162842
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_020",
+    "mode": "BeatShard",
+    "location": [
+      -18.419279098510742,
+      3.7643237113952637,
+      7.900000095367432
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_021",
+    "mode": "BeatSpeaker",
+    "location": [
+      -14.523900985717773,
+      -10.116636276245117,
+      2.1500000953674316
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_022",
+    "mode": "BeatSpeaker",
+    "location": [
+      -14.523900985717773,
+      -10.116636276245117,
+      4.699999809265137
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatCrown_023",
+    "mode": "BeatCrown",
+    "location": [
+      -15.426515579223633,
+      -10.745352745056152,
+      6.75
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_024",
+    "mode": "BeatShard",
+    "location": [
+      -15.426515579223633,
+      -10.745352745056152,
+      7.900000095367432
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_025",
+    "mode": "BeatSpeaker",
+    "location": [
+      14.268797874450684,
+      -10.47336483001709,
+      2.1499996185302734
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatSpeaker_026",
+    "mode": "BeatSpeaker",
+    "location": [
+      14.268797874450684,
+      -10.473365783691406,
+      4.6999993324279785
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatCrown_027",
+    "mode": "BeatCrown",
+    "location": [
+      15.155558586120605,
+      -11.12425422668457,
+      6.749999523162842
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_028",
+    "mode": "BeatShard",
+    "location": [
+      15.155559539794922,
+      -11.124253273010254,
+      7.900000095367432
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_029",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_030",
+    "mode": "BeatShard",
+    "location": [
+      -7.099555015563965,
+      21.0,
+      8.09768009185791
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_031",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_032",
+    "mode": "BeatShard",
+    "location": [
+      -5.197234630584717,
+      21.0,
+      4.802765369415283
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_033",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_034",
+    "mode": "BeatShard",
+    "location": [
+      -1.9023200273513794,
+      21.0,
+      2.900444984436035
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_035",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_036",
+    "mode": "BeatShard",
+    "location": [
+      1.9023200273513794,
+      21.0,
+      2.900444984436035
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_037",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_038",
+    "mode": "BeatShard",
+    "location": [
+      5.197234630584717,
+      21.0,
+      4.802765369415283
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_039",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_040",
+    "mode": "BeatShard",
+    "location": [
+      7.099555015563965,
+      21.0,
+      8.09768009185791
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_041",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_042",
+    "mode": "BeatShard",
+    "location": [
+      7.099555015563965,
+      21.0,
+      11.90231990814209
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_043",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_044",
+    "mode": "BeatShard",
+    "location": [
+      5.197234630584717,
+      21.0,
+      15.197235107421875
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_045",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_046",
+    "mode": "BeatShard",
+    "location": [
+      1.9023200273513794,
+      21.0,
+      17.09955596923828
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_047",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_048",
+    "mode": "BeatShard",
+    "location": [
+      -1.9023200273513794,
+      21.0,
+      17.09955596923828
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_049",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_050",
+    "mode": "BeatShard",
+    "location": [
+      -5.197234630584717,
+      21.0,
+      15.197235107421875
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatHalo_051",
+    "mode": "BeatHalo",
+    "location": [
+      0.0,
+      21.0,
+      10.0
+    ]
+  },
+  {
+    "name": "SM_HC2_BeatShard_052",
+    "mode": "BeatShard",
+    "location": [
+      -7.099555015563965,
+      21.0,
+      11.90231990814209
+    ]
+  }
+]

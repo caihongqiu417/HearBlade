@@ -1,4 +1,8 @@
 #include "Combat/BeatSyncedComboComponent.h"
+#include "Combat/TransientCombatFX.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Paths.h"
+#include "UnrealClient.h"
 #include "Combat/BossBeatDirector.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "EngineUtils.h"
@@ -37,12 +41,33 @@ UNiagaraComponent* SpawnBriefFire(UWorld* World, UNiagaraSystem* Effect, const F
 	float Lifetime, float Scale = 1.f)
 {
 	if (!World || !Effect) return nullptr;
+	// Mesh-sampled body embers cannot be spawned at an unattached blink location.
+	if (IsMeshSampledCourtEmber(Effect))
+	{
+		Effect = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/VFX/NS_Fire_local_System.NS_Fire_local_System"));
+#if !UE_BUILD_SHIPPING
+		if (FParse::Param(FCommandLine::Get(), TEXT("CourtFXProbe")))
+		{
+			static int32 CaptureIndex = 0;
+			const int32 Index = ++CaptureIndex;
+			UE_LOG(LogTemp, Display, TEXT("CourtFXProbe: blink uses %s at %s"), *GetPathNameSafe(Effect), *Location.ToString());
+			if (Index <= 2)
+				for (const float Delay : {.1f, .5f, 1.2f})
+				{
+					FTimerHandle CaptureTimer;
+					World->GetTimerManager().SetTimer(CaptureTimer, [Index, Delay]()
+					{
+						FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir() / FString::Printf(TEXT("Screenshots/BlinkFX_%d_%03d.png"), Index, FMath::RoundToInt(Delay*1000)), false, false);
+					}, Delay, false);
+				}
+		}
+#endif
+	}
+	if (!Effect) return nullptr;
 	if (UNiagaraComponent* Component = UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, Effect, Location))
 	{
 		Component->SetWorldScale3D(FVector(Scale));
-		FTimerHandle Timer;
-		World->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateWeakLambda(Component,
-			[Component]() { Component->Deactivate(); }), FMath::Max(0.1f, Lifetime), false);
+		RetireCombatFX(Component, FMath::Max(0.1f, Lifetime));
 		return Component;
 	}
 	return nullptr;

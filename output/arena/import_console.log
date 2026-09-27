@@ -1,0 +1,382 @@
+Using bundled DotNet SDK version: 10.0 win-x64
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" -Mode=ValidatePlatforms -OutputSDKs  -AllPlatforms  -project="D:/Udev/HearBlade/HearBlade.uproject" -log="D:/Udev/HearBlade/Saved/Logs/AutoSDKInfo.txt" -verbose -timestamps
+Log file: D:\Udev\HearBlade\Saved\Logs\AutoSDKInfo.txt
+##PlatformValidate: Win64 VALID 10.0.22621.0
+##PlatformValidate: Mac INVALID 26.1.1
+##PlatformValidate: IOS INVALID 26.1.1
+##PlatformValidate: Android INVALID r27c
+##PlatformValidate: Linux INVALID v26_clang-20.1.8-rockylinux8
+##PlatformValidate: LinuxArm64 INVALID v26_clang-20.1.8-rockylinux8
+##PlatformValidate: TVOS INVALID 26.1.1
+##PlatformValidate: VisionOS INVALID <UNKNOWN>
+Unable to find required SDK version 'MainVersion' for platform VisionOS. Check your SDK.json files
+[2026.09.27-06.57.24:905][  0]LogInit: Display: Running engine for game: HearBlade
+[2026.09.27-06.57.24:905][  0]LogCore: Display: Requested channels: 'cpu,gpu,frame,log,bookmark,screenshot,region'
+[2026.09.27-06.57.24:905][  0]LogTrace: Display: Control listening on port 1985
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : platform="Windows"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : config="Development"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : buildversion="++UE5+Release-5.8-CL-56057345"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : engineversion="5.8.1-56057345+++UE5+Release-5.8"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : enginereleaseversion="5.8.1"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : os="Windows 11 (25H2) [10.0.26200.9457] "
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : cpu="AuthenticAMD|AMD Ryzen 9 8945HX with Radeon Graphics"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : pgoenabled="0"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : pgoprofilingenabled="0"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : ltoenabled="0"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : asan="0"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : mergedmodules="0"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : compacttset="0"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : commandline="" D:\Udev\HearBlade\HearBlade.uproject -run=pythonscript -script=D:\Udev\HearBlade\Saved\Tools\import_harmonic_court.py -unattended -nosplash -NullRHI""
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : loginid="5fa333b14869e34efd4c149a0bbae957"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : llm="0"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : zenstreaming="0"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : systemresolution.resx="1280"
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : systemresolution.resy="720"
+[2026.09.27-06.57.24:905][  0]LogAudio: Display: Audio Device Manager not initializing due to all audio being disabled. If this is not intentional, please check command line arguments for "-nosound".
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading Android ini files took 0.04 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading Mac ini files took 0.04 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading VulkanPC ini files took 0.04 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading IOS ini files took 0.04 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading Windows ini files took 0.05 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading VisionOS ini files took 0.05 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading Unix ini files took 0.05 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading TVOS ini files took 0.05 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading Linux ini files took 0.06 seconds
+[2026.09.27-06.57.24:905][  0]LogConfig: Display: Loading LinuxArm64 ini files took 0.06 seconds
+[2026.09.27-06.57.24:905][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+[2026.09.27-06.57.24:905][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+[2026.09.27-06.57.24:905][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+[2026.09.27-06.57.24:905][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+[2026.09.27-06.57.24:905][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+[2026.09.27-06.57.24:905][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+[2026.09.27-06.57.24:905][  0]LogAsyncCompilation: Display: MemorySharingInfo: UsedMemory=362MiB, MaxMemoryAvailable=114480MiB
+[2026.09.27-06.57.24:905][  0]RenderDocPlugin: Display: RenderDoc plugin will not be loaded. Use '-AttachRenderDoc' on the cmd line or enable 'renderdoc.AutoAttach' in the plugin settings.
+[2026.09.27-06.57.24:905][  0]LogStreaming: Display: AsyncLoading2 - Created: Async Loading Thread: false, Async Post Load: false, Multithreaded: false
+[2026.09.27-06.57.24:905][  0]LogHAL: Display: Platform has ~ 32 GB [34142187520 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
+[2026.09.27-06.57.24:905][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.27-06.57.24:905][  0]LogObj: Display: Attempting to load config data for Default__DownlinkBandwidthManagerConfig before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+Trace written to file C:\Users\26349\AppData\Local\UnrealBuildTool\Trace.uba with size 309b
+[2026.09.27-06.57.25:152][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.27-06.57.25:242][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.27-06.57.25:242][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.27-06.57.25:242][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.27-06.57.25:242][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.27-06.57.25:242][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.27-06.57.25:242][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.27-06.57.25:247][  0]LogTextureFormatASTC: Display: ASTCEnc version 5.0.1 library loaded
+[2026.09.27-06.57.25:247][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatASTC
+[2026.09.27-06.57.25:247][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatDXT
+[2026.09.27-06.57.25:247][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatETC2
+[2026.09.27-06.57.25:247][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatIntelISPCTexComp
+[2026.09.27-06.57.25:247][  0]LogTextureFormatOodle: Display: Oodle Texture TFO init; latest sdk version = 2.9.16
+[2026.09.27-06.57.25:247][  0]LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.16.dll
+[2026.09.27-06.57.25:247][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatOodle
+[2026.09.27-06.57.25:247][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatUncompressed
+[2026.09.27-06.57.25:266][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Android'
+[2026.09.27-06.57.25:277][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'IOS'
+[2026.09.27-06.57.25:287][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Linux'
+[2026.09.27-06.57.25:297][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'LinuxArm64'
+[2026.09.27-06.57.25:307][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Mac'
+[2026.09.27-06.57.25:308][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'TVOS'
+[2026.09.27-06.57.25:318][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'Windows'
+[2026.09.27-06.57.25:318][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsEditor'
+[2026.09.27-06.57.25:318][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsServer'
+[2026.09.27-06.57.25:318][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsClient'
+[2026.09.27-06.57.25:318][  0]LogTargetPlatformManager: Display: Building Assets For WindowsEditor
+[2026.09.27-06.57.25:320][  0]LogAudioDebug: Display: Lib vorbis DLL was dynamically loaded.
+[2026.09.27-06.57.25:575][  0]LogDerivedDataCache: Display: ../../../Engine/DerivedDataCache/Compressed.ddp: Opened pak cache for reading. (1670 MiB)
+[2026.09.27-06.57.25:577][  0]LogZenServiceInstance: Display: Launching zen utility 'D:/Epic Games/UE_5.8/Engine/Binaries/Win64/zen.exe service status'.
+[2026.09.27-06.57.25:885][  0]LogZenServiceInstance: Display: Writing plugin version info to 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zen_plugin_versions.json'
+[2026.09.27-06.57.25:885][  0]LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/26349/AppData/Local/UnrealEngine/5.8/Saved/Zen/zen.version', version: '5.8.13-202605190912-windows-x64-release-094f62c2'
+[2026.09.27-06.57.25:885][  0]LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zen.version', version: '5.8.13-202605190912-windows-x64-release-094f62c2'
+[2026.09.27-06.57.25:885][  0]LogZenServiceInstance: Display: Installed service at 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe' is up to date
+[2026.09.27-06.57.25:886][  0]LogZenServiceInstance: Display: Launching executable 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe', working dir 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install', data dir 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Data', args '--port 8558 --data-dir C:\Users\26349\AppData\Local\UnrealEngine\Common\Zen\Data --http asio --gc-cache-duration-seconds 1209600 --gc-interval-seconds 21600 --gc-low-diskspace-threshold 2147483648 --cache-bucket-limit-overwrites --quiet --restrict-content-types --allow-external-oidctoken-exe=false --plugins-config "C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zen_plugins_v1.json" --security-config-path "C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/security-config.json" --owner-pid 22488  --child-id Zen_22488_Startup'
+[2026.09.27-06.57.28:596][  0]LogZenServiceInstance: Display: Unreal Zen Storage Server HTTP service at http://[::1]:8558 status: OK!.
+[2026.09.27-06.57.28:597][  0]LogDerivedDataCache: Display: ZenLocal: Using ZenServer HTTP service at [::1] with namespace ue.ddc. Status: OK!.
+[2026.09.27-06.57.28:605][  0]LogDerivedDataCache: Display: C:/Users/26349/AppData/Local/UnrealEngine/Common/DerivedDataCache: Performance: Latency=0.03ms. RandomReadSpeed=718.18MBs, RandomWriteSpeed=165.97MBs. Assigned SpeedClass 'Local'
+[2026.09.27-06.57.28:608][  0]LogUbaHorde: Display: UBA/Horde Configuration [Uba.Provider.Horde]: Not Enabled
+[2026.09.27-06.57.28:608][  0]LogShaderCompilers: Display: No distributed shader compiler controller found
+[2026.09.27-06.57.28:608][  0]LogShaderCompilers: Display: Using 29 local workers for shader compilation
+[2026.09.27-06.57.28:617][  0]LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../Udev/HearBlade/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+[2026.09.27-06.57.28:617][  0]LogShaderCompilers: Display: Autogen file is unchanged, skipping write.
+[2026.09.27-06.57.28:957][  0]LogEditorDomain: Display: EditorDomain is Disabled
+[2026.09.27-06.57.29:169][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+[2026.09.27-06.57.29:169][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+[2026.09.27-06.57.29:206][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="WindowsEditor"
+[2026.09.27-06.57.29:208][  0]LogStreaming: Display: FlushAsyncLoading(1): 1 QueuedPackages, 0 AsyncPackages
+[2026.09.27-06.57.29:222][  0]LogTextureEncodingSettings: Display: Texture Encode Speed: Final (cook).
+[2026.09.27-06.57.29:222][  0]LogTextureEncodingSettings: Display: Oodle Texture Encode Speed settings: Fast: RDO Off Lambda=0, Effort=Normal Final: RDO Off Lambda=0, Effort=Normal
+[2026.09.27-06.57.29:222][  0]LogTextureEncodingSettings: Display: Shared linear texture encoding: Disabled
+[2026.09.27-06.57.29:239][  0]LogMeshReduction: Display: Using QuadricMeshReduction for automatic static mesh reduction
+[2026.09.27-06.57.29:239][  0]LogMeshReduction: Display: Using SkeletalMeshReduction for automatic skeletal mesh reduction
+[2026.09.27-06.57.29:239][  0]LogMeshReduction: Display: Using ProxyLODMeshReduction for automatic mesh merging
+[2026.09.27-06.57.29:239][  0]LogMeshReduction: Display: No distributed automatic mesh merging module available
+[2026.09.27-06.57.29:368][  0]LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../Udev/HearBlade/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+[2026.09.27-06.57.29:368][  0]LogShaderCompilers: Display: Autogen file is unchanged, skipping write.
+[2026.09.27-06.57.29:368][  0]LogVirtualization: Display: VirtualizationSystem name found in ini file: None
+[2026.09.27-06.57.29:368][  0]LogVirtualization: Display: FNullVirtualizationSystem mounted, virtualization will be disabled
+[2026.09.27-06.57.29:437][  0]LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize started...
+[2026.09.27-06.57.29:440][  0]LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize took 2.481 ms
+[2026.09.27-06.57.29:678][  0]LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
+[2026.09.27-06.57.29:681][  0]LogAudio: Display: Registering Engine Module Parameter Interfaces...
+[2026.09.27-06.57.31:258][  0]LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(HearBladeCharacter /Script/HearBlade.Default__HearBladeCharacter)
+[2026.09.27-06.57.31:904][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.09.27-06.57.31:904][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.09.27-06.57.32:245][  0]LogToolsetRegistry: Display: Registering Toolset ToolsetRegistry.AgentSkillToolset
+[2026.09.27-06.57.32:290][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PreLoad): 1 .ref files found, 1 referenced binaries
+[2026.09.27-06.57.32:290][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 1 total binaries, 1 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+[2026.09.27-06.57.32:290][  0]LogAssetRegistry: Display: FindShardedCacheFiles: 1 via .ref, 0 via migration fallback, 1 total
+[2026.09.27-06.57.32:290][  0]LogAssetRegistry: Display: LoadCacheFiles: loading 1 cache files, memory-mapping=enabled
+[2026.09.27-06.57.32:366][  0]LogAssetRegistry: Display: Asset registry cache read as 126.4 MiB from ../../../../../Udev/HearBlade/Intermediate/CachedAssetRegistry/CachedAssetRegistry_0_2178D29C43502748C738A98D7C859924.bin (memory-mapped=yes)
+[2026.09.27-06.57.32:366][  0]LogAssetRegistry: Display: AssetDataGatherer spent 0.076s loading caches from ../../../../../Udev/HearBlade/Intermediate/CachedAssetRegistry.
+[2026.09.27-06.57.32:419][  0]LogCsvProfiler: Display: Metadata set : largeworldcoordinates="1"
+[2026.09.27-06.57.32:427][  0]LogModelContextProtocol: Warning: Data transmitted via this plugin to your connected LLM service is Licensed Technology under the UE EULA. You are responsible for ensuring your LLM provider does not use it as training input. See Section 6(e) of the UE EULA for full terms.
+[2026.09.27-06.57.32:457][  0]LogPython: Display: No pip-enabled plugins with python dependencies found, skipping
+[2026.09.27-06.57.32:777][  0]LogCsvProfiler: Display: Metadata set : raytracing="0"
+[2026.09.27-06.57.32:867][  0]LogToolsetRegistry: Display: Registering Toolset EditorToolset.EditorAppToolset
+[2026.09.27-06.57.32:867][  0]LogToolsetRegistry: Display: Registering Toolset EditorToolset.LogsToolset
+[2026.09.27-06.57.32:890][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/Toolsets/EditorToolset/Content/Python/init_unreal.py…… started...
+[2026.09.27-06.57.32:970][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.actor.ActorTools
+[2026.09.27-06.57.32:971][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.asset.AssetTools
+[2026.09.27-06.57.32:974][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.blueprint.BlueprintTools
+[2026.09.27-06.57.32:975][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.curve_table.CurveTableTools
+[2026.09.27-06.57.32:975][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.data_asset.DataAssetTools
+[2026.09.27-06.57.32:975][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.data_table.DataTableTools
+[2026.09.27-06.57.32:977][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.material.MaterialTools
+[2026.09.27-06.57.32:977][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.material_instance.MaterialInstanceTools
+[2026.09.27-06.57.32:978][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.object.ObjectTools
+[2026.09.27-06.57.32:978][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.primitive.PrimitiveTools
+[2026.09.27-06.57.32:979][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.scene.SceneTools
+[2026.09.27-06.57.32:981][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.skeletal_mesh.SkeletalMeshTools
+[2026.09.27-06.57.32:982][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.static_mesh.StaticMeshTools
+[2026.09.27-06.57.32:982][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.string_table.StringTableTools
+[2026.09.27-06.57.32:982][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.programmatic.ProgrammaticToolset
+[2026.09.27-06.57.32:983][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.texture.TextureTools
+[2026.09.27-06.57.32:983][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/Toolsets/EditorToolset/Content/Python/init_unreal.py…… took 92.327 ms
+[2026.09.27-06.57.32:983][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py…… started...
+[2026.09.27-06.57.32:985][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py…… took 1.809 ms (total: 94.136 ms)
+[2026.09.27-06.57.32:985][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py…… started...
+[2026.09.27-06.57.32:996][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py…… took 11.731 ms (total: 105.868 ms)
+[2026.09.27-06.57.32:996][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/ToolsetRegistry/Content/Python/init_unreal.py…… started...
+[2026.09.27-06.57.33:007][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/ToolsetRegistry/Content/Python/init_unreal.py…… took 9.995 ms (total: 115.864 ms)
+[2026.09.27-06.57.33:007][  0]LogPythonScriptCommandlet: Display: Running Python script: D:\Udev\HearBlade\Saved\Tools\import_harmonic_court.py
+[2026.09.27-06.57.33:090][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_Static_00.fbx]
+[2026.09.27-06.57.34:245][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_Static_00.fbx]
+[2026.09.27-06.57.34:245][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_Static_00.fbx : 'SM_HC_Static_00', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:264][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourt/Meshes/SM_HC_Static_00）……
+[2026.09.27-06.57.34:355][  0]LogSourceControl: Display: Uncontrolled Changelist persistency file loaded ../../../../../Udev/HearBlade/Saved/SourceControl/UncontrolledChangelists.json
+[2026.09.27-06.57.34:375][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_01.fbx]
+[2026.09.27-06.57.34:405][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_01.fbx]
+[2026.09.27-06.57.34:406][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_01.fbx : 'SM_HC_BeatSpeaker_01', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_004”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:417][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_02.fbx]
+[2026.09.27-06.57.34:449][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_02.fbx]
+[2026.09.27-06.57.34:449][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_02.fbx : 'SM_HC_BeatSpeaker_02', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_007”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:460][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_03.fbx]
+[2026.09.27-06.57.34:477][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatCrown_03.fbx]
+[2026.09.27-06.57.34:477][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_03.fbx : 'SM_HC_BeatCrown_03', StaticMesh] 在FBX文件中未找到这个网格体“Cube_042”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:488][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_04.fbx]
+[2026.09.27-06.57.34:504][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatShard_04.fbx]
+[2026.09.27-06.57.34:504][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_04.fbx : 'SM_HC_BeatShard_04', StaticMesh] 在FBX文件中未找到这个网格体“Cone”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:514][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_05.fbx]
+[2026.09.27-06.57.34:544][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_05.fbx]
+[2026.09.27-06.57.34:544][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_05.fbx : 'SM_HC_BeatSpeaker_05', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_011”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:557][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_06.fbx]
+[2026.09.27-06.57.34:588][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_06.fbx]
+[2026.09.27-06.57.34:588][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_06.fbx : 'SM_HC_BeatSpeaker_06', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_014”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:601][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_07.fbx]
+[2026.09.27-06.57.34:617][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatCrown_07.fbx]
+[2026.09.27-06.57.34:617][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_07.fbx : 'SM_HC_BeatCrown_07', StaticMesh] 在FBX文件中未找到这个网格体“Cube_044”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:629][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_08.fbx]
+[2026.09.27-06.57.34:645][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatShard_08.fbx]
+[2026.09.27-06.57.34:645][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_08.fbx : 'SM_HC_BeatShard_08', StaticMesh] 在FBX文件中未找到这个网格体“Cone_001”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:655][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_09.fbx]
+[2026.09.27-06.57.34:686][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_09.fbx]
+[2026.09.27-06.57.34:686][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_09.fbx : 'SM_HC_BeatSpeaker_09', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_018”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:698][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_10.fbx]
+[2026.09.27-06.57.34:730][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_10.fbx]
+[2026.09.27-06.57.34:731][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_10.fbx : 'SM_HC_BeatSpeaker_10', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_021”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:744][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_11.fbx]
+[2026.09.27-06.57.34:760][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatCrown_11.fbx]
+[2026.09.27-06.57.34:760][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_11.fbx : 'SM_HC_BeatCrown_11', StaticMesh] 在FBX文件中未找到这个网格体“Cube_046”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:771][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_12.fbx]
+[2026.09.27-06.57.34:787][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatShard_12.fbx]
+[2026.09.27-06.57.34:787][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_12.fbx : 'SM_HC_BeatShard_12', StaticMesh] 在FBX文件中未找到这个网格体“Cone_002”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:798][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_13.fbx]
+[2026.09.27-06.57.34:830][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_13.fbx]
+[2026.09.27-06.57.34:830][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_13.fbx : 'SM_HC_BeatSpeaker_13', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_025”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:841][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_14.fbx]
+[2026.09.27-06.57.34:874][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_14.fbx]
+[2026.09.27-06.57.34:874][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_14.fbx : 'SM_HC_BeatSpeaker_14', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_028”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:885][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_15.fbx]
+[2026.09.27-06.57.34:903][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatCrown_15.fbx]
+[2026.09.27-06.57.34:903][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_15.fbx : 'SM_HC_BeatCrown_15', StaticMesh] 在FBX文件中未找到这个网格体“Cube_048”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:915][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_16.fbx]
+[2026.09.27-06.57.34:931][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatShard_16.fbx]
+[2026.09.27-06.57.34:931][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_16.fbx : 'SM_HC_BeatShard_16', StaticMesh] 在FBX文件中未找到这个网格体“Cone_003”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:943][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_17.fbx]
+[2026.09.27-06.57.34:974][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_17.fbx]
+[2026.09.27-06.57.34:974][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_17.fbx : 'SM_HC_BeatSpeaker_17', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_032”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.34:985][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_18.fbx]
+[2026.09.27-06.57.35:018][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_18.fbx]
+[2026.09.27-06.57.35:018][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_18.fbx : 'SM_HC_BeatSpeaker_18', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_035”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:030][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_19.fbx]
+[2026.09.27-06.57.35:047][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatCrown_19.fbx]
+[2026.09.27-06.57.35:047][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_19.fbx : 'SM_HC_BeatCrown_19', StaticMesh] 在FBX文件中未找到这个网格体“Cube_050”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:058][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_20.fbx]
+[2026.09.27-06.57.35:075][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatShard_20.fbx]
+[2026.09.27-06.57.35:075][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_20.fbx : 'SM_HC_BeatShard_20', StaticMesh] 在FBX文件中未找到这个网格体“Cone_004”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:085][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_21.fbx]
+[2026.09.27-06.57.35:116][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_21.fbx]
+[2026.09.27-06.57.35:116][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_21.fbx : 'SM_HC_BeatSpeaker_21', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_039”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:128][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_22.fbx]
+[2026.09.27-06.57.35:162][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_22.fbx]
+[2026.09.27-06.57.35:162][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_22.fbx : 'SM_HC_BeatSpeaker_22', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_042”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:175][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_23.fbx]
+[2026.09.27-06.57.35:193][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatCrown_23.fbx]
+[2026.09.27-06.57.35:193][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_23.fbx : 'SM_HC_BeatCrown_23', StaticMesh] 在FBX文件中未找到这个网格体“Cube_052”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:204][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_24.fbx]
+[2026.09.27-06.57.35:220][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatShard_24.fbx]
+[2026.09.27-06.57.35:220][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_24.fbx : 'SM_HC_BeatShard_24', StaticMesh] 在FBX文件中未找到这个网格体“Cone_005”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:231][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_25.fbx]
+[2026.09.27-06.57.35:262][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_25.fbx]
+[2026.09.27-06.57.35:262][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_25.fbx : 'SM_HC_BeatSpeaker_25', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_046”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:275][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_26.fbx]
+[2026.09.27-06.57.35:317][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatSpeaker_26.fbx]
+[2026.09.27-06.57.35:317][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_26.fbx : 'SM_HC_BeatSpeaker_26', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_049”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:329][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_27.fbx]
+[2026.09.27-06.57.35:346][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatCrown_27.fbx]
+[2026.09.27-06.57.35:346][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_27.fbx : 'SM_HC_BeatCrown_27', StaticMesh] 在FBX文件中未找到这个网格体“Cube_054”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:358][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_28.fbx]
+[2026.09.27-06.57.35:374][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatShard_28.fbx]
+[2026.09.27-06.57.35:374][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_28.fbx : 'SM_HC_BeatShard_28', StaticMesh] 在FBX文件中未找到这个网格体“Cone_006”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:385][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_29.fbx]
+[2026.09.27-06.57.35:401][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_29.fbx]
+[2026.09.27-06.57.35:401][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_29.fbx : 'SM_HC_BeatHalo_29', StaticMesh] 在FBX文件中未找到这个网格体“Cube_060”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:411][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_30.fbx]
+[2026.09.27-06.57.35:427][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_30.fbx]
+[2026.09.27-06.57.35:427][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_30.fbx : 'SM_HC_BeatHalo_30', StaticMesh] 在FBX文件中未找到这个网格体“Cube_061”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:439][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_31.fbx]
+[2026.09.27-06.57.35:456][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_31.fbx]
+[2026.09.27-06.57.35:456][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_31.fbx : 'SM_HC_BeatHalo_31', StaticMesh] 在FBX文件中未找到这个网格体“Cube_062”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:466][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_32.fbx]
+[2026.09.27-06.57.35:482][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_32.fbx]
+[2026.09.27-06.57.35:482][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_32.fbx : 'SM_HC_BeatHalo_32', StaticMesh] 在FBX文件中未找到这个网格体“Cube_063”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:493][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_33.fbx]
+[2026.09.27-06.57.35:511][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_33.fbx]
+[2026.09.27-06.57.35:511][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_33.fbx : 'SM_HC_BeatHalo_33', StaticMesh] 在FBX文件中未找到这个网格体“Cube_064”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:522][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_34.fbx]
+[2026.09.27-06.57.35:538][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_34.fbx]
+[2026.09.27-06.57.35:538][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_34.fbx : 'SM_HC_BeatHalo_34', StaticMesh] 在FBX文件中未找到这个网格体“Cube_065”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:549][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_35.fbx]
+[2026.09.27-06.57.35:566][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_35.fbx]
+[2026.09.27-06.57.35:566][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_35.fbx : 'SM_HC_BeatHalo_35', StaticMesh] 在FBX文件中未找到这个网格体“Cube_066”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:577][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_36.fbx]
+[2026.09.27-06.57.35:594][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_36.fbx]
+[2026.09.27-06.57.35:594][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_36.fbx : 'SM_HC_BeatHalo_36', StaticMesh] 在FBX文件中未找到这个网格体“Cube_067”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:605][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_37.fbx]
+[2026.09.27-06.57.35:621][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_37.fbx]
+[2026.09.27-06.57.35:621][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_37.fbx : 'SM_HC_BeatHalo_37', StaticMesh] 在FBX文件中未找到这个网格体“Cube_068”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:632][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_38.fbx]
+[2026.09.27-06.57.35:650][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_38.fbx]
+[2026.09.27-06.57.35:650][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_38.fbx : 'SM_HC_BeatHalo_38', StaticMesh] 在FBX文件中未找到这个网格体“Cube_069”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:662][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_39.fbx]
+[2026.09.27-06.57.35:678][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_39.fbx]
+[2026.09.27-06.57.35:678][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_39.fbx : 'SM_HC_BeatHalo_39', StaticMesh] 在FBX文件中未找到这个网格体“Cube_070”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:689][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_40.fbx]
+[2026.09.27-06.57.35:707][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_40.fbx]
+[2026.09.27-06.57.35:707][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_40.fbx : 'SM_HC_BeatHalo_40', StaticMesh] 在FBX文件中未找到这个网格体“Cube_071”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:718][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_41.fbx]
+[2026.09.27-06.57.35:735][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_41.fbx]
+[2026.09.27-06.57.35:735][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_41.fbx : 'SM_HC_BeatHalo_41', StaticMesh] 在FBX文件中未找到这个网格体“Cube_072”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:745][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_42.fbx]
+[2026.09.27-06.57.35:762][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_42.fbx]
+[2026.09.27-06.57.35:762][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_42.fbx : 'SM_HC_BeatHalo_42', StaticMesh] 在FBX文件中未找到这个网格体“Cube_073”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:774][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_43.fbx]
+[2026.09.27-06.57.35:791][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_43.fbx]
+[2026.09.27-06.57.35:791][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_43.fbx : 'SM_HC_BeatHalo_43', StaticMesh] 在FBX文件中未找到这个网格体“Cube_074”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:801][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_44.fbx]
+[2026.09.27-06.57.35:819][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...onment/HarmonicCourt/SM_HC_BeatHalo_44.fbx]
+[2026.09.27-06.57.35:819][  0]LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_44.fbx : 'SM_HC_BeatHalo_44', StaticMesh] 在FBX文件中未找到这个网格体“Cube_075”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.35:822][  0]LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Ivory”
+[2026.09.27-06.57.35:884][  0]LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Gold”
+[2026.09.27-06.57.35:936][  0]LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Blue”
+[2026.09.27-06.57.35:992][  0]LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Cyan”
+[2026.09.27-06.57.36:048][  0]LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Stone”
+[2026.09.27-06.57.36:101][  0]LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Speaker”
+[2026.09.27-06.57.36:215][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourt/Meshes/SM_HC_Static_00）……
+[2026.09.27-06.57.36:309][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourt/Meshes/SM_HC_Static_00）……
+[2026.09.27-06.57.36:404][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourt/Meshes/SM_HC_Static_00）……
+[2026.09.27-06.57.36:483][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourt/Meshes/SM_HC_Static_00）……
+[2026.09.27-06.57.36:806][  0]LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(BP_ThirdPersonCharacter_C /Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.Default__BP_ThirdPersonCharacter_C)
+[2026.09.27-06.57.36:806][  0]LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(SKEL_BP_ThirdPersonCharacter_C /Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.Default__SKEL_BP_ThirdPersonCharacter_C)
+[2026.09.27-06.57.36:808][  0]LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(BP_ThirdPersonCharacter_C /Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter.Default__BP_ThirdPersonCharacter_C)
+[2026.09.27-06.57.37:114][  0]LogWorldPartition: Display: WorldPartition initialize started...
+[2026.09.27-06.57.37:443][  0]LogWorldPartition: Display: WorldPartition initialize took 328.958 ms
+[2026.09.27-06.57.37:525][  0]LogPython: Warning: D:/Udev/HearBlade/Saved/Tools/import_harmonic_court.py:63: DeprecationWarning: EditorLevelLibrary: Function 'set_level_viewport_camera_info' on 'EditorLevelLibrary' is deprecated: The Editor Scripting Utilities Plugin is deprecated - Use the function in Unreal Editor Subsystem
+  unreal.EditorLevelLibrary.set_level_viewport_camera_info(unreal.Vector(-2100,-2500,1700),unreal.Rotator(-22,42,0))
+
+[2026.09.27-06.57.37:749][  0]LogPythonScriptCommandlet: Display: Python script executed successfully
+[2026.09.27-06.57.37:749][  0]LogInit: Display: 
+[2026.09.27-06.57.37:749][  0]LogInit: Display: Warning/Error Summary (Unique only)
+[2026.09.27-06.57.37:749][  0]LogInit: Display: -----------------------------------
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(HearBladeCharacter /Script/HearBlade.Default__HearBladeCharacter)
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogModelContextProtocol: Warning: Data transmitted via this plugin to your connected LLM service is Licensed Technology under the UE EULA. You are responsible for ensuring your LLM provider does not use it as training input. See Section 6(e) of the UE EULA for full terms.
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_Static_00.fbx : 'SM_HC_Static_00', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_01.fbx : 'SM_HC_BeatSpeaker_01', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_004”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_02.fbx : 'SM_HC_BeatSpeaker_02', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_007”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_03.fbx : 'SM_HC_BeatCrown_03', StaticMesh] 在FBX文件中未找到这个网格体“Cube_042”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_04.fbx : 'SM_HC_BeatShard_04', StaticMesh] 在FBX文件中未找到这个网格体“Cone”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_05.fbx : 'SM_HC_BeatSpeaker_05', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_011”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_06.fbx : 'SM_HC_BeatSpeaker_06', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_014”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_07.fbx : 'SM_HC_BeatCrown_07', StaticMesh] 在FBX文件中未找到这个网格体“Cube_044”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_08.fbx : 'SM_HC_BeatShard_08', StaticMesh] 在FBX文件中未找到这个网格体“Cone_001”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_09.fbx : 'SM_HC_BeatSpeaker_09', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_018”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_10.fbx : 'SM_HC_BeatSpeaker_10', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_021”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_11.fbx : 'SM_HC_BeatCrown_11', StaticMesh] 在FBX文件中未找到这个网格体“Cube_046”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_12.fbx : 'SM_HC_BeatShard_12', StaticMesh] 在FBX文件中未找到这个网格体“Cone_002”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_13.fbx : 'SM_HC_BeatSpeaker_13', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_025”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_14.fbx : 'SM_HC_BeatSpeaker_14', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_028”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_15.fbx : 'SM_HC_BeatCrown_15', StaticMesh] 在FBX文件中未找到这个网格体“Cube_048”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_16.fbx : 'SM_HC_BeatShard_16', StaticMesh] 在FBX文件中未找到这个网格体“Cone_003”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_17.fbx : 'SM_HC_BeatSpeaker_17', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_032”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_18.fbx : 'SM_HC_BeatSpeaker_18', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_035”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_19.fbx : 'SM_HC_BeatCrown_19', StaticMesh] 在FBX文件中未找到这个网格体“Cube_050”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_20.fbx : 'SM_HC_BeatShard_20', StaticMesh] 在FBX文件中未找到这个网格体“Cone_004”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_21.fbx : 'SM_HC_BeatSpeaker_21', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_039”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_22.fbx : 'SM_HC_BeatSpeaker_22', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_042”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_23.fbx : 'SM_HC_BeatCrown_23', StaticMesh] 在FBX文件中未找到这个网格体“Cube_052”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_24.fbx : 'SM_HC_BeatShard_24', StaticMesh] 在FBX文件中未找到这个网格体“Cone_005”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_25.fbx : 'SM_HC_BeatSpeaker_25', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_046”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatSpeaker_26.fbx : 'SM_HC_BeatSpeaker_26', StaticMesh] 在FBX文件中未找到这个网格体“Cylinder_049”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatCrown_27.fbx : 'SM_HC_BeatCrown_27', StaticMesh] 在FBX文件中未找到这个网格体“Cube_054”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatShard_28.fbx : 'SM_HC_BeatShard_28', StaticMesh] 在FBX文件中未找到这个网格体“Cone_006”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_29.fbx : 'SM_HC_BeatHalo_29', StaticMesh] 在FBX文件中未找到这个网格体“Cube_060”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_30.fbx : 'SM_HC_BeatHalo_30', StaticMesh] 在FBX文件中未找到这个网格体“Cube_061”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_31.fbx : 'SM_HC_BeatHalo_31', StaticMesh] 在FBX文件中未找到这个网格体“Cube_062”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_32.fbx : 'SM_HC_BeatHalo_32', StaticMesh] 在FBX文件中未找到这个网格体“Cube_063”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_33.fbx : 'SM_HC_BeatHalo_33', StaticMesh] 在FBX文件中未找到这个网格体“Cube_064”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_34.fbx : 'SM_HC_BeatHalo_34', StaticMesh] 在FBX文件中未找到这个网格体“Cube_065”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_35.fbx : 'SM_HC_BeatHalo_35', StaticMesh] 在FBX文件中未找到这个网格体“Cube_066”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_36.fbx : 'SM_HC_BeatHalo_36', StaticMesh] 在FBX文件中未找到这个网格体“Cube_067”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_37.fbx : 'SM_HC_BeatHalo_37', StaticMesh] 在FBX文件中未找到这个网格体“Cube_068”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_38.fbx : 'SM_HC_BeatHalo_38', StaticMesh] 在FBX文件中未找到这个网格体“Cube_069”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_39.fbx : 'SM_HC_BeatHalo_39', StaticMesh] 在FBX文件中未找到这个网格体“Cube_070”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_40.fbx : 'SM_HC_BeatHalo_40', StaticMesh] 在FBX文件中未找到这个网格体“Cube_071”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_41.fbx : 'SM_HC_BeatHalo_41', StaticMesh] 在FBX文件中未找到这个网格体“Cube_072”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_42.fbx : 'SM_HC_BeatHalo_42', StaticMesh] 在FBX文件中未找到这个网格体“Cube_073”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_43.fbx : 'SM_HC_BeatHalo_43', StaticMesh] 在FBX文件中未找到这个网格体“Cube_074”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogInterchangeEngine: Warning: [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourt/SM_HC_BeatHalo_44.fbx : 'SM_HC_BeatHalo_44', StaticMesh] 在FBX文件中未找到这个网格体“Cube_075”的平滑组信息。在导出文件之前，请确保在FBX导出器中启用”导出平滑组”选项。
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Ivory”
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Gold”
+[2026.09.27-06.57.37:749][  0]LogInit: Display: LogUObjectGlobals: Warning: 未找到Object“Object /Game/Environment/HarmonicCourt/Materials/M_HC_Blue”
+[2026.09.27-06.57.37:749][  0]LogInit: Display: NOTE: Only first 50 warnings displayed.
+[2026.09.27-06.57.37:749][  0]LogInit: Display: 
+[2026.09.27-06.57.37:749][  0]LogInit: Display: Success - 0 error(s), 57 warning(s)
+[2026.09.27-06.57.37:749][  0]LogInit: Display: 
+
+Execution of commandlet took:  4.86 seconds, PeakPhysMemoryMB=2292 MB, PeakVirtMemoryMB=2191 MB
+[2026.09.27-06.57.37:763][  0]LogToolsetRegistry: Display: Unregistering Toolset ToolsetRegistry.AgentSkillToolset
+[2026.09.27-06.57.37:895][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PostWrite): 1 .ref files found, 1 referenced binaries
+[2026.09.27-06.57.37:895][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 1 total binaries, 1 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+[2026.09.27-06.57.38:140][  0]LogShaderCompilers: Display: Exiting ShaderCompilingThread
+[2026.09.27-06.57.38:161][  0]LogSourceControl: Display: Uncontrolled Changelist persistency file saved ../../../../../Udev/HearBlade/Saved/SourceControl/UncontrolledChangelists.json

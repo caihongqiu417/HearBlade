@@ -1,0 +1,27 @@
+<frozen runpy>:128: RuntimeWarning: 'blender_mcp.server' found in sys.modules after import of package 'blender_mcp', but prior to execution of 'blender_mcp.server'; this may result in unpredictable behaviour
+2026-09-27 15:40:05,461 - BlenderMCPServer - INFO - BlenderMCP server starting up
+2026-09-27 15:40:05,461 - BlenderMCPServer - WARNING - MCP for Blender addon not found in any Blender addons folder. Run `uvx mcp-for-blender install-addon` to install it.
+2026-09-27 15:40:05,462 - BlenderMCPServer - INFO - Connected to Blender at 127.0.0.1:9876
+2026-09-27 15:40:05,462 - BlenderMCPServer - INFO - Created new persistent connection to Blender
+2026-09-27 15:40:05,462 - BlenderMCPServer - INFO - Sending command: get_addon_info with params: None
+2026-09-27 15:40:05,462 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:40:05,511 - BlenderMCPServer - INFO - Received complete response (421 bytes)
+2026-09-27 15:40:05,511 - BlenderMCPServer - INFO - Received 421 bytes of data
+2026-09-27 15:40:05,511 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:40:05,511 - BlenderMCPServer - INFO - Blender addon up to date (protocol 11, addon [1, 7], Blender 5.0.1)
+2026-09-27 15:40:05,511 - BlenderMCPServer - INFO - Successfully connected to Blender on startup
+2026-09-27 15:40:05,515 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-09-27 15:40:05,516 - BlenderMCPServer - INFO - Sending command: execute_code with params: {'code': "import bpy\nOUT='D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2'\nstage=bpy.data.objects['SM_HC2_Static_000']\nfor p in stage.data.polygons:\n    if p.center.z < .12 and p.normal.z > .7:p.use_smooth=False\nfor name in ['HC_Foliage','HC_Stone','HC_Flower']:\n    p=bpy.data.materials[name].node_tree.nodes.get('Principled BSDF');p.inputs['Roughness'].default_value=.9;p.inputs['Specular IOR Level'].default_value=.15\nbpy.ops.object.select_all(action='DESELECT');stage.select_set(True)\nfor o in bpy.context.scene.objects:\n    if o.name.startswith('UCX_SM_HC2_Static_000_'):o.select_set(True)\nbpy.context.view_layer.objects.active=stage\nbpy.ops.export_scene.fbx(filepath=OUT+'/SM_HC2_Static_000.fbx',use_selection=True,object_types={'MESH'},axis_forward='-Y',axis_up='Z',mesh_smooth_type='FACE',add_leaf_bones=False)\nbpy.ops.wm.save_as_mainfile(filepath=OUT+'/HarmonicCourtV2.blend')\nbpy.context.scene.render.filepath=OUT+'/HarmonicCourtV2_Model.png';bpy.ops.render.render(write_still=True)\nprint('SURFACE_NORMALS_FINISHED')\n"}
+2026-09-27 15:40:05,516 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:40:10,340 - BlenderMCPServer - INFO - Received complete response (271 bytes)
+2026-09-27 15:40:10,340 - BlenderMCPServer - INFO - Received 271 bytes of data
+2026-09-27 15:40:10,340 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:40:10,343 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-09-27 15:40:10,346 - BlenderMCPServer - INFO - Disconnecting from Blender on shutdown
+2026-09-27 15:40:10,347 - BlenderMCPServer - INFO - BlenderMCP server shut down
+Code executed successfully: 
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_Static_000.fbx'
+export finished in 0.7987 sec.
+Info: Saved as "HarmonicCourtV2.blend"
+SURFACE_NORMALS_FINISHED
+

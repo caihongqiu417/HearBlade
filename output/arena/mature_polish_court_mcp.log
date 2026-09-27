@@ -1,0 +1,27 @@
+<frozen runpy>:128: RuntimeWarning: 'blender_mcp.server' found in sys.modules after import of package 'blender_mcp', but prior to execution of 'blender_mcp.server'; this may result in unpredictable behaviour
+2026-09-27 15:34:46,580 - BlenderMCPServer - INFO - BlenderMCP server starting up
+2026-09-27 15:34:46,580 - BlenderMCPServer - WARNING - MCP for Blender addon not found in any Blender addons folder. Run `uvx mcp-for-blender install-addon` to install it.
+2026-09-27 15:34:46,581 - BlenderMCPServer - INFO - Connected to Blender at 127.0.0.1:9876
+2026-09-27 15:34:46,581 - BlenderMCPServer - INFO - Created new persistent connection to Blender
+2026-09-27 15:34:46,581 - BlenderMCPServer - INFO - Sending command: get_addon_info with params: None
+2026-09-27 15:34:46,581 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:34:46,600 - BlenderMCPServer - INFO - Received complete response (421 bytes)
+2026-09-27 15:34:46,600 - BlenderMCPServer - INFO - Received 421 bytes of data
+2026-09-27 15:34:46,601 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:34:46,601 - BlenderMCPServer - INFO - Blender addon up to date (protocol 11, addon [1, 7], Blender 5.0.1)
+2026-09-27 15:34:46,601 - BlenderMCPServer - INFO - Successfully connected to Blender on startup
+2026-09-27 15:34:46,604 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-09-27 15:34:46,605 - BlenderMCPServer - INFO - Sending command: execute_code with params: {'code': "import bpy,math\nfrom mathutils import Vector\nfrom math import pi,sin,cos\nOUT='D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2'\nstage=bpy.data.objects['SM_HC2_Static_000'];parts=[stage]\ndef native_cone(name,loc,r1,r2,h,mat,n=24):\n    bpy.ops.mesh.primitive_cone_add(vertices=n,radius1=r1,radius2=r2,depth=h,location=loc)\n    o=bpy.context.object;o.name=name;o.data.materials.append(bpy.data.materials[mat]);parts.append(o)\n    for poly in o.data.polygons:poly.use_smooth=True\n    return o\n# Extend support surface to the parapet: only a 2 cm transition at the paving edge.\nnative_cone('OuterWalkwaySupport',(0,0,-.12),19.35,19.35,.2,'HC_Ivory',128)\n# Cluster rock spires around each floating island to break the single cone silhouette.\nfor i in range(15):\n    a=.05+i*pi/14;r=48+(i%3)*6;x,y=r*cos(a),r*sin(a);h=8+(i%5)*2.2\n    for j in range(5):\n        b=j*2*pi/5;rr=2.7+.2*(j%2);height=h*(.7+.09*j)\n        o=native_cone('LimestonePillar',(x+cos(b)*rr,y+sin(b)*rr,h*.74-height/2),.24,1.25,height,'HC_Stone',24)\n        o.rotation_euler.x=.06*sin(i+j);o.rotation_euler.y=.07*cos(i+j)\n        native_cone('PillarPaleCap',(x+cos(b)*rr,y+sin(b)*rr,h*.75),1.25,1.1,.5,'HC_Stone',32)\n# Inset gold diamond crests and reinforcing feet on each tower.\nfor a in [.2,.9,1.57,2.24,2.94,3.75,5.65]:\n    x,y=18.8*cos(a),18.8*sin(a);normal=Vector((-cos(a),-sin(a),0))\n    p=Vector((x,y,6.08))+normal*1.09\n    bpy.ops.mesh.primitive_torus_add(major_radius=.22,minor_radius=.025,major_segments=4,minor_segments=6,location=p)\n    o=bpy.context.object;o.name='GoldDiamondHeraldry';o.rotation_euler=Vector((0,0,1)).rotation_difference(normal).to_euler();o.data.materials.append(bpy.data.materials['HC_Gold']);parts.append(o)\n    for offset in [-1,1]:\n        tangent=Vector((-sin(a),cos(a),0));loc=Vector((x,y,.82))+tangent*offset*.97+normal*.9\n        o=native_cone('TowerArmoredCorner',loc,.29,.13,.7,'HC_Gold',4)\nbpy.ops.object.select_all(action='DESELECT')\nfor o in parts:o.select_set(True)\nbpy.context.view_layer.objects.active=stage;bpy.ops.object.join()\nbpy.context.scene.cursor.location=(0,0,0);bpy.ops.object.origin_set(type='ORIGIN_CURSOR')\nbpy.ops.export_scene.fbx(filepath=OUT+'/SM_HC2_Static_000.fbx',use_selection=True,object_types={'MESH'},axis_forward='-Y',axis_up='Z',mesh_smooth_type='FACE',add_leaf_bones=False)\n# A brighter preview world without changing the game lighting.\nw=bpy.context.scene.world;w.use_nodes=True;w.node_tree.nodes.get('Background').inputs['Color'].default_value=(.34,.48,.65,1);w.node_tree.nodes.get('Background').inputs['Strength'].default_value=.65\nbpy.ops.wm.save_as_mainfile(filepath=OUT+'/HarmonicCourtV2.blend')\nbpy.context.scene.render.filepath=OUT+'/HarmonicCourtV2_Model.png';bpy.ops.render.render(write_still=True)\nprint('HC2_POLISHED')\n"}
+2026-09-27 15:34:46,606 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:34:56,790 - BlenderMCPServer - INFO - Received complete response (259 bytes)
+2026-09-27 15:34:56,790 - BlenderMCPServer - INFO - Received 259 bytes of data
+2026-09-27 15:34:56,790 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:34:56,793 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-09-27 15:34:56,796 - BlenderMCPServer - INFO - Disconnecting from Blender on shutdown
+2026-09-27 15:34:56,796 - BlenderMCPServer - INFO - BlenderMCP server shut down
+Code executed successfully: 
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_Static_000.fbx'
+export finished in 0.8632 sec.
+Info: Saved as "HarmonicCourtV2.blend"
+HC2_POLISHED
+

@@ -1,4 +1,5 @@
 #include "Combat/PerfectDodgeFeedbackComponent.h"
+#include "Combat/TransientCombatFX.h"
 #include "Combat/PerfectDodgeFeedbackConfig.h"
 #include "Combat/BossCombatCameraComponent.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
@@ -125,8 +126,8 @@ void UPerfectDodgeFeedbackComponent::PlayPerfectFeedback(const FPerfectDodgeFeed
 	SpawnGhosts(ActiveStrength);
 	if (bKeyPerfect) StartImpactFrame();
 	if (Config->RingParticles)
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Config->RingParticles, Feedback.BladeWorldLocation,
-			Feedback.AttackDirection.Rotation(), FVector(ActiveStrength), true, true);
+		SpawnStandalonePerfectSparks(GetWorld(), Config->RingParticles, Feedback.BladeWorldLocation,
+			Feedback.AttackDirection.Rotation(), ActiveStrength);
 	if (Config->Accessibility != EPerfectDodgeAccessibility::NoCameraShake)
 		if (UBossCombatCameraComponent* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
 		Camera->TriggerPerfectDodgeFeedback(Config->FOVExpansionDegrees, Config->CameraShakeDegrees,

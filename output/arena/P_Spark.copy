@@ -1,0 +1,271 @@
+Begin Object Class=/Script/Engine.ParticleSystem Name="P_Spark" ExportPath="/Script/Engine.ParticleSystem'/Game/SwordAnim/demo/FX/P_Spark.P_Spark'"
+   Begin Object Class=/Script/Engine.ParticleModuleRequired Name="ParticleModuleRequired_2" ExportPath="/Script/Engine.ParticleModuleRequired'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleRequired_2'"
+      Begin Object Class=/Script/Engine.DistributionFloatConstant Name="RequiredDistributionSpawnRate" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleRequired_2.RequiredDistributionSpawnRate'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleSpawn Name="ParticleModuleSpawn_1" ExportPath="/Script/Engine.ParticleModuleSpawn'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_1'"
+      Begin Object Class=/Script/Engine.DistributionFloatConstant Name="BurstScaleDistribution" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_1.BurstScaleDistribution'"
+      End Object
+      Begin Object Class=/Script/Engine.DistributionFloatConstant Name="RequiredDistributionSpawnRate" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_1.RequiredDistributionSpawnRate'"
+      End Object
+      Begin Object Class=/Script/Engine.DistributionFloatConstant Name="RequiredDistributionSpawnRateScale" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_1.RequiredDistributionSpawnRateScale'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleSpawn Name="ParticleModuleSpawn_167" ExportPath="/Script/Engine.ParticleModuleSpawn'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_167'"
+      Begin Object Class=/Script/Engine.DistributionFloatConstant Name="BurstScaleDistribution" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_167.BurstScaleDistribution'"
+      End Object
+      Begin Object Class=/Script/Engine.DistributionFloatConstant Name="RequiredDistributionSpawnRate" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_167.RequiredDistributionSpawnRate'"
+      End Object
+      Begin Object Class=/Script/Engine.DistributionFloatConstant Name="RequiredDistributionSpawnRateScale" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_167.RequiredDistributionSpawnRateScale'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleColorOverLife Name="ParticleModuleColorOverLife_3" ExportPath="/Script/Engine.ParticleModuleColorOverLife'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleColorOverLife_3'"
+      Begin Object Class=/Script/Engine.DistributionFloatConstantCurve Name="DistributionFloatConstantCurve_1" ExportPath="/Script/Engine.DistributionFloatConstantCurve'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleColorOverLife_3.DistributionFloatConstantCurve_1'"
+      End Object
+      Begin Object Class=/Script/Engine.DistributionVectorConstantCurve Name="DistributionVectorConstantCurve_1" ExportPath="/Script/Engine.DistributionVectorConstantCurve'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleColorOverLife_3.DistributionVectorConstantCurve_1'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleAccelerationDrag Name="ParticleModuleAccelerationDrag_4" ExportPath="/Script/Engine.ParticleModuleAccelerationDrag'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleAccelerationDrag_4'"
+      Begin Object Class=/Script/Engine.DistributionFloatUniform Name="DistributionFloatUniform_2" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleAccelerationDrag_4.DistributionFloatUniform_2'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleLifetime Name="ParticleModuleLifetime_2" ExportPath="/Script/Engine.ParticleModuleLifetime'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleLifetime_2'"
+      Begin Object Class=/Script/Engine.DistributionFloatUniform Name="DistributionLifetime" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleLifetime_2.DistributionLifetime'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleVelocity Name="ParticleModuleVelocity_0" ExportPath="/Script/Engine.ParticleModuleVelocity'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocity_0'"
+      Begin Object Class=/Script/Engine.DistributionFloatUniform Name="DistributionStartVelocityRadial" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocity_0.DistributionStartVelocityRadial'"
+      End Object
+      Begin Object Class=/Script/Engine.DistributionVectorUniform Name="DistributionStartVelocity" ExportPath="/Script/Engine.DistributionVectorUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocity_0.DistributionStartVelocity'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleVelocityCone Name="ParticleModuleVelocityCone_2" ExportPath="/Script/Engine.ParticleModuleVelocityCone'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocityCone_2'"
+      Begin Object Class=/Script/Engine.DistributionFloatUniform Name="DistributionAngle" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocityCone_2.DistributionAngle'"
+      End Object
+      Begin Object Class=/Script/Engine.DistributionFloatUniform Name="DistributionVelocity" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocityCone_2.DistributionVelocity'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleSizeMultiplyLife Name="ParticleModuleSizeMultiplyLife_5" ExportPath="/Script/Engine.ParticleModuleSizeMultiplyLife'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSizeMultiplyLife_5'"
+      Begin Object Class=/Script/Engine.DistributionVectorConstantCurve Name="DistributionVectorConstantCurve_1" ExportPath="/Script/Engine.DistributionVectorConstantCurve'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSizeMultiplyLife_5.DistributionVectorConstantCurve_1'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleSize Name="ParticleModuleSize_2" ExportPath="/Script/Engine.ParticleModuleSize'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSize_2'"
+      Begin Object Class=/Script/Engine.DistributionVectorUniform Name="DistributionVectorUniform_0" ExportPath="/Script/Engine.DistributionVectorUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSize_2.DistributionVectorUniform_0'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.InterpCurveEdSetup Name="InterpCurveEdSetup_0" ExportPath="/Script/Engine.InterpCurveEdSetup'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:InterpCurveEdSetup_0'"
+   End Object
+   Begin Object Class=/Script/Engine.ParticleSpriteEmitter Name="ParticleSpriteEmitter_2" ExportPath="/Script/Engine.ParticleSpriteEmitter'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleSpriteEmitter_2'"
+      Begin Object Class=/Script/Engine.ParticleLODLevel Name="ParticleLODLevel_0" ExportPath="/Script/Engine.ParticleLODLevel'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleSpriteEmitter_2.ParticleLODLevel_0'"
+      End Object
+      Begin Object Class=/Script/Engine.ParticleLODLevel Name="ParticleLODLevel_1" ExportPath="/Script/Engine.ParticleLODLevel'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleSpriteEmitter_2.ParticleLODLevel_1'"
+      End Object
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleAccelerationConstant Name="ParticleModuleAccelerationConstant_1" ExportPath="/Script/Engine.ParticleModuleAccelerationConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleAccelerationConstant_1'"
+   End Object
+   Begin Object Class=/Script/Engine.ParticleModuleTypeDataGpu Name="ParticleModuleTypeDataGpu_2" ExportPath="/Script/Engine.ParticleModuleTypeDataGpu'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleTypeDataGpu_2'"
+   End Object
+   Begin Object Name="ParticleModuleRequired_2" ExportPath="/Script/Engine.ParticleModuleRequired'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleRequired_2'"
+      Begin Object Name="RequiredDistributionSpawnRate" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleRequired_2.RequiredDistributionSpawnRate'"
+      End Object
+      Material="/Script/Engine.MaterialInstanceConstant'/Game/SwordAnim/demo/Materials/FX_Materials/MI_Glow.MI_Glow'"
+      ScreenAlignment=PSA_Velocity
+      bKillOnDeactivate=True
+      bKillOnCompleted=True
+      bUseLegacyEmitterTime=False
+      SpawnRate=(Distribution="/Script/Engine.DistributionFloatConstant'RequiredDistributionSpawnRate'")
+      RandomImageTime=1.000000
+      LODValidity=3
+      ModuleEditorColor=(B=92,G=0,R=220,A=255)
+   End Object
+   Begin Object Name="ParticleModuleSpawn_1" ExportPath="/Script/Engine.ParticleModuleSpawn'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_1'"
+      Begin Object Name="BurstScaleDistribution" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_1.BurstScaleDistribution'"
+         Constant=1.000000
+         bBakedDataSuccesfully=True
+      End Object
+      Begin Object Name="RequiredDistributionSpawnRate" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_1.RequiredDistributionSpawnRate'"
+         bBakedDataSuccesfully=True
+      End Object
+      Begin Object Name="RequiredDistributionSpawnRateScale" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_1.RequiredDistributionSpawnRateScale'"
+         bBakedDataSuccesfully=True
+      End Object
+      Rate=(Distribution="/Script/Engine.DistributionFloatConstant'RequiredDistributionSpawnRate'",Table=(Values=(0.000000),Op=1,EntryCount=1,EntryStride=1))
+      RateScale=(Distribution="/Script/Engine.DistributionFloatConstant'RequiredDistributionSpawnRateScale'",Table=(Values=(0.000000),Op=1,EntryCount=1,EntryStride=1))
+      BurstList(0)=(Count=55)
+      BurstScale=(MinValue=1.000000,MaxValue=1.000000,Distribution="/Script/Engine.DistributionFloatConstant'BurstScaleDistribution'",Table=(Values=(1.000000),Op=1,EntryCount=1,EntryStride=1))
+      LODValidity=1
+      ModuleEditorColor=(B=0,G=159,R=183,A=255)
+   End Object
+   Begin Object Name="ParticleModuleSpawn_167" ExportPath="/Script/Engine.ParticleModuleSpawn'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_167'"
+      Begin Object Name="BurstScaleDistribution" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_167.BurstScaleDistribution'"
+         Constant=1.000000
+         bBakedDataSuccesfully=True
+      End Object
+      Begin Object Name="RequiredDistributionSpawnRate" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_167.RequiredDistributionSpawnRate'"
+         bBakedDataSuccesfully=True
+      End Object
+      Begin Object Name="RequiredDistributionSpawnRateScale" ExportPath="/Script/Engine.DistributionFloatConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSpawn_167.RequiredDistributionSpawnRateScale'"
+         bBakedDataSuccesfully=True
+      End Object
+      Rate=(Distribution="/Script/Engine.DistributionFloatConstant'RequiredDistributionSpawnRate'",Table=(Values=(0.000000),Op=1,EntryCount=1,EntryStride=1))
+      RateScale=(Distribution="/Script/Engine.DistributionFloatConstant'RequiredDistributionSpawnRateScale'",Table=(Values=(0.000000),Op=1,EntryCount=1,EntryStride=1))
+      BurstList(0)=(Count=25)
+      BurstScale=(MinValue=1.000000,MaxValue=1.000000,Distribution="/Script/Engine.DistributionFloatConstant'BurstScaleDistribution'",Table=(Values=(1.000000),Op=1,EntryCount=1,EntryStride=1))
+      LODValidity=2
+      ModuleEditorColor=(B=202,G=0,R=135,A=255)
+   End Object
+   Begin Object Name="ParticleModuleColorOverLife_3" ExportPath="/Script/Engine.ParticleModuleColorOverLife'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleColorOverLife_3'"
+      Begin Object Name="DistributionFloatConstantCurve_1" ExportPath="/Script/Engine.DistributionFloatConstantCurve'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleColorOverLife_3.DistributionFloatConstantCurve_1'"
+         ConstantCurve=(Points=((InVal=0.801315,OutVal=1.000000,ArriveTangent=-1.000000,LeaveTangent=-1.000000),(InVal=1.000000)))
+         bBakedDataSuccesfully=True
+      End Object
+      Begin Object Name="DistributionVectorConstantCurve_1" ExportPath="/Script/Engine.DistributionVectorConstantCurve'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleColorOverLife_3.DistributionVectorConstantCurve_1'"
+         ConstantCurve=(Points=((InVal=0.467890,OutVal=(X=50.000000,Y=13.740641,Z=0.000000))))
+         bBakedDataSuccesfully=True
+      End Object
+      ColorOverLife=(MinValue=0.017300,MaxValue=200.000000,Distribution="/Script/Engine.DistributionVectorConstantCurve'DistributionVectorConstantCurve_1'",Table=(TimeScale=1.111111,TimeBias=0.100000,Values=(165.105515,141.690475,200.000000,0.865000,0.172063,0.017300),Op=1,EntryCount=2,EntryStride=3))
+      AlphaOverLife=(MaxValue=1.000000,Distribution="/Script/Engine.DistributionFloatConstantCurve'DistributionFloatConstantCurve_1'",Table=(TimeScale=5.033103,TimeBias=0.801315,Values=(1.000000,0.000000),Op=1,EntryCount=2,EntryStride=1))
+      LODValidity=3
+      ModuleEditorColor=(B=212,G=0,R=116,A=255)
+   End Object
+   Begin Object Name="ParticleModuleAccelerationDrag_4" ExportPath="/Script/Engine.ParticleModuleAccelerationDrag'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleAccelerationDrag_4'"
+      Begin Object Name="DistributionFloatUniform_2" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleAccelerationDrag_4.DistributionFloatUniform_2'"
+         Min=0.500000
+         Max=8.000000
+         bBakedDataSuccesfully=True
+      End Object
+      DragCoefficientRaw=(MinValue=0.500000,MaxValue=8.000000,Distribution="/Script/Engine.DistributionFloatUniform'DistributionFloatUniform_2'",Table=(Values=(0.500000,8.000000),Op=2,EntryCount=1,EntryStride=2,SubEntryStride=1))
+      bAlwaysInWorldSpace=True
+      LODValidity=3
+      ModuleEditorColor=(B=147,G=193,R=0,A=255)
+   End Object
+   Begin Object Name="ParticleModuleLifetime_2" ExportPath="/Script/Engine.ParticleModuleLifetime'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleLifetime_2'"
+      Begin Object Name="DistributionLifetime" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleLifetime_2.DistributionLifetime'"
+         Min=0.050000
+         Max=0.500000
+         bBakedDataSuccesfully=True
+      End Object
+      Lifetime=(MinValue=0.050000,MaxValue=0.500000,Distribution="/Script/Engine.DistributionFloatUniform'DistributionLifetime'",Table=(Values=(0.050000,0.500000),Op=2,EntryCount=1,EntryStride=2,SubEntryStride=1))
+      LODValidity=3
+      ModuleEditorColor=(B=38,G=232,R=0,A=255)
+   End Object
+   Begin Object Name="ParticleModuleVelocity_0" ExportPath="/Script/Engine.ParticleModuleVelocity'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocity_0'"
+      Begin Object Name="DistributionStartVelocityRadial" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocity_0.DistributionStartVelocityRadial'"
+         bBakedDataSuccesfully=True
+      End Object
+      Begin Object Name="DistributionStartVelocity" ExportPath="/Script/Engine.DistributionVectorUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocity_0.DistributionStartVelocity'"
+         Max=(X=100.000000,Y=100.000000,Z=0.000000)
+         Min=(X=-100.000000,Y=-100.000000,Z=0.000000)
+         bIsDirty=False
+         bBakedDataSuccesfully=True
+      End Object
+      StartVelocity=(MinValue=-100.000000,MaxValue=100.000000,MinValueVec=(X=-100.000000,Y=-100.000000,Z=0.000000),MaxValueVec=(X=100.000000,Y=100.000000,Z=0.000000),Distribution="/Script/Engine.DistributionVectorUniform'DistributionStartVelocity'",Table=(Values=(-100.000000,-100.000000,0.000000,100.000000,100.000000,0.000000),Op=2,EntryCount=1,EntryStride=6,SubEntryStride=3))
+      StartVelocityRadial=(Distribution="/Script/Engine.DistributionFloatUniform'DistributionStartVelocityRadial'",Table=(Values=(0.000000),Op=1,EntryCount=1,EntryStride=1))
+      bApplyOwnerScale=True
+      LODValidity=3
+      ModuleEditorColor=(B=212,G=113,R=0,A=255)
+   End Object
+   Begin Object Name="ParticleModuleVelocityCone_2" ExportPath="/Script/Engine.ParticleModuleVelocityCone'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocityCone_2'"
+      Begin Object Name="DistributionAngle" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocityCone_2.DistributionAngle'"
+         Max=0.200000
+         bBakedDataSuccesfully=True
+      End Object
+      Begin Object Name="DistributionVelocity" ExportPath="/Script/Engine.DistributionFloatUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleVelocityCone_2.DistributionVelocity'"
+         Min=25.000000
+         Max=1500.000000
+         bBakedDataSuccesfully=True
+      End Object
+      Angle=(MaxValue=0.200000,Distribution="/Script/Engine.DistributionFloatUniform'DistributionAngle'",Table=(Values=(0.000000,0.200000),Op=2,EntryCount=1,EntryStride=2,SubEntryStride=1))
+      Velocity=(MinValue=25.000000,MaxValue=1500.000000,Distribution="/Script/Engine.DistributionFloatUniform'DistributionVelocity'",Table=(Values=(25.000000,1500.000000),Op=2,EntryCount=1,EntryStride=2,SubEntryStride=1))
+      Direction=(X=0.000000,Y=0.000000,Z=0.000000)
+      LODValidity=3
+      ModuleEditorColor=(B=0,G=223,R=83,A=255)
+   End Object
+   Begin Object Name="ParticleModuleSizeMultiplyLife_5" ExportPath="/Script/Engine.ParticleModuleSizeMultiplyLife'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSizeMultiplyLife_5'"
+      Begin Object Name="DistributionVectorConstantCurve_1" ExportPath="/Script/Engine.DistributionVectorConstantCurve'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSizeMultiplyLife_5.DistributionVectorConstantCurve_1'"
+         ConstantCurve=(Points=((),(InVal=0.010000,OutVal=(X=0.100000,Y=0.150000,Z=0.150000)),(InVal=0.759633,OutVal=(X=2.000000,Y=2.000000,Z=2.000000))))
+      End Object
+      LifeMultiplier=(Distribution="/Script/Engine.DistributionVectorConstantCurve'DistributionVectorConstantCurve_1'")
+      LODValidity=3
+      ModuleEditorColor=(B=212,G=113,R=0,A=255)
+   End Object
+   Begin Object Name="ParticleModuleSize_2" ExportPath="/Script/Engine.ParticleModuleSize'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSize_2'"
+      Begin Object Name="DistributionVectorUniform_0" ExportPath="/Script/Engine.DistributionVectorUniform'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleSize_2.DistributionVectorUniform_0'"
+         Max=(X=1.000000,Y=1.000000,Z=0.000000)
+         Min=(X=0.300000,Y=0.300000,Z=0.000000)
+         bIsDirty=False
+         bBakedDataSuccesfully=True
+      End Object
+      StartSize=(MaxValue=1.000000,MinValueVec=(X=0.300000,Y=0.300000,Z=0.000000),MaxValueVec=(X=1.000000,Y=1.000000,Z=0.000000),Distribution="/Script/Engine.DistributionVectorUniform'DistributionVectorUniform_0'",Table=(Values=(0.300000,0.300000,0.000000,1.000000,1.000000,0.000000),Op=2,EntryCount=1,EntryStride=6,SubEntryStride=3))
+      LODValidity=3
+      ModuleEditorColor=(B=0,G=167,R=176,A=255)
+   End Object
+   Begin Object Name="InterpCurveEdSetup_0" ExportPath="/Script/Engine.InterpCurveEdSetup'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:InterpCurveEdSetup_0'"
+   End Object
+   Begin Object Name="ParticleSpriteEmitter_2" ExportPath="/Script/Engine.ParticleSpriteEmitter'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleSpriteEmitter_2'"
+      Begin Object Name="ParticleLODLevel_0" ExportPath="/Script/Engine.ParticleLODLevel'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleSpriteEmitter_2.ParticleLODLevel_0'"
+         RequiredModule="/Script/Engine.ParticleModuleRequired'P_Spark:ParticleModuleRequired_2'"
+         Modules(0)="/Script/Engine.ParticleModuleVelocityCone'P_Spark:ParticleModuleVelocityCone_2'"
+         Modules(1)="/Script/Engine.ParticleModuleLifetime'P_Spark:ParticleModuleLifetime_2'"
+         Modules(2)="/Script/Engine.ParticleModuleSize'P_Spark:ParticleModuleSize_2'"
+         Modules(3)="/Script/Engine.ParticleModuleAccelerationConstant'P_Spark:ParticleModuleAccelerationConstant_1'"
+         Modules(4)="/Script/Engine.ParticleModuleAccelerationDrag'P_Spark:ParticleModuleAccelerationDrag_4'"
+         Modules(5)="/Script/Engine.ParticleModuleSizeMultiplyLife'P_Spark:ParticleModuleSizeMultiplyLife_5'"
+         Modules(6)="/Script/Engine.ParticleModuleColorOverLife'P_Spark:ParticleModuleColorOverLife_3'"
+         Modules(7)="/Script/Engine.ParticleModuleVelocity'P_Spark:ParticleModuleVelocity_0'"
+         Begin Object Name="ParticleModuleTypeDataGpu_2" ExportPath="/Script/Engine.ParticleModuleTypeDataGpu'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleTypeDataGpu_2'"
+            EmitterInfo=(RequiredModule="/Script/Engine.ParticleModuleRequired'P_Spark:ParticleModuleRequired_2'",SpawnModule="/Script/Engine.ParticleModuleSpawn'P_Spark:ParticleModuleSpawn_1'",SpawnModules=("/Script/Engine.ParticleModuleRequired'P_Spark:ParticleModuleRequired_2'","/Script/Engine.ParticleModuleVelocityCone'P_Spark:ParticleModuleVelocityCone_2'","/Script/Engine.ParticleModuleLifetime'P_Spark:ParticleModuleLifetime_2'","/Script/Engine.ParticleModuleSize'P_Spark:ParticleModuleSize_2'","/Script/Engine.ParticleModuleVelocity'P_Spark:ParticleModuleVelocity_0'"),DragCoefficient=(Table=(Values=(0.000000,1.000000),Op=2,EntryStride=2,SubEntryStride=1)),ConstantAcceleration=(X=-25.000000,Y=-50.000000,Z=-50.000000),InvMaxSize=(X=1.000000,Y=1.000000),InvRotationRateScale=2.000000,MaxLifetime=0.500000,MaxParticleCount=57,ScreenAlignment=PSA_Velocity,bUseVelocityForMotionBlur=True)
+            ResourceData=(QuantizedColorSamples=((B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=253),(B=0,G=0,R=0,A=171),(B=0,G=0,R=0,A=85),(B=0,G=0,R=0,A=0)),QuantizedMiscSamples=((B=0,G=0,R=0,A=0),(B=0,G=20,R=14,A=0),(B=0,G=25,R=19,A=0),(B=0,G=30,R=24,A=0),(B=0,G=35,R=30,A=0),(B=0,G=40,R=35,A=0),(B=0,G=45,R=40,A=0),(B=0,G=50,R=45,A=0),(B=0,G=55,R=50,A=0),(B=0,G=60,R=55,A=0),(B=0,G=65,R=60,A=0),(B=0,G=70,R=65,A=0),(B=0,G=75,R=71,A=0),(B=0,G=80,R=76,A=0),(B=0,G=85,R=81,A=0),(B=0,G=90,R=86,A=0),(B=0,G=95,R=91,A=0),(B=0,G=100,R=96,A=0),(B=0,G=105,R=101,A=0),(B=0,G=110,R=106,A=0),(B=0,G=115,R=112,A=0),(B=0,G=120,R=117,A=0),(B=0,G=125,R=122,A=0),(B=0,G=130,R=127,A=0),(B=0,G=135,R=132,A=0),(B=0,G=140,R=137,A=0),(B=0,G=145,R=142,A=0),(B=0,G=150,R=148,A=0),(B=0,G=155,R=153,A=0),(B=0,G=160,R=158,A=0),(B=0,G=165,R=163,A=0),(B=0,G=170,R=168,A=0),(B=0,G=175,R=173,A=0),(B=0,G=180,R=178,A=0),(B=0,G=185,R=183,A=0),(B=0,G=190,R=189,A=0),(B=0,G=195,R=194,A=0),(B=0,G=200,R=199,A=0),(B=0,G=205,R=204,A=0),(B=0,G=210,R=209,A=0),(B=0,G=215,R=214,A=0),(B=0,G=220,R=219,A=0),(B=0,G=225,R=224,A=0),(B=0,G=230,R=230,A=0),(B=0,G=235,R=235,A=0),(B=0,G=240,R=240,A=0),(B=0,G=245,R=245,A=0),(B=0,G=250,R=250,A=0),(B=0,G=254,R=254,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0)),ColorScale=(X=0.000000,Y=0.000000,Z=0.000000,W=1.000000),ColorBias=(X=50.000000,Y=13.740641,Z=0.000000,W=0.000000),MiscScale=(X=2.000000,Y=2.000000,Z=0.000000,W=0.000000),SimulationAttrCurveBias=(X=1.000000,Y=1.000000,Z=0.000000,W=1.000000),SubImageSize=(X=1.000000,Y=1.000000,Z=1.000000,W=1.000000),SizeBySpeed=(X=0.000000,Y=0.000000,Z=1.000000,W=1.000000),ConstantAcceleration=(X=-25.000000,Y=-50.000000,Z=-50.000000),PerParticleVectorFieldBias=1.000000,DragCoefficientScale=7.500000,DragCoefficientBias=0.500000,CollisionRadiusScale=0.500000,CollisionRandomDistribution=1.000000,OneMinusFriction=1.000000,RotationRateScale=0.500000,ScreenAlignment=PSA_Velocity,bUseVelocityForMotionBlur=True)
+            bClearExistingParticlesOnInit=True
+            LODValidity=3
+            ModuleEditorColor=(B=227,G=68,R=0,A=255)
+         End Object
+         TypeDataModule="/Script/Engine.ParticleModuleTypeDataGpu'P_Spark:ParticleModuleTypeDataGpu_2'"
+         SpawnModule="/Script/Engine.ParticleModuleSpawn'P_Spark:ParticleModuleSpawn_1'"
+         PeakActiveParticles=57
+      End Object
+      Begin Object Name="ParticleLODLevel_1" ExportPath="/Script/Engine.ParticleLODLevel'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleSpriteEmitter_2.ParticleLODLevel_1'"
+         Level=1
+         RequiredModule="/Script/Engine.ParticleModuleRequired'P_Spark:ParticleModuleRequired_2'"
+         Modules(0)="/Script/Engine.ParticleModuleVelocityCone'P_Spark:ParticleModuleVelocityCone_2'"
+         Modules(1)="/Script/Engine.ParticleModuleLifetime'P_Spark:ParticleModuleLifetime_2'"
+         Modules(2)="/Script/Engine.ParticleModuleSize'P_Spark:ParticleModuleSize_2'"
+         Modules(3)="/Script/Engine.ParticleModuleAccelerationConstant'P_Spark:ParticleModuleAccelerationConstant_1'"
+         Modules(4)="/Script/Engine.ParticleModuleAccelerationDrag'P_Spark:ParticleModuleAccelerationDrag_4'"
+         Modules(5)="/Script/Engine.ParticleModuleSizeMultiplyLife'P_Spark:ParticleModuleSizeMultiplyLife_5'"
+         Modules(6)="/Script/Engine.ParticleModuleColorOverLife'P_Spark:ParticleModuleColorOverLife_3'"
+         Modules(7)="/Script/Engine.ParticleModuleVelocity'P_Spark:ParticleModuleVelocity_0'"
+         TypeDataModule="/Script/Engine.ParticleModuleTypeDataGpu'P_Spark:ParticleModuleTypeDataGpu_2'"
+         SpawnModule="/Script/Engine.ParticleModuleSpawn'P_Spark:ParticleModuleSpawn_167'"
+         PeakActiveParticles=27
+      End Object
+      EmitterName="sparks"
+      bUseLegacySpawningBehavior=True
+      EmitterEditorColor=(B=213,G=0,R=113,A=255)
+      LODLevels(0)="/Script/Engine.ParticleLODLevel'ParticleLODLevel_0'"
+      LODLevels(1)="/Script/Engine.ParticleLODLevel'ParticleLODLevel_1'"
+      DetailModeBitmask=15
+   End Object
+   Begin Object Name="ParticleModuleAccelerationConstant_1" ExportPath="/Script/Engine.ParticleModuleAccelerationConstant'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleAccelerationConstant_1'"
+      Acceleration=(X=-25.000000,Y=-50.000000,Z=-50.000000)
+      bAlwaysInWorldSpace=True
+      LODValidity=3
+      ModuleEditorColor=(B=125,G=0,R=206,A=255)
+   End Object
+   Begin Object Name="ParticleModuleTypeDataGpu_2" ExportPath="/Script/Engine.ParticleModuleTypeDataGpu'/Game/SwordAnim/demo/FX/P_Spark.P_Spark:ParticleModuleTypeDataGpu_2'"
+      EmitterInfo=(RequiredModule="/Script/Engine.ParticleModuleRequired'P_Spark:ParticleModuleRequired_2'",SpawnModule="/Script/Engine.ParticleModuleSpawn'P_Spark:ParticleModuleSpawn_1'",SpawnModules=("/Script/Engine.ParticleModuleRequired'P_Spark:ParticleModuleRequired_2'","/Script/Engine.ParticleModuleVelocityCone'P_Spark:ParticleModuleVelocityCone_2'","/Script/Engine.ParticleModuleLifetime'P_Spark:ParticleModuleLifetime_2'","/Script/Engine.ParticleModuleSize'P_Spark:ParticleModuleSize_2'","/Script/Engine.ParticleModuleVelocity'P_Spark:ParticleModuleVelocity_0'"),DragCoefficient=(Table=(Values=(0.000000,1.000000),Op=2,EntryStride=2,SubEntryStride=1)),ConstantAcceleration=(X=-25.000000,Y=-50.000000,Z=-50.000000),InvMaxSize=(X=1.000000,Y=1.000000),InvRotationRateScale=2.000000,MaxLifetime=0.500000,MaxParticleCount=57,ScreenAlignment=PSA_Velocity,bUseVelocityForMotionBlur=True)
+      ResourceData=(QuantizedColorSamples=((B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=255),(B=0,G=0,R=0,A=253),(B=0,G=0,R=0,A=171),(B=0,G=0,R=0,A=85),(B=0,G=0,R=0,A=0)),QuantizedMiscSamples=((B=0,G=0,R=0,A=0),(B=0,G=20,R=14,A=0),(B=0,G=25,R=19,A=0),(B=0,G=30,R=24,A=0),(B=0,G=35,R=30,A=0),(B=0,G=40,R=35,A=0),(B=0,G=45,R=40,A=0),(B=0,G=50,R=45,A=0),(B=0,G=55,R=50,A=0),(B=0,G=60,R=55,A=0),(B=0,G=65,R=60,A=0),(B=0,G=70,R=65,A=0),(B=0,G=75,R=71,A=0),(B=0,G=80,R=76,A=0),(B=0,G=85,R=81,A=0),(B=0,G=90,R=86,A=0),(B=0,G=95,R=91,A=0),(B=0,G=100,R=96,A=0),(B=0,G=105,R=101,A=0),(B=0,G=110,R=106,A=0),(B=0,G=115,R=112,A=0),(B=0,G=120,R=117,A=0),(B=0,G=125,R=122,A=0),(B=0,G=130,R=127,A=0),(B=0,G=135,R=132,A=0),(B=0,G=140,R=137,A=0),(B=0,G=145,R=142,A=0),(B=0,G=150,R=148,A=0),(B=0,G=155,R=153,A=0),(B=0,G=160,R=158,A=0),(B=0,G=165,R=163,A=0),(B=0,G=170,R=168,A=0),(B=0,G=175,R=173,A=0),(B=0,G=180,R=178,A=0),(B=0,G=185,R=183,A=0),(B=0,G=190,R=189,A=0),(B=0,G=195,R=194,A=0),(B=0,G=200,R=199,A=0),(B=0,G=205,R=204,A=0),(B=0,G=210,R=209,A=0),(B=0,G=215,R=214,A=0),(B=0,G=220,R=219,A=0),(B=0,G=225,R=224,A=0),(B=0,G=230,R=230,A=0),(B=0,G=235,R=235,A=0),(B=0,G=240,R=240,A=0),(B=0,G=245,R=245,A=0),(B=0,G=250,R=250,A=0),(B=0,G=254,R=254,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0),(B=0,G=255,R=255,A=0)),ColorScale=(X=0.000000,Y=0.000000,Z=0.000000,W=1.000000),ColorBias=(X=50.000000,Y=13.740641,Z=0.000000,W=0.000000),MiscScale=(X=2.000000,Y=2.000000,Z=0.000000,W=0.000000),SimulationAttrCurveBias=(X=1.000000,Y=1.000000,Z=0.000000,W=1.000000),SubImageSize=(X=1.000000,Y=1.000000,Z=1.000000,W=1.000000),SizeBySpeed=(X=0.000000,Y=0.000000,Z=1.000000,W=1.000000),ConstantAcceleration=(X=-25.000000,Y=-50.000000,Z=-50.000000),PerParticleVectorFieldBias=1.000000,DragCoefficientScale=7.500000,DragCoefficientBias=0.500000,CollisionRadiusScale=0.500000,CollisionRandomDistribution=1.000000,OneMinusFriction=1.000000,RotationRateScale=0.500000,ScreenAlignment=PSA_Velocity,bUseVelocityForMotionBlur=True)
+      bClearExistingParticlesOnInit=True
+      LODValidity=3
+      ModuleEditorColor=(B=227,G=68,R=0,A=255)
+   End Object
+   Emitters(0)="/Script/Engine.ParticleSpriteEmitter'ParticleSpriteEmitter_2'"
+   CurveEdSetup="/Script/Engine.InterpCurveEdSetup'InterpCurveEdSetup_0'"
+   LODDistances(0)=0.000000
+   LODDistances(1)=2500.000000
+   LODSettings(1)=()
+   FixedRelativeBoundingBox=(Min=(X=-11.276894,Y=-4.293447,Z=-307.015076),Max=(X=170.814819,Y=24.162395,Z=17.762634),IsValid=True)
+   BackgroundColor=(B=86,G=86,R=86,A=0)
+   bUseFixedRelativeBoundingBox=True
+   bShouldResetPeakCounts=True
+End Object

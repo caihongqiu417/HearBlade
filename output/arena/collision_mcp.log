@@ -1,0 +1,27 @@
+<frozen runpy>:128: RuntimeWarning: 'blender_mcp.server' found in sys.modules after import of package 'blender_mcp', but prior to execution of 'blender_mcp.server'; this may result in unpredictable behaviour
+2026-09-27 15:27:43,100 - BlenderMCPServer - INFO - BlenderMCP server starting up
+2026-09-27 15:27:43,100 - BlenderMCPServer - WARNING - MCP for Blender addon not found in any Blender addons folder. Run `uvx mcp-for-blender install-addon` to install it.
+2026-09-27 15:27:43,101 - BlenderMCPServer - INFO - Connected to Blender at 127.0.0.1:9876
+2026-09-27 15:27:43,101 - BlenderMCPServer - INFO - Created new persistent connection to Blender
+2026-09-27 15:27:43,101 - BlenderMCPServer - INFO - Sending command: get_addon_info with params: None
+2026-09-27 15:27:43,101 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:27:43,144 - BlenderMCPServer - INFO - Received complete response (421 bytes)
+2026-09-27 15:27:43,144 - BlenderMCPServer - INFO - Received 421 bytes of data
+2026-09-27 15:27:43,144 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:27:43,144 - BlenderMCPServer - INFO - Blender addon up to date (protocol 11, addon [1, 7], Blender 5.0.1)
+2026-09-27 15:27:43,144 - BlenderMCPServer - INFO - Successfully connected to Blender on startup
+2026-09-27 15:27:43,148 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-09-27 15:27:43,149 - BlenderMCPServer - INFO - Sending command: execute_code with params: {'code': "import bpy,math\nfrom math import sin,cos,pi\nOUT='D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2'\nstage=bpy.data.objects['SM_HC2_Static_000'];colliders=[]\ndef keep(o):\n    o.name='UCX_SM_HC2_Static_000_'+str(len(colliders)).zfill(2);o.hide_render=True;o.display_type='WIRE';colliders.append(o)\nbpy.ops.mesh.primitive_cylinder_add(vertices=64,radius=19.35,depth=.3,location=(0,0,-.15));keep(bpy.context.object)\nfor i in range(32):\n    a=i*2*pi/32;bpy.ops.mesh.primitive_cube_add(size=1,location=(19.2*cos(a),19.2*sin(a),.7));o=bpy.context.object;o.dimensions=(3.7,.75,1.4);bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);o.rotation_euler.z=a+pi/2;keep(o)\nfor a in [.2,.9,1.57,2.24,2.94,3.75,5.65]:\n    bpy.ops.mesh.primitive_cylinder_add(vertices=8,radius=1.4,depth=6.8,location=(18.8*cos(a),18.8*sin(a),3.4));keep(bpy.context.object)\nbpy.ops.object.select_all(action='DESELECT');stage.select_set(True)\nfor o in colliders:o.select_set(True)\nbpy.context.view_layer.objects.active=stage\nbpy.ops.export_scene.fbx(filepath=OUT+'/SM_HC2_Static_000.fbx',use_selection=True,object_types={'MESH'},axis_forward='-Y',axis_up='Z',mesh_smooth_type='FACE',add_leaf_bones=False)\nbpy.ops.wm.save_as_mainfile(filepath=OUT+'/HarmonicCourtV2.blend')\nprint('UCX_AUTHORED',len(colliders))\n"}
+2026-09-27 15:27:43,149 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:27:43,712 - BlenderMCPServer - INFO - Received complete response (262 bytes)
+2026-09-27 15:27:43,712 - BlenderMCPServer - INFO - Received 262 bytes of data
+2026-09-27 15:27:43,712 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:27:43,715 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-09-27 15:27:43,718 - BlenderMCPServer - INFO - Disconnecting from Blender on shutdown
+2026-09-27 15:27:43,719 - BlenderMCPServer - INFO - BlenderMCP server shut down
+Code executed successfully: 
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_Static_000.fbx'
+export finished in 0.2938 sec.
+Info: Saved as "HarmonicCourtV2.blend"
+UCX_AUTHORED 40
+

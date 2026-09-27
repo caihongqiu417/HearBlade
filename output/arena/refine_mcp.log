@@ -1,0 +1,183 @@
+<frozen runpy>:128: RuntimeWarning: 'blender_mcp.server' found in sys.modules after import of package 'blender_mcp', but prior to execution of 'blender_mcp.server'; this may result in unpredictable behaviour
+2026-09-27 15:18:18,306 - BlenderMCPServer - INFO - BlenderMCP server starting up
+2026-09-27 15:18:18,306 - BlenderMCPServer - WARNING - MCP for Blender addon not found in any Blender addons folder. Run `uvx mcp-for-blender install-addon` to install it.
+2026-09-27 15:18:18,307 - BlenderMCPServer - INFO - Connected to Blender at 127.0.0.1:9876
+2026-09-27 15:18:18,307 - BlenderMCPServer - INFO - Created new persistent connection to Blender
+2026-09-27 15:18:18,307 - BlenderMCPServer - INFO - Sending command: get_addon_info with params: None
+2026-09-27 15:18:18,307 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:18:18,310 - BlenderMCPServer - INFO - Received complete response (421 bytes)
+2026-09-27 15:18:18,310 - BlenderMCPServer - INFO - Received 421 bytes of data
+2026-09-27 15:18:18,310 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:18:18,310 - BlenderMCPServer - INFO - Blender addon up to date (protocol 11, addon [1, 7], Blender 5.0.1)
+2026-09-27 15:18:18,310 - BlenderMCPServer - INFO - Successfully connected to Blender on startup
+2026-09-27 15:18:18,313 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-09-27 15:18:18,314 - BlenderMCPServer - INFO - Sending command: execute_code with params: {'code': '"""Run through Blender MCP execute_blender_code; native Blender modeling/baking."""\nimport bpy, bmesh, math, json, os\nfrom mathutils import Vector\nfrom math import pi, sin, cos\nOUT=\'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2\'\nos.makedirs(OUT,exist_ok=True)\nbpy.ops.object.select_all(action=\'SELECT\');bpy.ops.object.delete(use_global=False)\nfor m in list(bpy.data.materials):\n    if m.name.startswith(\'HC_\'):bpy.data.materials.remove(m)\ndef mat(name,color,metal=0,glow=0):\n    m=bpy.data.materials.new(name);m.diffuse_color=(*color,1);m.use_nodes=True\n    p=m.node_tree.nodes.get(\'Principled BSDF\');p.inputs[\'Base Color\'].default_value=(*color,1)\n    p.inputs[\'Metallic\'].default_value=metal;p.inputs[\'Roughness\'].default_value=.4\n    p.inputs[\'Emission Color\'].default_value=(*color,1);p.inputs[\'Emission Strength\'].default_value=glow\n    return m\nivory=mat(\'HC_Ivory\',(.62,.64,.59));gold=mat(\'HC_Gold\',(.62,.37,.085),.7)\nblue=mat(\'HC_Blue\',(.027,.10,.21),.25);cyan=mat(\'HC_Cyan\',(.015,.40,.63),.25,1.1)\ndark=mat(\'HC_Speaker\',(.008,.019,.036));stone=mat(\'HC_Stone\',(.28,.36,.40));green=mat(\'HC_Foliage\',(.055,.18,.07));purple=mat(\'HC_Flower\',(.31,.07,.36))\ndef finish(o,name,m,bevel=.04):\n    o.name=name;o.data.materials.append(m)\n    if bevel:\n        mod=o.modifiers.new(\'Edge craftsmanship\',\'BEVEL\');mod.width=bevel;mod.segments=3\n        bpy.context.view_layer.objects.active=o;bpy.ops.object.modifier_apply(modifier=mod.name)\n    return o\ndef box(name,loc,size,m,bevel=.04,angle=0):\n    bpy.ops.mesh.primitive_cube_add(size=1,location=loc);o=bpy.context.object;o.dimensions=size\n    bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);o.rotation_euler.z=angle\n    return finish(o,name,m,bevel)\ndef cyl(name,loc,r,d,m,n=64):\n    bpy.ops.mesh.primitive_cylinder_add(vertices=n,radius=r,depth=d,location=loc)\n    return finish(bpy.context.object,name,m,.025)\ndef cone(name,loc,r1,r2,d,m,n=4):\n    bpy.ops.mesh.primitive_cone_add(vertices=n,radius1=r1,radius2=r2,depth=d,location=loc)\n    return finish(bpy.context.object,name,m,.025)\ndef tor(name,loc,r,t,m,normal=None):\n    bpy.ops.mesh.primitive_torus_add(major_radius=r,minor_radius=t,major_segments=96,minor_segments=8,location=loc);o=bpy.context.object\n    if normal is not None:o.rotation_euler=Vector((0,0,1)).rotation_difference(normal).to_euler()\n    return finish(o,name,m,0)\ndef arc(name,loc,r,t,start,end,m,vertical=False,flat=None):\n    # Cut and cap a native Blender torus; no hand-authored vertex buffers.\n    bpy.ops.mesh.primitive_torus_add(major_radius=r,minor_radius=t,major_segments=192,minor_segments=4,location=loc)\n    o=bpy.context.object;bm=bmesh.new();bm.from_mesh(o.data)\n    doomed=[v for v in bm.verts if not start<=math.atan2(v.co.y,v.co.x)<=end]\n    bmesh.ops.delete(bm,geom=doomed,context=\'VERTS\');bmesh.ops.holes_fill(bm,edges=[e for e in bm.edges if e.is_boundary],sides=0)\n    bm.to_mesh(o.data);bm.free()\n    if flat is not None:o.scale.z=flat/t\n    if vertical:o.rotation_euler.x=pi/2\n    return finish(o,name,m,.015 if flat is None else 0)\ndef join(parts,name,pivot):\n    bpy.ops.object.select_all(action=\'DESELECT\')\n    for p in parts:p.select_set(True)\n    bpy.context.view_layer.objects.active=parts[0];bpy.ops.object.join();o=bpy.context.object;o.name=name\n    bpy.context.scene.cursor.location=pivot;bpy.ops.object.origin_set(type=\'ORIGIN_CURSOR\');return o\nmoving=[]\ndef motion(o,mode):moving.append((o,mode));return o\n# Circular tiled arena with blue curved inlay, concentric edging and a sun seal.\ncyl(\'Foundation\',(0,0,-.5),18,.8,stone,128);cyl(\'IvoryPaving\',(0,0,-.1),17.6,.2,ivory,128)\nfor r in [3.0,3.15,5.7,6.0,12.8,13.1,16.65,17.4]:tor(\'FloorGoldInlay\',(0,0,.012),r,.027,gold)\nfor i in range(12):\n    a=-pi+(i+.5)*2*pi/12\n    arc(\'BlueMarbleSector\',(0,0,.008),9.4,3.35,a-.205,a+.205,blue,flat=.008)\n    for b in [a-.205,a+.205]:box(\'SectorRadialGold\',(9.4*cos(b),9.4*sin(b),.018),(6.7,.055,.02),gold,.005,b)\nfor i in range(48):\n    a=i*2*pi/48\n    box(\'FinePaverSeam\',(14.9*cos(a),14.9*sin(a),.006),(3.0,.018,.008),stone,.002,a)\n    box(\'PerimeterBlueTile\',(16.9*cos(a),16.9*sin(a),.012),(.58,1.65,.018),blue,.006,a)\nfor i in range(-12,13):\n    d=i*1.25;span=2*math.sqrt(max(0,16.55**2-d*d))\n    box(\'PavingGroutX\',(d,0,.029),(.008,span,.003),stone,.001)\n    box(\'PavingGroutY\',(0,d,.029),(span,.008,.003),stone,.001)\ncyl(\'BlueSunCenter\',(0,0,.011),2.95,.015,blue,128)\nfor i in range(8):\n    a=i*pi/4\n    # Flat four-sided spires create sharp compass rays, not plain rectangular bars.\n    o=cone(\'CompassRay\',(cos(a)*1.6,sin(a)*1.6,.032),.45,0,3.4,gold,4);o.rotation_euler=(0,pi/2,a);o.scale.z=1\n    o.scale.x=.025\n# Multi-layer speaker monuments oriented toward the arena.\nfor i,a in enumerate([.2,.9,1.57,2.24,2.94,3.75,5.65]):\n    x,y=18.8*cos(a),18.8*sin(a);normal=Vector((-cos(a),-sin(a),0));tangent=Vector((-sin(a),cos(a),0));ang=a-pi/2\n    base=Vector((x,y,0))\n    def face(name,side,depth,z,size,m,bev=.035):return box(name,base+tangent*side+normal*depth+Vector((0,0,z)),size,m,bev,ang)\n    cyl(\'OctagonalFoot\',(x,y,.22),1.65,.44,stone,8);cyl(\'GoldFoot\',(x,y,.51),1.48,.15,gold,8)\n    box(\'TowerBody\',(x,y,3.55),(2.2,1.9,6.05),ivory,.14,ang)\n    face(\'RecessedEnamelPanel\',0,.99,3.65,(1.78,.12,5.5),blue,.10)\n    for s in [-1,1]:\n        face(\'GoldVerticalMoulding\',s*.99,1.02,3.65,(.09,.14,5.65),gold)\n        face(\'SideFluting\',s*.83,1.075,3.6,(.025,.025,5.2),ivory,.006)\n    for z in [2.15,4.7]:\n        c=base+normal*1.10+Vector((0,0,z))\n        tor(\'SpeakerGoldMount\',c,.79,.065,gold,normal)\n        tor(\'SpeakerCyanRim\',c+normal*.035,.70,.023,cyan,normal)\n        parts=[]\n        o=cone(\'RecessedSpeakerCone\',c+normal*.018,.66,.30,.14,dark,64);o.rotation_euler=Vector((0,0,1)).rotation_difference(normal).to_euler();parts.append(o)\n        o=cyl(\'SpeakerDustCap\',c+normal*.115,.205,.065,cyan);o.rotation_euler=Vector((0,0,1)).rotation_difference(normal).to_euler();parts.append(o)\n        for r in [.42,.53,.61]:parts.append(tor(\'ConeConcentricRidge\',c+normal*.07,r,.012,stone,normal))\n        motion(join(parts,\'SpeakerAssembly\',c),\'BeatSpeaker\')\n        for j in range(8):\n            p=c+tangent*(cos(j*pi/4)*.86)+Vector((0,0,sin(j*pi/4)*.86))\n            o=cyl(\'RimFastener\',p,.035,.04,gold,8);o.rotation_euler=Vector((0,0,1)).rotation_difference(normal).to_euler()\n    # Center crest and physical vertical light rails (no equalizer texture).\n    for s in [-.12,0,.12]:face(\'ResonanceVent\',s,1.09,3.35,(.045,.035,.68),cyan,.01)\n    crownparts=[box(\'CrownCornice\',(x,y,6.75),(2.5,2.2,.26),gold,.065,ang),box(\'CrownInset\',(x,y,6.95),(2.25,1.95,.13),blue,.03,ang)]\n    for j in range(6):\n        b=j*2*pi/6;crownparts.append(cone(\'CrownProng\',(x+cos(b)*.91,y+sin(b)*.91,7.30),.22,0,.9,gold,4))\n    motion(join(crownparts,\'CrownedCap\',(x,y,6.75)),\'BeatCrown\')\n    crystal=join([cone(\'CrystalUpper\',(x,y,8.2),.42,0,1.1,gold),cone(\'CrystalLower\',(x,y,7.45),0,.42,.4,gold)],\'FloatingDiamond\',(x,y,7.9));motion(crystal,\'BeatShard\')\n# Segmented curved halo: gold structural edge, ivory stone face, inner luminous rail.\nhc=Vector((0,21,10))\nfor i in range(12):\n    a=-pi+(i+.5)*2*pi/12;s=a-.235;e=a+.235\n    parts=[arc(\'HaloGoldRib\',hc,6.2,.66,s,e,gold,True),arc(\'HaloIvoryFacing\',hc+Vector((0,-.13,0)),6.2,.54,s+.015,e-.015,ivory,True)]\n    parts.append(arc(\'HaloInnerEnamel\',hc+Vector((0,-.1,0)),5.61,.075,s,e,blue,True))\n    parts.append(arc(\'HaloCyanChannel\',hc+Vector((0,-.18,0)),5.62,.031,s,e,cyan,True))\n    motion(join(parts,\'CarvedHaloSegment\',hc),\'BeatHalo\')\n    p=hc+Vector((cos(a)*7.35,0,sin(a)*7.35));motion(cone(\'OrbitDiamond\',p,.23,0,.65,gold),\'BeatShard\')\n# Continuous parapet, piers and planters frame the arena without blocking combat.\nfor i in range(32):\n    a=i*2*pi/32;x,y=19.2*cos(a),19.2*sin(a);ang=a+pi/2\n    box(\'ParapetStone\',(x,y,.65),(3.55,.55,1.3),ivory,.08,ang)\n    box(\'ParapetGoldCap\',(x,y,1.34),(3.6,.68,.14),gold,.03,ang)\n    p=Vector((x,y,.72))-Vector((cos(a),sin(a),0))*.31\n    box(\'BlueBalustradePanel\',p,(3.22,.06,.85),blue,.03,ang)\n    box(\'CyanBalustradeLine\',p+Vector((0,0,.32)),(3.05,.08,.025),cyan,.005,ang)\n    if i%2==0:\n        cone(\'PierCap\',(x,y,1.7),.27,0,.65,gold)\n        box(\'StonePier\',(x,y,.85),(.48,.8,1.7),ivory,.05,ang)\n# Outer architectural arcades and a rear cathedral silhouette.\nfor a in [.12,.50,.88,1.26,1.64,2.02,2.40,2.78,3.16]:\n    x,y=31*cos(a),31*sin(a);ang=a-pi/2\n    box(\'ArcadeColumn\',(x,y,5),(1.25,1.25,10),ivory,.12)\n    box(\'ArcadeCapital\',(x,y,10),(1.7,1.7,.4),gold,.06)\n    cone(\'ArcadePinnacle\',(x,y,12),.7,.10,3.5,ivory,6)\n    # Real curved arch between columns, opening maintained.\n    mid=a+.19;loc=(31*cos(mid),31*sin(mid),7.5)\n    arch=arc(\'OuterArcadeArch\',loc,5.2,.45,0,pi,ivory,True);arch.rotation_euler.z=mid-pi/2\n    trim=arc(\'OuterArcadeArchTrim\',loc,5.65,.065,0,pi,gold,True);trim.rotation_euler.z=mid-pi/2\n    box(\'UpperGallery\',(31*cos(mid),31*sin(mid),12.7),(11.6,1.6,.5),ivory,.06,mid-pi/2)\nfor x,z,h in [(-3.5,10,20),(0,15,30),(3.5,10,20)]:\n    box(\'CathedralSpine\',(x,39,z),(2.2,2.6,h),ivory,.12)\n    cone(\'CathedralSpire\',(x,39,z+h/2+3.5),1.7,.08,7,gold,6)\n    box(\'CathedralBlueInset\',(x,37.62,z),(1.2,.1,h-2),blue,.04)\n    box(\'CathedralGoldRib\',(x,37.52,z),(.08,.09,h-1),gold,.015)\n    for side in [-1,1]:\n        box(\'CathedralButtress\',(x+side*1.3,39,z*.7),(.55,3.3,h*.7),ivory,.06)\n        cone(\'ButtressSpire\',(x+side*1.3,38.5,h*.72+1),.4,0,2,gold,4)\n    for zh in [h*.3,h*.55,h*.8]:\n        box(\'CathedralCornice\',(x,39,zh),(2.65,2.95,.25),gold,.04)\n# Faceted distant floating limestone cliffs with planted tops.\nfor i in range(15):\n    a=.05+i*pi/14;r=48+(i%3)*6;x,y=r*cos(a),r*sin(a);h=8+(i%5)*2.2\n    rock=cone(\'FloatingCliff\',(x,y,h*.35),1.6,4.8,h,stone,7)\n    sub=rock.modifiers.new(\'GeologicalCuts\',\'SUBSURF\');sub.subdivision_type=\'SIMPLE\';sub.levels=2\n    bpy.context.view_layer.objects.active=rock;bpy.ops.object.modifier_apply(modifier=sub.name)\n    tex=bpy.data.textures.new(\'CliffStrata\',type=\'CLOUDS\');tex.noise_scale=1.8\n    dis=rock.modifiers.new(\'RockErosion\',\'DISPLACE\');dis.texture=tex;dis.strength=1.7\n    bpy.ops.object.modifier_apply(modifier=dis.name)\n    cyl(\'LimestoneTop\',(x,y,h*.85),4.8,.65,ivory,7)\n    for j in range(4):\n        b=j*pi/2;px=x+cos(b)*2.5;py=y+sin(b)*2.5\n        cyl(\'TreeTrunk\',(px,py,h*.85+1.1),.16,1.8,gold,8)\n        for ox,oy,oz,rr in [(0,0,0,1.25),(.65,.2,-.3,.9),(-.45,-.35,-.25,.85)]:\n            bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2,radius=rr,location=(px+ox,py+oy,h*.85+2.2+oz));finish(bpy.context.object,\'TreeCanopy\',green,0)\nfor i in range(12):\n    a=i*2*pi/12;x,y=22*cos(a),22*sin(a)\n    box(\'GardenPlanter\',(x,y,.45),(2.5,1.6,.9),ivory,.12,a)\n    for j in range(5):\n        p=(x+cos(j*2.4)*.85,y+sin(j*2.4)*.5,1.05)\n        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.55,location=p);finish(bpy.context.object,\'Shrub\',green,0)\n        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=1,radius=.16,location=(p[0],p[1],1.5));finish(bpy.context.object,\'Flowers\',purple,0)\n# Shared static structure; separate animated assemblies retain meaningful pivots.\nstatic=[o for o in bpy.context.scene.objects if o.type==\'MESH\' and o not in [x[0] for x in moving]]\nstage=join(static,\'Architecture\',(0,0,0));objects=[(stage,\'Static\')]+moving;manifest=[]\nfor i,(o,mode) in enumerate(objects):\n    o.name=\'SM_HC2_\'+mode+\'_\'+str(i).zfill(3)\n    bpy.ops.object.select_all(action=\'DESELECT\');o.select_set(True);bpy.context.view_layer.objects.active=o;bpy.ops.object.transform_apply(location=False,rotation=True,scale=True)\n    loc=o.location.copy();o.location=(0,0,0)\n    bpy.ops.export_scene.fbx(filepath=OUT+\'/\'+o.name+\'.fbx\',use_selection=True,object_types={\'MESH\'},axis_forward=\'-Y\',axis_up=\'Z\',mesh_smooth_type=\'FACE\',add_leaf_bones=False)\n    o.location=loc;manifest.append({\'name\':o.name,\'mode\':mode,\'location\':list(loc)})\nwith open(OUT+\'/manifest.json\',\'w\') as f:json.dump(manifest,f,indent=2)\n# Procedural Blender stone/enamel/metal surface networks, later baked for UE.\nfor m,base,rough in [(ivory,(.62,.64,.59),.58),(blue,(.027,.10,.21),.32),(gold,(.62,.37,.085),.36)]:\n    n=m.node_tree.nodes;l=m.node_tree.links;p=n.get(\'Principled BSDF\')\n    geom=n.new(\'ShaderNodeNewGeometry\');noise=n.new(\'ShaderNodeTexNoise\');noise.inputs[\'Scale\'].default_value=3.5;noise.inputs[\'Detail\'].default_value=4;noise.inputs[\'Roughness\'].default_value=.72\n    l.new(geom.outputs[\'Position\'],noise.inputs[\'Vector\'])\n    ramp=n.new(\'ShaderNodeValToRGB\');ramp.color_ramp.elements[0].position=.22;ramp.color_ramp.elements[0].color=(*(c*.68 for c in base),1)\n    ramp.color_ramp.elements[1].position=.8;ramp.color_ramp.elements[1].color=(*(min(1,c*1.24) for c in base),1)\n    l.new(noise.outputs[\'Fac\'],ramp.inputs[0]);l.new(ramp.outputs[\'Color\'],p.inputs[\'Base Color\'])\n    bump=n.new(\'ShaderNodeBump\');bump.inputs[\'Strength\'].default_value=.14;bump.inputs[\'Distance\'].default_value=.025;l.new(noise.outputs[\'Fac\'],bump.inputs[\'Height\']);l.new(bump.outputs[\'Normal\'],p.inputs[\'Normal\']);p.inputs[\'Roughness\'].default_value=rough\nbpy.ops.object.light_add(type=\'SUN\',location=(0,0,30));bpy.context.object.rotation_euler=(.4,-.5,-.4);bpy.context.object.data.energy=2.1\nbpy.ops.object.light_add(type=\'AREA\',location=(0,-10,22));bpy.context.object.data.energy=3300;bpy.context.object.data.size=24\nbpy.ops.object.camera_add(location=(23,-31,16));cam=bpy.context.object;cam.rotation_euler=(Vector((0,8,5))-cam.location).to_track_quat(\'-Z\',\'Y\').to_euler();cam.data.lens=31;bpy.context.scene.camera=cam\ns=bpy.context.scene;s.world.color=(.35,.45,.65);s.render.engine=\'CYCLES\';s.cycles.samples=32;s.render.resolution_x=1600;s.render.resolution_y=1000;s.render.resolution_percentage=100\ns.render.filepath=OUT+\'/HarmonicCourtV2_Model.png\';bpy.ops.wm.save_as_mainfile(filepath=OUT+\'/HarmonicCourtV2.blend\');bpy.ops.render.render(write_still=True)\nprint(\'HC2_MODELED\',len(objects),sum(len(o.data.polygons) for o,_ in objects))\n'}
+2026-09-27 15:18:18,314 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:19:25,748 - BlenderMCPServer - INFO - Received complete response (7616 bytes)
+2026-09-27 15:19:25,748 - BlenderMCPServer - INFO - Received 7616 bytes of data
+2026-09-27 15:19:25,748 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:19:25,752 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-09-27 15:19:25,755 - BlenderMCPServer - INFO - Disconnecting from Blender on shutdown
+2026-09-27 15:19:25,755 - BlenderMCPServer - INFO - BlenderMCP server shut down
+Code executed successfully: 
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_Static_000.fbx'
+export finished in 0.2915 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_001.fbx'
+export finished in 0.0075 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_002.fbx'
+export finished in 0.0070 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_003.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_004.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_005.fbx'
+export finished in 0.0055 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_006.fbx'
+export finished in 0.0057 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_007.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_008.fbx'
+export finished in 0.0035 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_009.fbx'
+export finished in 0.0061 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_010.fbx'
+export finished in 0.0065 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_011.fbx'
+export finished in 0.0035 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_012.fbx'
+export finished in 0.0024 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_013.fbx'
+export finished in 0.0076 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_014.fbx'
+export finished in 0.0055 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_015.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_016.fbx'
+export finished in 0.0020 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_017.fbx'
+export finished in 0.0071 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_018.fbx'
+export finished in 0.0056 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_019.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_020.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_021.fbx'
+export finished in 0.0060 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_022.fbx'
+export finished in 0.0050 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_023.fbx'
+export finished in 0.0025 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_024.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_025.fbx'
+export finished in 0.0073 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_026.fbx'
+export finished in 0.0065 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_027.fbx'
+export finished in 0.0045 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_028.fbx'
+export finished in 0.0020 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_029.fbx'
+export finished in 0.0050 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_030.fbx'
+export finished in 0.0025 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_031.fbx'
+export finished in 0.0050 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_032.fbx'
+export finished in 0.0032 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_033.fbx'
+export finished in 0.0043 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_034.fbx'
+export finished in 0.0025 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_035.fbx'
+export finished in 0.0050 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_036.fbx'
+export finished in 0.0025 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_037.fbx'
+export finished in 0.0050 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_038.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_039.fbx'
+export finished in 0.0049 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_040.fbx'
+export finished in 0.0040 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_041.fbx'
+export finished in 0.0054 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_042.fbx'
+export finished in 0.0035 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_043.fbx'
+export finished in 0.0048 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_044.fbx'
+export finished in 0.0025 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_045.fbx'
+export finished in 0.0049 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_046.fbx'
+export finished in 0.0024 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_047.fbx'
+export finished in 0.0052 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_048.fbx'
+export finished in 0.0035 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_049.fbx'
+export finished in 0.0050 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_050.fbx'
+export finished in 0.0030 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_051.fbx'
+export finished in 0.0040 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_052.fbx'
+export finished in 0.0035 sec.
+Info: Saved as "HarmonicCourtV2.blend"
+HC2_MODELED 53 265004
+

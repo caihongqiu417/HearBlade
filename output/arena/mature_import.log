@@ -1,0 +1,402 @@
+Using bundled DotNet SDK version: 10.0 win-x64
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" -Mode=ValidatePlatforms -OutputSDKs  -AllPlatforms  -project="D:/Udev/HearBlade/HearBlade.uproject" -log="D:/Udev/HearBlade/Saved/Logs/AutoSDKInfo.txt" -verbose -timestamps
+Log file: D:\Udev\HearBlade\Saved\Logs\AutoSDKInfo.txt
+[2026.09.27-07.35.49:672][  0]LogInit: Display: Running engine for game: HearBlade
+[2026.09.27-07.35.49:672][  0]LogCore: Display: Requested channels: 'cpu,gpu,frame,log,bookmark,screenshot,region'
+[2026.09.27-07.35.49:672][  0]LogTrace: Display: Control listening on port 1985
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : platform="Windows"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : config="Development"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : buildversion="++UE5+Release-5.8-CL-56057345"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : engineversion="5.8.1-56057345+++UE5+Release-5.8"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : enginereleaseversion="5.8.1"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : os="Windows 11 (25H2) [10.0.26200.9457] "
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : cpu="AuthenticAMD|AMD Ryzen 9 8945HX with Radeon Graphics"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : pgoenabled="0"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : pgoprofilingenabled="0"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : ltoenabled="0"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : asan="0"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : mergedmodules="0"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : compacttset="0"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : commandline="" D:\Udev\HearBlade\HearBlade.uproject -run=pythonscript -script=D:\Udev\HearBlade\Scripts\Art\import_harmonic_court_v2.py -unattended -nosplash -NullRHI""
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : loginid="5fa333b14869e34efd4c149a0bbae957"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : llm="0"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : zenstreaming="0"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : systemresolution.resx="1280"
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : systemresolution.resy="720"
+[2026.09.27-07.35.49:672][  0]LogAudio: Display: Audio Device Manager not initializing due to all audio being disabled. If this is not intentional, please check command line arguments for "-nosound".
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading VulkanPC ini files took 0.04 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading Mac ini files took 0.04 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading IOS ini files took 0.04 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading Android ini files took 0.05 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading Windows ini files took 0.05 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading TVOS ini files took 0.05 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading Unix ini files took 0.05 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading VisionOS ini files took 0.05 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading LinuxArm64 ini files took 0.06 seconds
+[2026.09.27-07.35.49:672][  0]LogConfig: Display: Loading Linux ini files took 0.06 seconds
+[2026.09.27-07.35.49:672][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+[2026.09.27-07.35.49:672][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+[2026.09.27-07.35.49:672][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+[2026.09.27-07.35.49:672][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+[2026.09.27-07.35.49:672][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+[2026.09.27-07.35.49:672][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+[2026.09.27-07.35.49:672][  0]RenderDocPlugin: Display: RenderDoc plugin will not be loaded. Use '-AttachRenderDoc' on the cmd line or enable 'renderdoc.AutoAttach' in the plugin settings.
+[2026.09.27-07.35.49:672][  0]LogAsyncCompilation: Display: MemorySharingInfo: UsedMemory=378MiB, MaxMemoryAvailable=114480MiB
+[2026.09.27-07.35.49:672][  0]LogStreaming: Display: AsyncLoading2 - Created: Async Loading Thread: false, Async Post Load: false, Multithreaded: false
+[2026.09.27-07.35.49:672][  0]LogHAL: Display: Platform has ~ 32 GB [34142187520 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
+[2026.09.27-07.35.49:672][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.27-07.35.49:672][  0]LogObj: Display: Attempting to load config data for Default__DownlinkBandwidthManagerConfig before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+##PlatformValidate: Win64 VALID 10.0.22621.0
+##PlatformValidate: Mac INVALID 26.1.1
+##PlatformValidate: IOS INVALID 26.1.1
+##PlatformValidate: Android INVALID r27c
+##PlatformValidate: Linux INVALID v26_clang-20.1.8-rockylinux8
+##PlatformValidate: LinuxArm64 INVALID v26_clang-20.1.8-rockylinux8
+##PlatformValidate: TVOS INVALID 26.1.1
+##PlatformValidate: VisionOS INVALID <UNKNOWN>
+Unable to find required SDK version 'MainVersion' for platform VisionOS. Check your SDK.json files
+Trace written to file C:\Users\26349\AppData\Local\UnrealBuildTool\Trace.uba with size 310b
+[2026.09.27-07.35.49:933][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.27-07.35.50:029][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.27-07.35.50:029][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.27-07.35.50:029][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.27-07.35.50:029][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.27-07.35.50:029][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.27-07.35.50:029][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.27-07.35.50:034][  0]LogTextureFormatASTC: Display: ASTCEnc version 5.0.1 library loaded
+[2026.09.27-07.35.50:034][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatASTC
+[2026.09.27-07.35.50:034][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatDXT
+[2026.09.27-07.35.50:034][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatETC2
+[2026.09.27-07.35.50:034][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatIntelISPCTexComp
+[2026.09.27-07.35.50:034][  0]LogTextureFormatOodle: Display: Oodle Texture TFO init; latest sdk version = 2.9.16
+[2026.09.27-07.35.50:034][  0]LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.16.dll
+[2026.09.27-07.35.50:034][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatOodle
+[2026.09.27-07.35.50:034][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatUncompressed
+[2026.09.27-07.35.50:055][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Android'
+[2026.09.27-07.35.50:065][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'IOS'
+[2026.09.27-07.35.50:075][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Linux'
+[2026.09.27-07.35.50:084][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'LinuxArm64'
+[2026.09.27-07.35.50:095][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Mac'
+[2026.09.27-07.35.50:095][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'TVOS'
+[2026.09.27-07.35.50:107][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'Windows'
+[2026.09.27-07.35.50:107][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsEditor'
+[2026.09.27-07.35.50:107][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsServer'
+[2026.09.27-07.35.50:107][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsClient'
+[2026.09.27-07.35.50:107][  0]LogTargetPlatformManager: Display: Building Assets For WindowsEditor
+[2026.09.27-07.35.50:108][  0]LogAudioDebug: Display: Lib vorbis DLL was dynamically loaded.
+[2026.09.27-07.35.50:375][  0]LogDerivedDataCache: Display: ../../../Engine/DerivedDataCache/Compressed.ddp: Opened pak cache for reading. (1670 MiB)
+[2026.09.27-07.35.50:378][  0]LogZenServiceInstance: Display: Launching zen utility 'D:/Epic Games/UE_5.8/Engine/Binaries/Win64/zen.exe service status'.
+[2026.09.27-07.35.50:535][  0]LogZenServiceInstance: Display: Writing plugin version info to 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zen_plugin_versions.json'
+[2026.09.27-07.35.50:535][  0]LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/26349/AppData/Local/UnrealEngine/5.8/Saved/Zen/zen.version', version: '5.8.13-202605190912-windows-x64-release-094f62c2'
+[2026.09.27-07.35.50:535][  0]LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zen.version', version: '5.8.13-202605190912-windows-x64-release-094f62c2'
+[2026.09.27-07.35.50:535][  0]LogZenServiceInstance: Display: Installed service at 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe' is up to date
+[2026.09.27-07.35.50:536][  0]LogZenServiceInstance: Display: Launching executable 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe', working dir 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install', data dir 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Data', args '--port 8558 --data-dir C:\Users\26349\AppData\Local\UnrealEngine\Common\Zen\Data --http asio --gc-cache-duration-seconds 1209600 --gc-interval-seconds 21600 --gc-low-diskspace-threshold 2147483648 --cache-bucket-limit-overwrites --quiet --restrict-content-types --allow-external-oidctoken-exe=false --plugins-config "C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zen_plugins_v1.json" --security-config-path "C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/security-config.json" --owner-pid 31652  --child-id Zen_31652_Startup'
+[2026.09.27-07.35.53:349][  0]LogZenServiceInstance: Display: Unreal Zen Storage Server HTTP service at http://[::1]:8558 status: OK!.
+[2026.09.27-07.35.53:351][  0]LogDerivedDataCache: Display: ZenLocal: Using ZenServer HTTP service at [::1] with namespace ue.ddc. Status: OK!.
+[2026.09.27-07.35.53:358][  0]LogDerivedDataCache: Display: C:/Users/26349/AppData/Local/UnrealEngine/Common/DerivedDataCache: Performance: Latency=0.03ms. RandomReadSpeed=706.61MBs, RandomWriteSpeed=158.81MBs. Assigned SpeedClass 'Local'
+[2026.09.27-07.35.53:362][  0]LogUbaHorde: Display: UBA/Horde Configuration [Uba.Provider.Horde]: Not Enabled
+[2026.09.27-07.35.53:362][  0]LogShaderCompilers: Display: No distributed shader compiler controller found
+[2026.09.27-07.35.53:362][  0]LogShaderCompilers: Display: Using 29 local workers for shader compilation
+[2026.09.27-07.35.53:372][  0]LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../Udev/HearBlade/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+[2026.09.27-07.35.53:372][  0]LogShaderCompilers: Display: Autogen file is unchanged, skipping write.
+[2026.09.27-07.35.53:719][  0]LogEditorDomain: Display: EditorDomain is Disabled
+[2026.09.27-07.35.53:942][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+[2026.09.27-07.35.53:942][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+[2026.09.27-07.35.53:979][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="WindowsEditor"
+[2026.09.27-07.35.53:982][  0]LogStreaming: Display: FlushAsyncLoading(1): 1 QueuedPackages, 0 AsyncPackages
+[2026.09.27-07.35.53:995][  0]LogTextureEncodingSettings: Display: Texture Encode Speed: Final (cook).
+[2026.09.27-07.35.53:995][  0]LogTextureEncodingSettings: Display: Oodle Texture Encode Speed settings: Fast: RDO Off Lambda=0, Effort=Normal Final: RDO Off Lambda=0, Effort=Normal
+[2026.09.27-07.35.53:995][  0]LogTextureEncodingSettings: Display: Shared linear texture encoding: Disabled
+[2026.09.27-07.35.54:011][  0]LogMeshReduction: Display: Using QuadricMeshReduction for automatic static mesh reduction
+[2026.09.27-07.35.54:011][  0]LogMeshReduction: Display: Using SkeletalMeshReduction for automatic skeletal mesh reduction
+[2026.09.27-07.35.54:011][  0]LogMeshReduction: Display: Using ProxyLODMeshReduction for automatic mesh merging
+[2026.09.27-07.35.54:012][  0]LogMeshReduction: Display: No distributed automatic mesh merging module available
+[2026.09.27-07.35.54:116][  0]LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../Udev/HearBlade/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+[2026.09.27-07.35.54:116][  0]LogShaderCompilers: Display: Autogen file is unchanged, skipping write.
+[2026.09.27-07.35.54:116][  0]LogVirtualization: Display: VirtualizationSystem name found in ini file: None
+[2026.09.27-07.35.54:116][  0]LogVirtualization: Display: FNullVirtualizationSystem mounted, virtualization will be disabled
+[2026.09.27-07.35.54:178][  0]LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize started...
+[2026.09.27-07.35.54:180][  0]LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize took 2.754 ms
+[2026.09.27-07.35.54:568][  0]LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
+[2026.09.27-07.35.54:571][  0]LogAudio: Display: Registering Engine Module Parameter Interfaces...
+[2026.09.27-07.35.56:148][  0]LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(HearBladeCharacter /Script/HearBlade.Default__HearBladeCharacter)
+[2026.09.27-07.35.56:956][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.09.27-07.35.56:956][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.09.27-07.35.57:221][  0]LogToolsetRegistry: Display: Registering Toolset ToolsetRegistry.AgentSkillToolset
+[2026.09.27-07.35.57:248][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PreLoad): 1 .ref files found, 1 referenced binaries
+[2026.09.27-07.35.57:249][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 1 total binaries, 1 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+[2026.09.27-07.35.57:249][  0]LogAssetRegistry: Display: FindShardedCacheFiles: 1 via .ref, 0 via migration fallback, 1 total
+[2026.09.27-07.35.57:249][  0]LogAssetRegistry: Display: LoadCacheFiles: loading 1 cache files, memory-mapping=enabled
+[2026.09.27-07.35.57:326][  0]LogAssetRegistry: Display: Asset registry cache read as 126.5 MiB from ../../../../../Udev/HearBlade/Intermediate/CachedAssetRegistry/CachedAssetRegistry_0_BDD736B24BE30E9E991AC9A51A751F1D.bin (memory-mapped=yes)
+[2026.09.27-07.35.57:327][  0]LogAssetRegistry: Display: AssetDataGatherer spent 0.078s loading caches from ../../../../../Udev/HearBlade/Intermediate/CachedAssetRegistry.
+[2026.09.27-07.35.57:379][  0]LogCsvProfiler: Display: Metadata set : largeworldcoordinates="1"
+[2026.09.27-07.35.57:389][  0]LogModelContextProtocol: Warning: Data transmitted via this plugin to your connected LLM service is Licensed Technology under the UE EULA. You are responsible for ensuring your LLM provider does not use it as training input. See Section 6(e) of the UE EULA for full terms.
+[2026.09.27-07.35.57:417][  0]LogPython: Display: No pip-enabled plugins with python dependencies found, skipping
+[2026.09.27-07.35.57:703][  0]LogCsvProfiler: Display: Metadata set : raytracing="0"
+[2026.09.27-07.35.57:802][  0]LogToolsetRegistry: Display: Registering Toolset EditorToolset.EditorAppToolset
+[2026.09.27-07.35.57:802][  0]LogToolsetRegistry: Display: Registering Toolset EditorToolset.LogsToolset
+[2026.09.27-07.35.57:829][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/Toolsets/EditorToolset/Content/Python/init_unreal.py…… started...
+[2026.09.27-07.35.57:921][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.actor.ActorTools
+[2026.09.27-07.35.57:921][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.asset.AssetTools
+[2026.09.27-07.35.57:924][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.blueprint.BlueprintTools
+[2026.09.27-07.35.57:926][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.curve_table.CurveTableTools
+[2026.09.27-07.35.57:926][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.data_asset.DataAssetTools
+[2026.09.27-07.35.57:926][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.data_table.DataTableTools
+[2026.09.27-07.35.57:927][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.material.MaterialTools
+[2026.09.27-07.35.57:928][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.material_instance.MaterialInstanceTools
+[2026.09.27-07.35.57:928][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.object.ObjectTools
+[2026.09.27-07.35.57:929][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.primitive.PrimitiveTools
+[2026.09.27-07.35.57:930][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.scene.SceneTools
+[2026.09.27-07.35.57:931][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.skeletal_mesh.SkeletalMeshTools
+[2026.09.27-07.35.57:932][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.static_mesh.StaticMeshTools
+[2026.09.27-07.35.57:932][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.string_table.StringTableTools
+[2026.09.27-07.35.57:932][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.programmatic.ProgrammaticToolset
+[2026.09.27-07.35.57:932][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.texture.TextureTools
+[2026.09.27-07.35.57:932][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/Toolsets/EditorToolset/Content/Python/init_unreal.py…… took 104.122 ms
+[2026.09.27-07.35.57:932][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py…… started...
+[2026.09.27-07.35.57:934][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py…… took 1.763 ms (total: 105.885 ms)
+[2026.09.27-07.35.57:934][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py…… started...
+[2026.09.27-07.35.57:950][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py…… took 15.276 ms (total: 121.162 ms)
+[2026.09.27-07.35.57:950][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/ToolsetRegistry/Content/Python/init_unreal.py…… started...
+[2026.09.27-07.35.57:960][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/ToolsetRegistry/Content/Python/init_unreal.py…… took 9.784 ms (total: 130.946 ms)
+[2026.09.27-07.35.57:960][  0]LogPythonScriptCommandlet: Display: Running Python script: D:\Udev\HearBlade\Scripts\Art\import_harmonic_court_v2.py
+[2026.09.27-07.35.58:118][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_Static_000.fbx]
+[2026.09.27-07.36.13:221][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_Static_000（所需内存估计：1471.709892MB）…
+[2026.09.27-07.36.21:902][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_Static_000.fbx]
+[2026.09.27-07.36.21:921][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.23:074][  0]LogSourceControl: Display: Uncontrolled Changelist persistency file loaded ../../../../../Udev/HearBlade/Saved/SourceControl/UncontrolledChangelists.json
+[2026.09.27-07.36.23:099][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_001.fbx]
+[2026.09.27-07.36.23:482][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_001（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.23:559][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_001.fbx]
+[2026.09.27-07.36.23:593][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_002.fbx]
+[2026.09.27-07.36.23:795][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_002（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.23:887][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_002.fbx]
+[2026.09.27-07.36.23:912][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_003.fbx]
+[2026.09.27-07.36.24:103][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatCrown_003（所需内存估计：15.832592MB）…
+[2026.09.27-07.36.24:260][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatCrown_003.fbx]
+[2026.09.27-07.36.24:303][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_004.fbx]
+[2026.09.27-07.36.24:325][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_004（所需内存估计：0.394882MB）…
+[2026.09.27-07.36.24:350][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_004.fbx]
+[2026.09.27-07.36.24:363][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_005.fbx]
+[2026.09.27-07.36.24:493][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_005（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.24:594][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_005.fbx]
+[2026.09.27-07.36.24:632][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_006.fbx]
+[2026.09.27-07.36.24:753][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_006（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.24:855][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_006.fbx]
+[2026.09.27-07.36.24:880][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_007.fbx]
+[2026.09.27-07.36.25:071][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatCrown_007（所需内存估计：15.832592MB）…
+[2026.09.27-07.36.25:216][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatCrown_007.fbx]
+[2026.09.27-07.36.25:246][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_008.fbx]
+[2026.09.27-07.36.25:275][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_008（所需内存估计：0.394882MB）…
+[2026.09.27-07.36.25:298][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_008.fbx]
+[2026.09.27-07.36.25:314][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_009.fbx]
+[2026.09.27-07.36.25:441][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_009（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.25:531][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_009.fbx]
+[2026.09.27-07.36.25:559][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_010.fbx]
+[2026.09.27-07.36.25:731][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_010（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.25:824][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_010.fbx]
+[2026.09.27-07.36.25:851][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_011.fbx]
+[2026.09.27-07.36.26:055][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatCrown_011（所需内存估计：15.832592MB）…
+[2026.09.27-07.36.26:193][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatCrown_011.fbx]
+[2026.09.27-07.36.26:227][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_012.fbx]
+[2026.09.27-07.36.26:250][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_012（所需内存估计：0.394882MB）…
+[2026.09.27-07.36.26:271][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_012.fbx]
+[2026.09.27-07.36.26:287][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_013.fbx]
+[2026.09.27-07.36.26:418][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_013（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.26:530][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_013.fbx]
+[2026.09.27-07.36.26:560][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_014.fbx]
+[2026.09.27-07.36.26:736][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_014（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.26:846][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_014.fbx]
+[2026.09.27-07.36.26:874][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_015.fbx]
+[2026.09.27-07.36.27:087][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatCrown_015（所需内存估计：15.832592MB）…
+[2026.09.27-07.36.27:251][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatCrown_015.fbx]
+[2026.09.27-07.36.27:285][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_016.fbx]
+[2026.09.27-07.36.27:312][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_016（所需内存估计：0.394882MB）…
+[2026.09.27-07.36.27:335][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_016.fbx]
+[2026.09.27-07.36.27:352][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_017.fbx]
+[2026.09.27-07.36.27:476][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_017（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.27:572][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_017.fbx]
+[2026.09.27-07.36.27:600][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_018.fbx]
+[2026.09.27-07.36.27:746][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_018（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.27:836][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_018.fbx]
+[2026.09.27-07.36.27:863][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_019.fbx]
+[2026.09.27-07.36.28:065][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatCrown_019（所需内存估计：15.832592MB）…
+[2026.09.27-07.36.28:219][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatCrown_019.fbx]
+[2026.09.27-07.36.28:252][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_020.fbx]
+[2026.09.27-07.36.28:275][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_020（所需内存估计：0.394882MB）…
+[2026.09.27-07.36.28:297][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_020.fbx]
+[2026.09.27-07.36.28:312][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_021.fbx]
+[2026.09.27-07.36.28:429][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_021（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.28:525][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_021.fbx]
+[2026.09.27-07.36.28:549][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_022.fbx]
+[2026.09.27-07.36.28:665][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_022（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.28:762][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_022.fbx]
+[2026.09.27-07.36.28:786][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_023.fbx]
+[2026.09.27-07.36.28:974][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatCrown_023（所需内存估计：15.832592MB）…
+[2026.09.27-07.36.29:137][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatCrown_023.fbx]
+[2026.09.27-07.36.29:179][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_024.fbx]
+[2026.09.27-07.36.29:203][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_024（所需内存估计：0.394882MB）…
+[2026.09.27-07.36.29:225][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_024.fbx]
+[2026.09.27-07.36.29:242][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_025.fbx]
+[2026.09.27-07.36.29:372][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_025（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.29:465][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_025.fbx]
+[2026.09.27-07.36.29:491][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatSpeaker_026.fbx]
+[2026.09.27-07.36.29:610][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatSpeaker_026（所需内存估计：9.592903MB）…
+[2026.09.27-07.36.29:707][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatSpeaker_026.fbx]
+[2026.09.27-07.36.29:730][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatCrown_027.fbx]
+[2026.09.27-07.36.29:969][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatCrown_027（所需内存估计：15.832592MB）…
+[2026.09.27-07.36.30:134][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatCrown_027.fbx]
+[2026.09.27-07.36.30:165][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_028.fbx]
+[2026.09.27-07.36.30:194][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_028（所需内存估计：0.394882MB）…
+[2026.09.27-07.36.30:216][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_028.fbx]
+[2026.09.27-07.36.30:233][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_029.fbx]
+[2026.09.27-07.36.30:285][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_029（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.30:399][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_029.fbx]
+[2026.09.27-07.36.30:417][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_030.fbx]
+[2026.09.27-07.36.30:443][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_030（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.30:463][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_030.fbx]
+[2026.09.27-07.36.30:480][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_031.fbx]
+[2026.09.27-07.36.30:541][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_031（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.30:660][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_031.fbx]
+[2026.09.27-07.36.30:690][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_032.fbx]
+[2026.09.27-07.36.30:717][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_032（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.30:735][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_032.fbx]
+[2026.09.27-07.36.30:751][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_033.fbx]
+[2026.09.27-07.36.30:802][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_033（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.30:911][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_033.fbx]
+[2026.09.27-07.36.30:931][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_034.fbx]
+[2026.09.27-07.36.30:955][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_034（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.30:972][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_034.fbx]
+[2026.09.27-07.36.30:988][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_035.fbx]
+[2026.09.27-07.36.31:045][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_035（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.31:147][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_035.fbx]
+[2026.09.27-07.36.31:167][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_036.fbx]
+[2026.09.27-07.36.31:190][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_036（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.31:209][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_036.fbx]
+[2026.09.27-07.36.31:224][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_037.fbx]
+[2026.09.27-07.36.31:286][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_037（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.31:408][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_037.fbx]
+[2026.09.27-07.36.31:441][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_038.fbx]
+[2026.09.27-07.36.31:461][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_038（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.31:479][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_038.fbx]
+[2026.09.27-07.36.31:495][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_039.fbx]
+[2026.09.27-07.36.31:556][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_039（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.31:661][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_039.fbx]
+[2026.09.27-07.36.31:682][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_040.fbx]
+[2026.09.27-07.36.31:706][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_040（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.31:715][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_040.fbx]
+[2026.09.27-07.36.31:733][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_041.fbx]
+[2026.09.27-07.36.31:804][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_041（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.31:907][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_041.fbx]
+[2026.09.27-07.36.31:926][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_042.fbx]
+[2026.09.27-07.36.31:950][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_042（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.31:968][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_042.fbx]
+[2026.09.27-07.36.31:983][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_043.fbx]
+[2026.09.27-07.36.32:041][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_043（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.32:162][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_043.fbx]
+[2026.09.27-07.36.32:182][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_044.fbx]
+[2026.09.27-07.36.32:211][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_044（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.32:227][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_044.fbx]
+[2026.09.27-07.36.32:243][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_045.fbx]
+[2026.09.27-07.36.32:299][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_045（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.32:329][  0]LogStaticMesh: Display: SM_HC2_BeatHalo_045 拥有一些近零的副法线，其可能诱发问题。（容差为 1E-4）
+[2026.09.27-07.36.32:410][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_045.fbx]
+[2026.09.27-07.36.32:430][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_046.fbx]
+[2026.09.27-07.36.32:454][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_046（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.32:462][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_046.fbx]
+[2026.09.27-07.36.32:479][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_047.fbx]
+[2026.09.27-07.36.32:543][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_047（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.32:654][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_047.fbx]
+[2026.09.27-07.36.32:673][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_048.fbx]
+[2026.09.27-07.36.32:696][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_048（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.32:714][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_048.fbx]
+[2026.09.27-07.36.32:731][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_049.fbx]
+[2026.09.27-07.36.32:791][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_049（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.32:910][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_049.fbx]
+[2026.09.27-07.36.32:931][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_050.fbx]
+[2026.09.27-07.36.32:959][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_050（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.32:976][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_050.fbx]
+[2026.09.27-07.36.32:992][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatHalo_051.fbx]
+[2026.09.27-07.36.33:051][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatHalo_051（所需内存估计：3.600416MB）…
+[2026.09.27-07.36.33:151][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatHalo_051.fbx]
+[2026.09.27-07.36.33:170][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/SM_HC2_BeatShard_052.fbx]
+[2026.09.27-07.36.33:193][  0]LogStaticMesh: Display: 正在构建静态网格体SM_HC2_BeatShard_052（所需内存估计：0.201573MB）…
+[2026.09.27-07.36.33:212][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/SM_HC2_BeatShard_052.fbx]
+[2026.09.27-07.36.33:263][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Blue_Color.001.png]
+[2026.09.27-07.36.33:278][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Blue_Color.001.png]
+[2026.09.27-07.36.33:291][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Blue_Color.png]
+[2026.09.27-07.36.33:307][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Blue_Color.png]
+[2026.09.27-07.36.33:328][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Blue_Roughness.001.png]
+[2026.09.27-07.36.33:335][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Blue_Roughness.001.png]
+[2026.09.27-07.36.33:342][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Blue_Roughness.png]
+[2026.09.27-07.36.33:347][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Blue_Roughness.png]
+[2026.09.27-07.36.33:354][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Gold_Color.001.png]
+[2026.09.27-07.36.33:370][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Gold_Color.001.png]
+[2026.09.27-07.36.33:382][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Gold_Color.png]
+[2026.09.27-07.36.33:396][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Gold_Color.png]
+[2026.09.27-07.36.33:407][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Gold_Roughness.001.png]
+[2026.09.27-07.36.33:414][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Gold_Roughness.001.png]
+[2026.09.27-07.36.33:422][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Gold_Roughness.png]
+[2026.09.27-07.36.33:429][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Gold_Roughness.png]
+[2026.09.27-07.36.33:436][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Ivory_Color.001.png]
+[2026.09.27-07.36.33:450][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Ivory_Color.001.png]
+[2026.09.27-07.36.33:462][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Ivory_Color.png]
+[2026.09.27-07.36.33:477][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Ivory_Color.png]
+[2026.09.27-07.36.33:489][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Ivory_Roughness.001.png]
+[2026.09.27-07.36.33:494][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Ivory_Roughness.001.png]
+[2026.09.27-07.36.33:504][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Ivory_Roughness.png]
+[2026.09.27-07.36.33:509][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Ivory_Roughness.png]
+[2026.09.27-07.36.33:518][  0]LogInterchangeEngine: Display: Interchange start importing source [D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2/T_HC_Limestone_Detail.png]
+[2026.09.27-07.36.33:547][  0]LogInterchangeEngine: Display: Interchange import completed [D:/Udev/HearBlade/So...ment/HarmonicCourtV2/T_HC_Limestone_Detail.png]
+[2026.09.27-07.36.33:564][  0]LogPython: Warning: WORLD_TEXTURE_INPUTS ["TextureObject", "TextureSize", "WorldPosition", "Export Float 4", "World Space Normal", "ProjectionTransitionContrast"]
+[2026.09.27-07.36.33:626][  0]LogPython: Warning: WORLD_TEXTURE_INPUTS ["TextureObject", "TextureSize", "WorldPosition", "Export Float 4", "World Space Normal", "ProjectionTransitionContrast"]
+[2026.09.27-07.36.33:688][  0]LogPython: Warning: WORLD_TEXTURE_INPUTS ["TextureObject", "TextureSize", "WorldPosition", "Export Float 4", "World Space Normal", "ProjectionTransitionContrast"]
+[2026.09.27-07.36.34:027][  0]LogPython: Warning: D:/Udev/HearBlade/Scripts/Art/import_harmonic_court_v2.py:43: DeprecationWarning: new_object: Creating an instance of an Editor subsystem has been deprecated since UE 5.2 and will be removed in the future. Use 'unreal.get_editor_subsystem(unreal.StaticMeshEditorSubsystem)' to get the subsystem instance.
+  meshes={};sm_editor=unreal.new_object(unreal.StaticMeshEditorSubsystem)
+
+[2026.09.27-07.36.34:586][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.35:742][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.36:844][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.37:984][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.39:115][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.40:251][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.41:598][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.42:930][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.44:228][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.45:352][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.46:489][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.47:662][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.48:842][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.49:983][  0]LogStaticMesh: Display: 正在等待静态网格体就绪0/1（/Game/Environment/HarmonicCourtV2/Meshes/SM_HC2_Static_000）……
+[2026.09.27-07.36.51:104][  0]LogPython: Error: Traceback (most recent call last):
+[2026.09.27-07.36.51:104][  0]LogPython: Error:   File "D:/Udev/HearBlade/Scripts/Art/import_harmonic_court_v2.py", line 55, in <module>
+[2026.09.27-07.36.51:104][  0]LogPython: Error:     if count<33:raise RuntimeError('Missing authored floor / wall collision: '+str(count))
+[2026.09.27-07.36.51:104][  0]LogPython: Error:                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026.09.27-07.36.51:104][  0]LogPython: Error: RuntimeError: Missing authored floor / wall collision: 0
+[2026.09.27-07.36.51:104][  0]LogPythonScriptCommandlet: Error: Python script executed with errors
+[2026.09.27-07.36.51:104][  0]LogInit: Display: 
+[2026.09.27-07.36.51:104][  0]LogInit: Display: Warning/Error Summary (Unique only)
+[2026.09.27-07.36.51:104][  0]LogInit: Display: -----------------------------------
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogPython: Error: Traceback (most recent call last):
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogPython: Error:   File "D:/Udev/HearBlade/Scripts/Art/import_harmonic_court_v2.py", line 55, in <module>
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogPython: Error:     if count<33:raise RuntimeError('Missing authored floor / wall collision: '+str(count))
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogPython: Error:                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogPython: Error: RuntimeError: Missing authored floor / wall collision: 0
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogPythonScriptCommandlet: Error: Python script executed with errors
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(HearBladeCharacter /Script/HearBlade.Default__HearBladeCharacter)
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogModelContextProtocol: Warning: Data transmitted via this plugin to your connected LLM service is Licensed Technology under the UE EULA. You are responsible for ensuring your LLM provider does not use it as training input. See Section 6(e) of the UE EULA for full terms.
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogPython: Warning: WORLD_TEXTURE_INPUTS ["TextureObject", "TextureSize", "WorldPosition", "Export Float 4", "World Space Normal", "ProjectionTransitionContrast"]
+[2026.09.27-07.36.51:104][  0]LogInit: Display: LogPython: Warning: D:/Udev/HearBlade/Scripts/Art/import_harmonic_court_v2.py:43: DeprecationWarning: new_object: Creating an instance of an Editor subsystem has been deprecated since UE 5.2 and will be removed in the future. Use 'unreal.get_editor_subsystem(unreal.StaticMeshEditorSubsystem)' to get the subsystem instance.
+  meshes={};sm_editor=unreal.new_object(unreal.StaticMeshEditorSubsystem)
+
+[2026.09.27-07.36.51:104][  0]LogInit: Display: 
+[2026.09.27-07.36.51:104][  0]LogInit: Display: Commandlet->Main return this error code: -1
+[2026.09.27-07.36.51:104][  0]LogInit: Display: With 6 error(s), 6 warning(s)
+[2026.09.27-07.36.51:104][  0]LogInit: Display: 
+
+Execution of commandlet took:  53.28 seconds, PeakPhysMemoryMB=3374 MB, PeakVirtMemoryMB=3353 MB
+[2026.09.27-07.36.51:117][  0]LogToolsetRegistry: Display: Unregistering Toolset ToolsetRegistry.AgentSkillToolset
+[2026.09.27-07.36.51:237][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PostWrite): 1 .ref files found, 1 referenced binaries
+[2026.09.27-07.36.51:237][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 1 total binaries, 1 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+[2026.09.27-07.36.51:440][  0]LogShaderCompilers: Display: Exiting ShaderCompilingThread
+[2026.09.27-07.36.51:465][  0]LogSourceControl: Display: Uncontrolled Changelist persistency file saved ../../../../../Udev/HearBlade/Saved/SourceControl/UncontrolledChangelists.json

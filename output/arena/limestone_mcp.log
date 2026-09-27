@@ -1,0 +1,24 @@
+<frozen runpy>:128: RuntimeWarning: 'blender_mcp.server' found in sys.modules after import of package 'blender_mcp', but prior to execution of 'blender_mcp.server'; this may result in unpredictable behaviour
+2026-09-27 15:35:44,749 - BlenderMCPServer - INFO - BlenderMCP server starting up
+2026-09-27 15:35:44,750 - BlenderMCPServer - WARNING - MCP for Blender addon not found in any Blender addons folder. Run `uvx mcp-for-blender install-addon` to install it.
+2026-09-27 15:35:44,750 - BlenderMCPServer - INFO - Connected to Blender at 127.0.0.1:9876
+2026-09-27 15:35:44,750 - BlenderMCPServer - INFO - Created new persistent connection to Blender
+2026-09-27 15:35:44,750 - BlenderMCPServer - INFO - Sending command: get_addon_info with params: None
+2026-09-27 15:35:44,750 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:35:44,797 - BlenderMCPServer - INFO - Received complete response (421 bytes)
+2026-09-27 15:35:44,797 - BlenderMCPServer - INFO - Received 421 bytes of data
+2026-09-27 15:35:44,797 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:35:44,797 - BlenderMCPServer - INFO - Blender addon up to date (protocol 11, addon [1, 7], Blender 5.0.1)
+2026-09-27 15:35:44,797 - BlenderMCPServer - INFO - Successfully connected to Blender on startup
+2026-09-27 15:35:44,800 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-09-27 15:35:44,802 - BlenderMCPServer - INFO - Sending command: execute_code with params: {'code': "import bpy\nOUT='D:/Udev/HearBlade/SourceArt/Environment/HarmonicCourtV2'\nm=bpy.data.materials['HC_Ivory'];n=m.node_tree.nodes;l=m.node_tree.links\ntex=n.new('ShaderNodeTexImage');tex.name='LimestoneDetail';tex.image=bpy.data.images.load(OUT+'/T_HC_Limestone_Detail.png',check_existing=True);tex.projection='BOX';tex.projection_blend=.25\npos=n.new('ShaderNodeNewGeometry');scale=n.new('ShaderNodeVectorMath');scale.operation='SCALE';scale.inputs['Scale'].default_value=.5\nl.new(pos.outputs['Position'],scale.inputs[0]);l.new(scale.outputs['Vector'],tex.inputs['Vector']);l.new(tex.outputs['Color'],n.get('Principled BSDF').inputs['Base Color'])\nbpy.ops.wm.save_as_mainfile(filepath=OUT+'/HarmonicCourtV2.blend')\nbpy.context.scene.render.filepath=OUT+'/HarmonicCourtV2_Model.png';bpy.ops.render.render(write_still=True)\nprint('LIMESTONE_APPLIED')\n"}
+2026-09-27 15:35:44,802 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:35:48,659 - BlenderMCPServer - INFO - Received complete response (126 bytes)
+2026-09-27 15:35:48,659 - BlenderMCPServer - INFO - Received 126 bytes of data
+2026-09-27 15:35:48,659 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:35:48,663 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-09-27 15:35:48,666 - BlenderMCPServer - INFO - Disconnecting from Blender on shutdown
+2026-09-27 15:35:48,666 - BlenderMCPServer - INFO - BlenderMCP server shut down
+Code executed successfully: Info: Saved as "HarmonicCourtV2.blend"
+LIMESTONE_APPLIED
+

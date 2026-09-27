@@ -1,0 +1,36 @@
+<frozen runpy>:128: RuntimeWarning: 'blender_mcp.server' found in sys.modules after import of package 'blender_mcp', but prior to execution of 'blender_mcp.server'; this may result in unpredictable behaviour
+2026-09-27 15:51:46,864 - BlenderMCPServer - INFO - BlenderMCP server starting up
+2026-09-27 15:51:46,864 - BlenderMCPServer - WARNING - MCP for Blender addon not found in any Blender addons folder. Run `uvx mcp-for-blender install-addon` to install it.
+2026-09-27 15:51:46,865 - BlenderMCPServer - INFO - Connected to Blender at 127.0.0.1:9876
+2026-09-27 15:51:46,865 - BlenderMCPServer - INFO - Created new persistent connection to Blender
+2026-09-27 15:51:46,865 - BlenderMCPServer - INFO - Sending command: get_addon_info with params: None
+2026-09-27 15:51:46,865 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:51:46,866 - BlenderMCPServer - INFO - Received complete response (421 bytes)
+2026-09-27 15:51:46,867 - BlenderMCPServer - INFO - Received 421 bytes of data
+2026-09-27 15:51:46,867 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:51:46,867 - BlenderMCPServer - INFO - Blender addon up to date (protocol 11, addon [1, 7], Blender 5.0.1)
+2026-09-27 15:51:46,867 - BlenderMCPServer - INFO - Successfully connected to Blender on startup
+2026-09-27 15:51:46,870 - mcp.server.lowlevel.server - INFO - Processing request of type CallToolRequest
+2026-09-27 15:51:46,872 - BlenderMCPServer - INFO - Sending command: execute_code with params: {'code': "import bpy,math,json,os\nfrom math import pi,sin,cos\nfrom mathutils import Vector\nOUT='D:/Udev/HearBlade/SourceArt/Environment/CourtResonators';os.makedirs(OUT,exist_ok=True)\ngold=bpy.data.materials['HC_Gold'];blue=bpy.data.materials['HC_Blue'];ivory=bpy.data.materials['HC_Ivory']\nparts=[]\ndef add(o,name,m):\n    o.name=name;o.data.materials.append(m)\n    for p in o.data.polygons:p.use_smooth=True\n    parts.append(o);return o\ndef cyl(name,loc,r,dep,m):\n    bpy.ops.mesh.primitive_cylinder_add(vertices=64,radius=r,depth=dep,location=loc);o=bpy.context.object\n    mod=o.modifiers.new('FineBevel','BEVEL');mod.width=.018;mod.segments=3;bpy.ops.object.modifier_apply(modifier=mod.name)\n    return add(o,name,m)\ndef tor(name,loc,r,t,m,vertical=False):\n    bpy.ops.mesh.primitive_torus_add(major_radius=r,minor_radius=t,major_segments=96,minor_segments=12,location=loc);o=bpy.context.object\n    if vertical:o.rotation_euler.x=pi/2\n    return add(o,name,m)\ndef join_export(name,pivot):\n    bpy.ops.object.select_all(action='DESELECT')\n    for o in parts:o.select_set(True)\n    bpy.context.view_layer.objects.active=parts[0];bpy.ops.object.join();o=bpy.context.object;o.name=name;bpy.context.scene.cursor.location=pivot;bpy.ops.object.origin_set(type='ORIGIN_CURSOR')\n    o.location=(0,0,0)\n    bpy.ops.export_scene.fbx(filepath=OUT+'/'+name+'.fbx',use_selection=True,object_types={'MESH'},axis_forward='-Y',axis_up='Z',mesh_smooth_type='FACE',add_leaf_bones=False)\n    parts.clear();return o\n# Low stepped plinth and a fork supporting a suspended metronome.\ncyl('StonePlinth',(0,0,.12),.62,.24,ivory);cyl('GoldPlinthLip',(0,0,.26),.65,.05,gold)\ncyl('DarkRecess',(0,0,.32),.48,.08,blue)\nfor x in [-.48,.48]:\n    cyl('TunedColumn',(x,0,.9),.055,1.15,gold)\ntor('FixedOuterHoop',(0,0,1.25),.51,.027,gold,True)\nbase=join_export('SM_Court_MetronomeBase',(0,0,0))\n# Moving concentric hoops, separate pivot through their common centre.\ntor('InnerTuningRing',(0,0,0),.37,.021,gold,True)\ntor('InnerInlay',(0,-.012,0),.335,.009,blue,True)\nfor x in [-.39,.39]:cyl('GimbalStud',(x,0,0),.04,.08,gold)\nring=join_export('SM_Court_TuningRing',(0,0,0))\n# Pendulum pivot at its top; actual ball and shaft swing together.\ncyl('PendulumShaft',(0,0,-.24),.013,.48,gold)\nbpy.ops.mesh.primitive_uv_sphere_add(segments=32,ring_count=16,radius=.115,location=(0,0,-.49));add(bpy.context.object,'PendulumWeight',gold)\npendulum=join_export('SM_Court_Pendulum',(0,0,0))\n# Peripheral concentric floor resonators; central combat space is untouched.\nfor r,t in [(.72,.028),(.61,.016),(.45,.01)]:tor('ResonanceRing',(0,0,.03),r,t,gold)\ncyl('ResonanceMedallion',(0,0,.015),.25,.03,blue)\ndisc=join_export('SM_Court_ResonanceDisc',(0,0,0))\nfor o in [base,ring,pendulum,disc]:o.hide_render=True\n# Save as a separate source file, preserving the main arena source.\nbpy.ops.wm.save_as_mainfile(filepath=OUT+'/CourtResonators.blend')\nprint('COURT_RESONATORS_MODELED')\n"}
+2026-09-27 15:51:46,872 - BlenderMCPServer - INFO - Command sent, waiting for response...
+2026-09-27 15:51:47,262 - BlenderMCPServer - INFO - Received complete response (697 bytes)
+2026-09-27 15:51:47,263 - BlenderMCPServer - INFO - Received 697 bytes of data
+2026-09-27 15:51:47,263 - BlenderMCPServer - INFO - Response parsed, status: success
+2026-09-27 15:51:47,267 - mcp.server.lowlevel.server - INFO - Processing request of type ListToolsRequest
+2026-09-27 15:51:47,272 - BlenderMCPServer - INFO - Disconnecting from Blender on shutdown
+2026-09-27 15:51:47,272 - BlenderMCPServer - INFO - BlenderMCP server shut down
+Code executed successfully: 
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/CourtResonators/SM_Court_MetronomeBase.fbx'
+export finished in 0.0085 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/CourtResonators/SM_Court_TuningRing.fbx'
+export finished in 0.0071 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/CourtResonators/SM_Court_Pendulum.fbx'
+export finished in 0.0055 sec.
+
+FBX export starting... 'D:/Udev/HearBlade/SourceArt/Environment/CourtResonators/SM_Court_ResonanceDisc.fbx'
+export finished in 0.0077 sec.
+Info: Saved as "CourtResonators.blend"
+COURT_RESONATORS_MODELED
+

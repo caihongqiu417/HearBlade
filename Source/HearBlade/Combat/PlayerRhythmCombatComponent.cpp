@@ -1,4 +1,5 @@
 #include "Combat/PlayerRhythmCombatComponent.h"
+#include "Combat/TransientCombatFX.h"
 #include "Combat/PlayerCombatAnimInstance.h"
 #include "Combat/BeatSyncedComboComponent.h"
 #include "Combat/BossCombatCameraComponent.h"
@@ -958,15 +959,15 @@ void UPlayerRhythmCombatComponent::PlayResponseFeedback(ERhythmResponseType Resp
 	{
 		const float GradeScale = Grade == ERhythmDodgeJudgment::Perfect || Grade == ERhythmDodgeJudgment::PerfectHold ? 1.65f :
 			(Grade == ERhythmDodgeJudgment::Good || Grade == ERhythmDodgeJudgment::GoodHold) ? 1.15f : .75f;
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Effect, WorldLocation, Rotation,
-			FVector(GradeScale * (bStrongBeat ? 1.25f : 1.0f)), true);
+		RetireCombatFX(UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Effect, WorldLocation, Rotation,
+			FVector(GradeScale * (bStrongBeat ? 1.25f : 1.0f)), true), .15f, .45f);
 	}
 	// Timing feedback must not replace the player's action animation. A BAD can
 	// resolve after a newer command has begun, including an attack with no contact.
 	if (Grade == ERhythmDodgeJudgment::PerfectHold && PerfectHoldShockEffect && GetOwner())
 	{
-		UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PerfectHoldShockEffect,
-			GetOwner()->GetActorLocation() + FVector(0, 0, 70), FRotator::ZeroRotator, FVector(1.85f));
+		SpawnStandalonePerfectSparks(GetWorld(), PerfectHoldShockEffect,
+			GetOwner()->GetActorLocation() + FVector(0, 0, 70), FRotator::ZeroRotator, 1.85f);
 	}
 }
 
