@@ -10,6 +10,7 @@ class HEARBLADE_API UPlayerCombatAnimInstance : public UAnimInstance
 {
 	GENERATED_BODY()
 public:
+	UAnimMontage* GetDefenseMontage() const { return VisualAction; }
 	UPlayerCombatAnimInstance();
 	UPROPERTY(Transient) TObjectPtr<class UBlendSpace> Locomotion;
 	UPROPERTY(Transient) TObjectPtr<class UBlendSpace> DirectionalHit;
@@ -18,10 +19,16 @@ public:
 	// deliberately presentation-only: it never moves the capsule or changes
 	// CharacterMovement speed.
 	float LocomotionPlayRate = 1.0f;
+	// Set by the character each frame: actual speed / authored speed of the pose.
+	float SpeedMatchPlayRate = 1.0f;
 	float BeatPoseAlpha = 0.0f;
 	FVector BeatPelvisTranslation = FVector::ZeroVector;
 	FRotator BeatSpineRotation = FRotator::ZeroRotator;
 	void PlayCombatAction(class UAnimSequence* Sequence, bool bLooping, float Duration, float ChainGrace = .10f);
+	class UAnimMontage* BeginBeatAttack(class UAnimSequence* Sequence, float StartPosition, float BlendInSeconds = .10f);
+	void EndBeatAttack(class UAnimMontage* Montage, float BlendOutSeconds = .08f);
+	// Hand a defense/dodge clip back to locomotion early (e.g. dodge cancelled into a run).
+	void ReleaseCombatAction(float BlendOutSeconds);
 	void StartDirectionalHit(FVector2D ReactionDirection, float Duration);
 	void EndDirectionalHit();
 	bool IsDirectionalHitActive() const { return bDirectionalHitActive; }
@@ -31,6 +38,7 @@ protected:
 	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override;
 private:
 	UPROPERTY(Transient) TObjectPtr<UAnimMontage> VisualAction;
+	UPROPERTY(Transient) TObjectPtr<UAnimMontage> BeatAttackMontage;
 	double ReleaseAtWorldSeconds = -1.0;
 	FVector HitBlendPosition = FVector(1.0, 0.0, 0.0);
 	float HitBlendAlpha = 0.0f;

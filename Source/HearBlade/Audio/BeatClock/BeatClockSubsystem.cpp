@@ -6,6 +6,13 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "Stats/Stats.h"
+#include "HAL/IConsoleManager.h"
+
+// Output-latency calibration: shifts the game's beat (attacks, boss hits, judgments)
+// relative to all audio. The song's own beat phase is corrected in BeatClockTestActor.
+// Tune live with "hb.BeatOffsetMs <ms>": larger = the game's beat moves later.
+static TAutoConsoleVariable<float> CVarBeatOffsetMs(TEXT("hb.BeatOffsetMs"), 0.f,
+	TEXT("Shifts every game beat (attacks, boss hits, judgments) later by this many ms to match the audible music."));
 
 /*
  * 文件作用：提供当前关卡共用的拍子时间。
@@ -53,8 +60,14 @@ void UBeatClockSubsystem::StartClock(FBeatClockSettings InSettings)
 	PlaybackRateInterpSpeed = 100.f;
 	PlaybackRateRestoreRawAudioSeconds = -1.0;
 	ClockStartAudioSeconds = MusicalAudioSeconds;
+	MusicStartSourceSeconds=0.;
 	LastEmittedBeat = -1;
 	bRunning = true;
+}
+
+USoundBase* UBeatClockSubsystem::GetPlayingMusicSound() const
+{
+	return MusicSource.IsValid()?MusicSource->GetSound():nullptr;
 }
 
 void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAudioComponent* MusicComponent, float MusicStartTimeSeconds)
@@ -65,12 +78,13 @@ void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAu
 	}
 	StartClock(InSettings);
 	MusicSource = MusicComponent;
+	MusicStartSourceSeconds=FMath::Max(0.f,MusicStartTimeSeconds);
 	RegisterSynchronizedMusicComponent(MusicComponent);
 	BaseMusicVolume = IsValid(MusicComponent) ? MusicComponent->VolumeMultiplier : 1.f;
 	CurrentMusicGain = 1.f;
 	DuckHoldRemaining = 0.f;
-	UE_LOG(LogTemp, Log, TEXT("BeatClock music start: BPM=%.3f offset=%.3f sourceStart=%.3f sound=%s playing=%d"),
-		Settings.BPM, Settings.StartOffsetSeconds, MusicStartTimeSeconds,
+	UE_LOG(LogTemp, Log, TEXT("BeatClock music start: BPM=%.3f offset=%.3f (+%.0f ms hb.BeatOffsetMs) sourceStart=%.3f sound=%s playing=%d"),
+		Settings.BPM, Settings.StartOffsetSeconds, CVarBeatOffsetMs.GetValueOnGameThread(), MusicStartTimeSeconds,
 		MusicComponent && MusicComponent->GetSound() ? *MusicComponent->GetSound()->GetName() : TEXT("None"),
 		IsValid(MusicComponent) && MusicComponent->IsPlaying() ? 1 : 0);
 }
@@ -177,7 +191,7 @@ double UBeatClockSubsystem::GetCurrentBeat() const
 	}
 
 	// 第0拍发生的时间
-	const double BeatZeroTime = ClockStartAudioSeconds + Settings.StartOffsetSeconds;
+	const double BeatZeroTime = ClockStartAudioSeconds + Settings.StartOffsetSeconds + CVarBeatOffsetMs.GetValueOnGameThread() * .001;
 
 	// 当前拍子 =（当前音频时间 − 第 0 拍发生的时间）÷ 每拍持续时间
 	return (GetAudioNowSeconds() - BeatZeroTime) / GetSecondsPerBeat();
@@ -201,7 +215,7 @@ int32 UBeatClockSubsystem::GetNextBeatIndex() const
 
 double UBeatClockSubsystem::GetBeatTimeSeconds(double BeatIndex) const
 {
-	const double BeatZeroTime = ClockStartAudioSeconds + Settings.StartOffsetSeconds;
+	const double BeatZeroTime = ClockStartAudioSeconds + Settings.StartOffsetSeconds + CVarBeatOffsetMs.GetValueOnGameThread() * .001;
 
 	// Boss 直接查询目标拍子的时间，不需要等到某一帧再猜测。
 	return BeatZeroTime + BeatIndex * GetSecondsPerBeat();

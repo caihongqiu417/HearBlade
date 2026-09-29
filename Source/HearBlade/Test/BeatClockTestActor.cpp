@@ -4,6 +4,7 @@
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
 #include "Combat/AttackData.h"
+#include "Combat/PlayerBeatAttackComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 // ============================================================
@@ -18,11 +19,14 @@ ABeatClockTestActor::ABeatClockTestActor()
 	MusicComponent->bAutoActivate = false;
 	MusicComponent->bAllowSpatialization = false;
 	MusicComponent->bIsUISound = true;
+	// Never let combat SFX steal the music voice.
+	MusicComponent->bOverridePriority = true; MusicComponent->Priority = 100.f;
 	CombatDrumComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("CombatDrumComponent"));
 	CombatDrumComponent->SetupAttachment(MusicComponent);
 	CombatDrumComponent->bAutoActivate = false;
 	CombatDrumComponent->bAllowSpatialization = false;
 	CombatDrumComponent->bIsUISound = true;
+	CombatDrumComponent->bOverridePriority = true; CombatDrumComponent->Priority = 90.f;
 	auto CreateMusicLayer = [this](const TCHAR* Name)
 	{
 		UAudioComponent* Component = CreateDefaultSubobject<UAudioComponent>(Name);
@@ -30,6 +34,7 @@ ABeatClockTestActor::ABeatClockTestActor()
 		Component->bAutoActivate = false;
 		Component->bAllowSpatialization = false;
 		Component->bIsUISound = true;
+		Component->bOverridePriority = true; Component->Priority = 80.f;
 		return Component;
 	};
 	ComboLowComponent = CreateMusicLayer(TEXT("ComboLowComponent"));
@@ -73,6 +78,7 @@ void ABeatClockTestActor::BeginPlay()
 	if (APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0))
 	{
 		BoundCombat = Player->FindComponentByClass<UPlayerRhythmCombatComponent>();
+		if (auto* Attacks=Player->FindComponentByClass<UPlayerBeatAttackComponent>()) Attacks->OnResonanceChanged.AddDynamic(this,&ABeatClockTestActor::HandlePlayerResonance);
 		if (BoundCombat.IsValid())
 			BoundCombat->OnRhythmSuccessFeedback.AddDynamic(this, &ABeatClockTestActor::HandleRhythmFeedback);
 	}
@@ -92,6 +98,13 @@ void ABeatClockTestActor::BeginPlay()
 			SourceBeatPhase = SyncAttackData->ReferenceBeatPhaseSeconds;
 			StartTime = static_cast<float>(SyncAttackData->ReferenceMusicStartSeconds);
 		}
+		// Measured on Paramore_AintItFun_UE.wav: kick, snare and hi-hat onsets (and the
+		// emphasis map) put the song's beats 118-130 ms AFTER the authored 0.204 s phase.
+		// The whole game clock AND the drum stem / combo layers were a flam ahead of the
+		// song. Shift both onto the real beat.
+		static constexpr double SongBeatPhaseCorrection = .125;
+		MusicSettings.StartOffsetSeconds += SongBeatPhaseCorrection;
+		SourceBeatPhase += SongBeatPhaseCorrection;
 		const double SecondsPerBeat = 60.0 / FMath::Max(MusicSettings.BPM, 1.0);
 		MusicSettings.StartOffsetSeconds = FMath::Fmod(MusicSettings.StartOffsetSeconds - StartTime, SecondsPerBeat);
 		if (MusicSettings.StartOffsetSeconds < 0.0)
@@ -99,6 +112,16 @@ void ABeatClockTestActor::BeginPlay()
 			MusicSettings.StartOffsetSeconds += SecondsPerBeat;
 		}
 		BeatClock->StartClockWithMusic(MusicSettings, MusicComponent, StartTime);
+		MusicClockStartAudio = BeatClock->GetAudioNowSeconds();
+		MusicSourceStart = StartTime;
+		MusicBarSeconds = SecondsPerBeat * FMath::Max(1, MusicSettings.BeatsPerBar);
+		{
+			const float Duration = Music->GetDuration();
+			const double Usable = double(Duration) - StartTime - .25;
+			MusicLoopSeconds = (Duration > 0.f && Duration < INDEFINITELY_LOOPING_DURATION * .5f && Usable > MusicBarSeconds * 2.)
+				? FMath::FloorToDouble(Usable / MusicBarSeconds) * MusicBarSeconds : 0.;
+			UE_LOG(LogTemp, Display, TEXT("MusicWatchdog: duration=%.2f loop=%.2fs (%d bars)"), Duration, MusicLoopSeconds, int32(MusicLoopSeconds / MusicBarSeconds));
+		}
 		BeatClock->RegisterSynchronizedMusicComponent(CombatDrumComponent);
 		BeatClock->RegisterSynchronizedMusicComponent(ComboLowComponent);
 		BeatClock->RegisterSynchronizedMusicComponent(ComboSnareComponent);
@@ -111,6 +134,7 @@ void ABeatClockTestActor::BeginPlay()
 			CombatDrumComponent->SetSound(CombatDrumLoop);
 			CombatDrumComponent->SetVolumeMultiplier(CombatDrumStemVolume);
 			CombatDrumComponent->Play(static_cast<float>(DrumStartTime));
+			DrumSourceStart = DrumStartTime;
 			UE_LOG(LogTemp, Display, TEXT("CombatDrumStem: playing=%d sourceStart=%.6f bar=%.6f BPM=%.3f"),
 				CombatDrumComponent->IsPlaying() ? 1 : 0, DrumStartTime, BarSeconds, MusicSettings.BPM);
 			StartComboLayers(static_cast<float>(DrumStartTime));
@@ -148,6 +172,7 @@ void ABeatClockTestActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ABeatClockTestActor::HandleBeat(int32 BeatIndex /* 全部拍子编号 */, int32 BeatInBar /* 当前小节内的拍子编号 */)
 {
 	UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
+	MaintainMusic();
 	// After a hitch, the clock can emit skipped beats together. Don't play old
 	// percussion on top of the current beat.
 	const bool bStemIsPlaying = CombatDrumComponent && CombatDrumComponent->IsPlaying();
@@ -167,6 +192,31 @@ void ABeatClockTestActor::HandleBeat(int32 BeatIndex /* 全部拍子编号 */, i
 	}
 	// BeatInBar 从 0 开始，输出时加 1，让日志从第 1 拍开始显示。
 	UE_LOG(LogTemp, Log, TEXT("[HearBlade 拍子时钟] 总拍子=%d，小节内拍子=%d"), BeatIndex, BeatInBar + 1);
+}
+
+void ABeatClockTestActor::MaintainMusic()
+{
+	UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
+	if (!Clock || !Clock->IsRunning() || !Music || !MusicComponent) return;
+	const double Elapsed = Clock->GetAudioNowSeconds() - MusicClockStartAudio;
+	double Position = MusicSourceStart + Elapsed;
+	bool bRestart = !MusicComponent->IsPlaying();
+	if (MusicLoopSeconds > 1.)
+	{
+		const int64 Loop = FMath::FloorToInt64(Elapsed / MusicLoopSeconds);
+		Position = MusicSourceStart + (Elapsed - Loop * MusicLoopSeconds);
+		if (Loop != MusicLoopIndex) { MusicLoopIndex = Loop; bRestart = true; }
+	}
+	if (bRestart)
+	{
+		MusicComponent->Play(static_cast<float>(Position));
+		UE_LOG(LogTemp, Warning, TEXT("MusicWatchdog: restarted music at %.2fs (loop %lld)"), Position, MusicLoopIndex);
+	}
+	if (CombatDrumComponent && CombatDrumComponent->GetSound() && bEnableCombatDrums && !CombatDrumComponent->IsPlaying())
+	{
+		CombatDrumComponent->Play(static_cast<float>(FMath::Fmod(DrumSourceStart + Elapsed, MusicBarSeconds)));
+		UE_LOG(LogTemp, Warning, TEXT("MusicWatchdog: restarted drum stem"));
+	}
 }
 
 void ABeatClockTestActor::StartComboLayers(float SourceStartTime)
@@ -195,12 +245,21 @@ void ABeatClockTestActor::HandleRhythmFeedback(const FRhythmSuccessFeedbackData&
 	}
 }
 
+void ABeatClockTestActor::HandlePlayerResonance(EPlayerResonanceState State)
+{
+	bResonanceMusic=State==EPlayerResonanceState::Active;
+	if(BoundCombat.IsValid()) PendingComboTier=UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(BoundCombat->ComboCount);
+	ApplyComboTierAtBar();
+	if(MusicComponent) MusicComponent->AdjustVolume(.35f,bResonanceMusic?FMath::Min(1.f,MusicMixVolume*1.18f):MusicMixVolume);
+}
+
 void ABeatClockTestActor::ApplyComboTierAtBar()
 {
-	if (CurrentComboTier == PendingComboTier) return;
-	CurrentComboTier = PendingComboTier;
+	const int32 Desired=bResonanceMusic?3:PendingComboTier;
+	if (CurrentComboTier == Desired) return;
+	CurrentComboTier = Desired;
 	const UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
-	const float FadeSeconds = Clock ? static_cast<float>(Clock->GetSecondsPerBeat() * 2.0) : 1.15f;
+	const float FadeSeconds = Clock ? static_cast<float>(Clock->GetSecondsPerBeat()) : .58f;
 	if (ComboLowComponent) ComboLowComponent->AdjustVolume(FadeSeconds, CurrentComboTier >= 1 ? ComboLowVolume : 0.f);
 	if (ComboSnareComponent) ComboSnareComponent->AdjustVolume(FadeSeconds, CurrentComboTier >= 2 ? ComboSnareVolume : 0.f);
 	if (ComboHighComponent) ComboHighComponent->AdjustVolume(FadeSeconds, CurrentComboTier >= 3 ? ComboHighVolume : 0.f);

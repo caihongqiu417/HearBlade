@@ -1,0 +1,180 @@
+Using bundled DotNet SDK version: 10.0 win-x64
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" -Mode=ValidatePlatforms -OutputSDKs  -AllPlatforms  -project="D:/Udev/HearBlade/HearBlade.uproject" -log="D:/Udev/HearBlade/Saved/Logs/AutoSDKInfo.txt" -verbose -timestamps
+Log file: D:\Udev\HearBlade\Saved\Logs\AutoSDKInfo.txt
+##PlatformValidate: Win64 VALID 10.0.22621.0
+##PlatformValidate: Mac INVALID 26.1.1
+##PlatformValidate: IOS INVALID 26.1.1
+##PlatformValidate: Android INVALID r27c
+##PlatformValidate: Linux INVALID v26_clang-20.1.8-rockylinux8
+##PlatformValidate: LinuxArm64 INVALID v26_clang-20.1.8-rockylinux8
+##PlatformValidate: TVOS INVALID 26.1.1
+##PlatformValidate: VisionOS INVALID <UNKNOWN>
+Unable to find required SDK version 'MainVersion' for platform VisionOS. Check your SDK.json files
+Trace written to file C:\Users\26349\AppData\Local\UnrealBuildTool\Trace.uba with size 310b
+[2026.09.27-12.20.51:762][  0]LogInit: Display: Running engine for game: HearBlade
+[2026.09.27-12.20.51:762][  0]LogCore: Display: Requested channels: 'cpu,gpu,frame,log,bookmark,screenshot,region'
+[2026.09.27-12.20.51:762][  0]LogTrace: Display: Control listening on port 1985
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : platform="Windows"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : config="Development"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : buildversion="++UE5+Release-5.8-CL-56057345"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : engineversion="5.8.1-56057345+++UE5+Release-5.8"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : enginereleaseversion="5.8.1"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : os="Windows 11 (25H2) [10.0.26200.9457] "
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : cpu="AuthenticAMD|AMD Ryzen 9 8945HX with Radeon Graphics"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : pgoenabled="0"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : pgoprofilingenabled="0"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : ltoenabled="0"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : asan="0"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : mergedmodules="0"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : compacttset="0"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : commandline="" D:\Udev\HearBlade\HearBlade.uproject -run=pythonscript -script=D:\Udev\HearBlade\Scripts\audit_timing_history.py -unattended -nosplash -NullRHI""
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : loginid="5fa333b14869e34efd4c149a0bbae957"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : llm="0"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : zenstreaming="0"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : systemresolution.resx="1280"
+[2026.09.27-12.20.51:762][  0]LogCsvProfiler: Display: Metadata set : systemresolution.resy="720"
+[2026.09.27-12.20.51:762][  0]LogAudio: Display: Audio Device Manager not initializing due to all audio being disabled. If this is not intentional, please check command line arguments for "-nosound".
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading VulkanPC ini files took 0.04 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading Mac ini files took 0.04 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading IOS ini files took 0.05 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading Android ini files took 0.05 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading Unix ini files took 0.05 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading VisionOS ini files took 0.06 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading TVOS ini files took 0.06 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading Windows ini files took 0.06 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading Linux ini files took 0.06 seconds
+[2026.09.27-12.20.51:762][  0]LogConfig: Display: Loading LinuxArm64 ini files took 0.06 seconds
+[2026.09.27-12.20.51:762][  0]LogAsyncCompilation: Display: MemorySharingInfo: UsedMemory=364MiB, MaxMemoryAvailable=114480MiB
+[2026.09.27-12.20.51:762][  0]RenderDocPlugin: Display: RenderDoc plugin will not be loaded. Use '-AttachRenderDoc' on the cmd line or enable 'renderdoc.AutoAttach' in the plugin settings.
+[2026.09.27-12.20.51:762][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+[2026.09.27-12.20.51:762][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+[2026.09.27-12.20.51:762][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+[2026.09.27-12.20.51:762][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Log is disabled for this application
+[2026.09.27-12.20.51:763][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.CSV is disabled for this application
+[2026.09.27-12.20.51:763][  0]LogAnalytics: Display: Provider StudioTelemetry.Provider.Horde is disabled for this application
+[2026.09.27-12.20.51:763][  0]LogStreaming: Display: AsyncLoading2 - Created: Async Loading Thread: false, Async Post Load: false, Multithreaded: false
+[2026.09.27-12.20.51:763][  0]LogHAL: Display: Platform has ~ 32 GB [34142187520 / 34359738368 / 32], which maps to Largest [LargestMinGB=32, LargerMinGB=12, DefaultMinGB=8, SmallerMinGB=6, SmallestMinGB=0)
+[2026.09.27-12.20.51:763][  0]LogCsvProfiler: Display: Metadata set : extradevelopmentmemorymb="0"
+[2026.09.27-12.20.51:763][  0]LogObj: Display: Attempting to load config data for Default__DownlinkBandwidthManagerConfig before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.27-12.20.52:061][  0]LogObj: Display: Attempting to load config data for Default__SlateThemeManager before the Class has been constructed/registered/linked (likely during module loading or early startup). This will result in the load silently failing and should be fixed.
+[2026.09.27-12.20.52:261][  0]LogCsvProfiler: Display: Metadata set : verbatimrhiname="Null"
+[2026.09.27-12.20.52:261][  0]LogCsvProfiler: Display: Metadata set : rhiname="Null"
+[2026.09.27-12.20.52:261][  0]LogCsvProfiler: Display: Metadata set : rhifeaturelevel="SM6"
+[2026.09.27-12.20.52:261][  0]LogCsvProfiler: Display: Metadata set : shaderplatform="PCD3D_SM6"
+[2026.09.27-12.20.52:261][  0]LogCsvProfiler: Display: Metadata set : gpu=""
+[2026.09.27-12.20.52:261][  0]LogCsvProfiler: Display: Metadata set : gpudriver=""
+[2026.09.27-12.20.52:272][  0]LogTextureFormatASTC: Display: ASTCEnc version 5.0.1 library loaded
+[2026.09.27-12.20.52:272][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatASTC
+[2026.09.27-12.20.52:272][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatDXT
+[2026.09.27-12.20.52:272][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatETC2
+[2026.09.27-12.20.52:272][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatIntelISPCTexComp
+[2026.09.27-12.20.52:272][  0]LogTextureFormatOodle: Display: Oodle Texture TFO init; latest sdk version = 2.9.16
+[2026.09.27-12.20.52:272][  0]LogTextureFormatOodle: Display: Oodle Texture loading DLL: oo2tex_win64_2.9.16.dll
+[2026.09.27-12.20.52:273][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatOodle
+[2026.09.27-12.20.52:273][  0]LogTextureFormatManager: Display: Loaded Base TextureFormat: TextureFormatUncompressed
+[2026.09.27-12.20.52:297][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Android'
+[2026.09.27-12.20.52:309][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'IOS'
+[2026.09.27-12.20.52:322][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Linux'
+[2026.09.27-12.20.52:334][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'LinuxArm64'
+[2026.09.27-12.20.52:349][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'Mac'
+[2026.09.27-12.20.52:350][  0]LogTargetPlatformManager: Display: Failed to SetupSDK for platform 'TVOS'
+[2026.09.27-12.20.52:363][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'Windows'
+[2026.09.27-12.20.52:363][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsEditor'
+[2026.09.27-12.20.52:363][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsServer'
+[2026.09.27-12.20.52:363][  0]LogTargetPlatformManager: Display: Loaded TargetPlatform 'WindowsClient'
+[2026.09.27-12.20.52:363][  0]LogTargetPlatformManager: Display: Building Assets For WindowsEditor
+[2026.09.27-12.20.52:369][  0]LogAudioDebug: Display: Lib vorbis DLL was dynamically loaded.
+[2026.09.27-12.20.52:696][  0]LogDerivedDataCache: Display: ../../../Engine/DerivedDataCache/Compressed.ddp: Opened pak cache for reading. (1670 MiB)
+[2026.09.27-12.20.52:697][  0]LogZenServiceInstance: Display: Launching zen utility 'D:/Epic Games/UE_5.8/Engine/Binaries/Win64/zen.exe service status'.
+[2026.09.27-12.20.53:016][  0]LogZenServiceInstance: Display: Writing plugin version info to 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zen_plugin_versions.json'
+[2026.09.27-12.20.53:022][  0]LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/26349/AppData/Local/UnrealEngine/5.8/Saved/Zen/zen.version', version: '5.8.13-202605190912-windows-x64-release-094f62c2'
+[2026.09.27-12.20.53:022][  0]LogZenServiceInstance: Display: Read zen version cache file from 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zen.version', version: '5.8.13-202605190912-windows-x64-release-094f62c2'
+[2026.09.27-12.20.53:022][  0]LogZenServiceInstance: Display: Installed service at 'C:/Users/26349/AppData/Local/UnrealEngine/Common/Zen/Install/zenserver.exe' is up to date
+[2026.09.27-12.20.53:228][  0]LogZenServiceInstance: Display: Unreal Zen Storage Server HTTP service at http://[::1]:8558 status: OK!.
+[2026.09.27-12.20.53:230][  0]LogDerivedDataCache: Display: ZenLocal: Using ZenServer HTTP service at [::1] with namespace ue.ddc. Status: OK!.
+[2026.09.27-12.20.53:279][  0]LogDerivedDataCache: Display: C:/Users/26349/AppData/Local/UnrealEngine/Common/DerivedDataCache: Performance: Latency=0.05ms. RandomReadSpeed=22.93MBs, RandomWriteSpeed=144.01MBs. Assigned SpeedClass 'Local'
+[2026.09.27-12.20.53:282][  0]LogUbaHorde: Display: UBA/Horde Configuration [Uba.Provider.Horde]: Not Enabled
+[2026.09.27-12.20.53:282][  0]LogShaderCompilers: Display: No distributed shader compiler controller found
+[2026.09.27-12.20.53:282][  0]LogShaderCompilers: Display: Using 29 local workers for shader compilation
+[2026.09.27-12.20.53:290][  0]LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../Udev/HearBlade/Intermediate/ShaderAutogen/PCD3D_SM6/AutogenShaderHeaders.ush
+[2026.09.27-12.20.53:291][  0]LogShaderCompilers: Display: Autogen file is unchanged, skipping write.
+[2026.09.27-12.20.53:838][  0]LogEditorDomain: Display: EditorDomain is Disabled
+[2026.09.27-12.20.54:047][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64Editor not found.
+[2026.09.27-12.20.54:047][  0]LogDeviceProfileManager: Display: Deviceprofile LinuxArm64 not found.
+[2026.09.27-12.20.54:082][  0]LogCsvProfiler: Display: Metadata set : deviceprofile="WindowsEditor"
+[2026.09.27-12.20.54:085][  0]LogStreaming: Display: FlushAsyncLoading(1): 1 QueuedPackages, 0 AsyncPackages
+[2026.09.27-12.20.54:096][  0]LogTextureEncodingSettings: Display: Texture Encode Speed: Final (cook).
+[2026.09.27-12.20.54:096][  0]LogTextureEncodingSettings: Display: Oodle Texture Encode Speed settings: Fast: RDO Off Lambda=0, Effort=Normal Final: RDO Off Lambda=0, Effort=Normal
+[2026.09.27-12.20.54:096][  0]LogTextureEncodingSettings: Display: Shared linear texture encoding: Disabled
+[2026.09.27-12.20.54:119][  0]LogMeshReduction: Display: Using QuadricMeshReduction for automatic static mesh reduction
+[2026.09.27-12.20.54:119][  0]LogMeshReduction: Display: Using SkeletalMeshReduction for automatic skeletal mesh reduction
+[2026.09.27-12.20.54:119][  0]LogMeshReduction: Display: Using ProxyLODMeshReduction for automatic mesh merging
+[2026.09.27-12.20.54:119][  0]LogMeshReduction: Display: No distributed automatic mesh merging module available
+[2026.09.27-12.20.54:222][  0]LogShaderCompilers: Display: Compiling shader autogen file: ../../../../../Udev/HearBlade/Intermediate/ShaderAutogen/PCD3D_SM5/AutogenShaderHeaders.ush
+[2026.09.27-12.20.54:222][  0]LogShaderCompilers: Display: Autogen file is unchanged, skipping write.
+[2026.09.27-12.20.54:222][  0]LogVirtualization: Display: VirtualizationSystem name found in ini file: None
+[2026.09.27-12.20.54:222][  0]LogVirtualization: Display: FNullVirtualizationSystem mounted, virtualization will be disabled
+[2026.09.27-12.20.54:304][  0]LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize started...
+[2026.09.27-12.20.54:306][  0]LogWorldPartition: Display: FWorldPartitionClassDescRegistry::Initialize took 1.905 ms
+[2026.09.27-12.20.54:815][  0]LogMetaSound: Display: MetaSound Page Target Initialized to 'Default'
+[2026.09.27-12.20.54:817][  0]LogAudio: Display: Registering Engine Module Parameter Interfaces...
+[2026.09.27-12.20.56:371][  0]LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(HearBladeCharacter /Script/HearBlade.Default__HearBladeCharacter)
+[2026.09.27-12.20.56:733][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.09.27-12.20.56:733][  0]LogAudioCaptureCore: Display: No Audio Capture implementations found. Audio input will be silent.
+[2026.09.27-12.20.57:743][  0]LogToolsetRegistry: Display: Registering Toolset ToolsetRegistry.AgentSkillToolset
+[2026.09.27-12.20.57:771][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PreLoad): 1 .ref files found, 1 referenced binaries
+[2026.09.27-12.20.57:771][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 1 total binaries, 1 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+[2026.09.27-12.20.57:771][  0]LogAssetRegistry: Display: FindShardedCacheFiles: 1 via .ref, 0 via migration fallback, 1 total
+[2026.09.27-12.20.57:771][  0]LogAssetRegistry: Display: LoadCacheFiles: loading 1 cache files, memory-mapping=enabled
+[2026.09.27-12.20.57:939][  0]LogAssetRegistry: Display: Asset registry cache read as 126.8 MiB from ../../../../../Udev/HearBlade/Intermediate/CachedAssetRegistry/CachedAssetRegistry_0_8D919FAB447F22E6F4472FBE035FC0F0.bin (memory-mapped=yes)
+[2026.09.27-12.20.57:940][  0]LogAssetRegistry: Display: AssetDataGatherer spent 0.170s loading caches from ../../../../../Udev/HearBlade/Intermediate/CachedAssetRegistry.
+[2026.09.27-12.20.57:977][  0]LogCsvProfiler: Display: Metadata set : largeworldcoordinates="1"
+[2026.09.27-12.20.57:982][  0]LogModelContextProtocol: Warning: Data transmitted via this plugin to your connected LLM service is Licensed Technology under the UE EULA. You are responsible for ensuring your LLM provider does not use it as training input. See Section 6(e) of the UE EULA for full terms.
+[2026.09.27-12.20.57:982][  0]LogHttpListener: Error: HttpListener unable to bind to 127.0.0.1:8000
+[2026.09.27-12.20.58:039][  0]LogPython: Display: No pip-enabled plugins with python dependencies found, skipping
+[2026.09.27-12.20.58:324][  0]LogCsvProfiler: Display: Metadata set : raytracing="0"
+[2026.09.27-12.20.58:465][  0]LogToolsetRegistry: Display: Registering Toolset EditorToolset.EditorAppToolset
+[2026.09.27-12.20.58:465][  0]LogToolsetRegistry: Display: Registering Toolset EditorToolset.LogsToolset
+[2026.09.27-12.20.58:492][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/Toolsets/EditorToolset/Content/Python/init_unreal.py…… started...
+[2026.09.27-12.20.58:612][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.actor.ActorTools
+[2026.09.27-12.20.58:612][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.asset.AssetTools
+[2026.09.27-12.20.58:615][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.blueprint.BlueprintTools
+[2026.09.27-12.20.58:616][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.curve_table.CurveTableTools
+[2026.09.27-12.20.58:616][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.data_asset.DataAssetTools
+[2026.09.27-12.20.58:616][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.data_table.DataTableTools
+[2026.09.27-12.20.58:618][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.material.MaterialTools
+[2026.09.27-12.20.58:618][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.material_instance.MaterialInstanceTools
+[2026.09.27-12.20.58:618][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.object.ObjectTools
+[2026.09.27-12.20.58:619][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.primitive.PrimitiveTools
+[2026.09.27-12.20.58:622][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.scene.SceneTools
+[2026.09.27-12.20.58:623][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.skeletal_mesh.SkeletalMeshTools
+[2026.09.27-12.20.58:623][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.static_mesh.StaticMeshTools
+[2026.09.27-12.20.58:623][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.string_table.StringTableTools
+[2026.09.27-12.20.58:623][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.programmatic.ProgrammaticToolset
+[2026.09.27-12.20.58:624][  0]LogToolsetRegistry: Display: Registering Toolset editor_toolset.toolsets.texture.TextureTools
+[2026.09.27-12.20.58:624][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/Toolsets/EditorToolset/Content/Python/init_unreal.py…… took 131.862 ms
+[2026.09.27-12.20.58:624][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/ToolsetRegistry/Content/Python/init_unreal.py…… started...
+[2026.09.27-12.20.58:640][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Experimental/ToolsetRegistry/Content/Python/init_unreal.py…… took 15.427 ms (total: 147.290 ms)
+[2026.09.27-12.20.58:640][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py…… started...
+[2026.09.27-12.20.58:642][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/IKRig/Content/Python/init_unreal.py…… took 2.729 ms (total: 150.020 ms)
+[2026.09.27-12.20.58:642][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py…… started...
+[2026.09.27-12.20.58:662][  0]LogPython: Display: 正在运行启动脚本D:/Epic Games/UE_5.8/Engine/Plugins/Animation/ControlRig/Content/Python/init_unreal.py…… took 19.866 ms (total: 169.886 ms)
+[2026.09.27-12.20.58:662][  0]LogPythonScriptCommandlet: Display: Running Python script: D:\Udev\HearBlade\Scripts\audit_timing_history.py
+[2026.09.27-12.20.58:692][  0]LogPython: Warning: TIMING_HISTORY {"__TimingHistory\\09d7409\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [1.3715405464172363, 1.4532060623168945, 1.3077986240386963, 1.3519597053527832], "play_rate": 1.0030001401901245, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\09d7409\\DA_DragonKnight_Combo02_Beat.uasset": {"rates": [0.8411146402359009, 1.1555556058883667, 1.0399999618530273, 1.2133333683013916, 0.8955555558204651, 1.5826666355133057], "play_rate": 1.0, "markers": [[0.46666666865348816, 0.0], [1.7999999523162842, 2.0], [2.4000000953674316, 3.0], [3.0999999046325684, 4.0], [4.133333206176758, 6.0]]}, "__TimingHistory\\3c353cf\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [1.235560655593872, 1.4532060623168945, 1.3077986240386963, 1.3519597053527832], "play_rate": 1.0030001401901245, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\3c353cf\\DA_DragonKnight_Combo02_Beat.uasset": {"rates": [1.0, 1.1555556058883667, 1.0399999618530273, 1.2133333683013916, 1.5826666355133057], "play_rate": 1.0, "markers": [[0.46666666865348816, 0.0], [1.7999999523162842, 2.0], [2.4000000953674316, 3.0], [3.0999999046325684, 4.0]]}, "__TimingHistory\\9a85720\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [1.3715405464172363, 1.4532060623168945, 1.3077986240386963, 1.3519597053527832], "play_rate": 1.0030001401901245, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\9a85720\\DA_DragonKnight_Combo02_Beat.uasset": {"rates": [0.8411146402359009, 1.1555556058883667, 1.0399999618530273, 1.2133333683013916, 0.8955555558204651, 1.5826666355133057], "play_rate": 1.0, "markers": [[0.46666666865348816, 0.0], [1.7999999523162842, 2.0], [2.4000000953674316, 3.0], [3.0999999046325684, 4.0], [4.133333206176758, 6.0]]}, "__TimingHistory\\b4ccbf8\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [], "play_rate": 1.0, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\c1189d0\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [1.3715405464172363, 1.4532060623168945, 1.3077986240386963, 1.3519597053527832], "play_rate": 1.0030001401901245, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\c1189d0\\DA_DragonKnight_Combo02_Beat.uasset": {"rates": [0.8411146402359009, 1.1555556058883667, 1.0399999618530273, 1.2133333683013916, 0.8955555558204651, 1.5826666355133057], "play_rate": 1.0, "markers": [[0.46666666865348816, 0.0], [1.7999999523162842, 2.0], [2.4000000953674316, 3.0], [3.0999999046325684, 4.0], [4.133333206176758, 6.0]]}}
+[2026.09.27-12.20.58:692][  0]LogPythonScriptCommandlet: Display: Python script executed successfully
+[2026.09.27-12.20.58:692][  0]LogInit: Display: 
+[2026.09.27-12.20.58:692][  0]LogInit: Display: Warning/Error Summary (Unique only)
+[2026.09.27-12.20.58:692][  0]LogInit: Display: -----------------------------------
+[2026.09.27-12.20.58:692][  0]LogInit: Display: LogHttpListener: Error: HttpListener unable to bind to 127.0.0.1:8000
+[2026.09.27-12.20.58:692][  0]LogInit: Display: LogSkinnedMeshComp: Warning: GetSocketInfoByName(hand_r): No SkeletalMesh for Component(CharacterMesh0) Actor(HearBladeCharacter /Script/HearBlade.Default__HearBladeCharacter)
+[2026.09.27-12.20.58:692][  0]LogInit: Display: LogModelContextProtocol: Warning: Data transmitted via this plugin to your connected LLM service is Licensed Technology under the UE EULA. You are responsible for ensuring your LLM provider does not use it as training input. See Section 6(e) of the UE EULA for full terms.
+[2026.09.27-12.20.58:692][  0]LogInit: Display: LogPython: Warning: TIMING_HISTORY {"__TimingHistory\\09d7409\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [1.3715405464172363, 1.4532060623168945, 1.3077986240386963, 1.3519597053527832], "play_rate": 1.0030001401901245, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\09d7409\\DA_DragonKnight_Combo02_Beat.uasset": {"rates": [0.8411146402359009, 1.1555556058883667, 1.0399999618530273, 1.2133333683013916, 0.8955555558204651, 1.5826666355133057], "play_rate": 1.0, "markers": [[0.46666666865348816, 0.0], [1.7999999523162842, 2.0], [2.4000000953674316, 3.0], [3.0999999046325684, 4.0], [4.133333206176758, 6.0]]}, "__TimingHistory\\3c353cf\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [1.235560655593872, 1.4532060623168945, 1.3077986240386963, 1.3519597053527832], "play_rate": 1.0030001401901245, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\3c353cf\\DA_DragonKnight_Combo02_Beat.uasset": {"rates": [1.0, 1.1555556058883667, 1.0399999618530273, 1.2133333683013916, 1.5826666355133057], "play_rate": 1.0, "markers": [[0.46666666865348816, 0.0], [1.7999999523162842, 2.0], [2.4000000953674316, 3.0], [3.0999999046325684, 4.0]]}, "__TimingHistory\\9a85720\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [1.3715405464172363, 1.4532060623168945, 1.3077986240386963, 1.3519597053527832], "play_rate": 1.0030001401901245, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\9a85720\\DA_DragonKnight_Combo02_Beat.uasset": {"rates": [0.8411146402359009, 1.1555556058883667, 1.0399999618530273, 1.2133333683013916, 0.8955555558204651, 1.5826666355133057], "play_rate": 1.0, "markers": [[0.46666666865348816, 0.0], [1.7999999523162842, 2.0], [2.4000000953674316, 3.0], [3.0999999046325684, 4.0], [4.133333206176758, 6.0]]}, "__TimingHistory\\b4ccbf8\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [], "play_rate": 1.0, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\c1189d0\\DA_DragonKnight_Combo01_Beat.uasset": {"rates": [1.3715405464172363, 1.4532060623168945, 1.3077986240386963, 1.3519597053527832], "play_rate": 1.0030001401901245, "markers": [[0.800000011920929, 0.0], [2.5329999923706055, 3.0], [3.9830000400543213, 5.5]]}, "__TimingHistory\\c1189d0\\DA_DragonKnight_Combo02_Beat.uasset": {"rates": [0.8411146402359009, 1.1555556058883667, 1.0399999618530273, 1.2133333683013916, 0.8955555558204651, 1.5826666355133057], "play_rate": 1.0, "markers": [[0.46666666865348816, 0.0], [1.7999999523162842, 2.0], [2.4000000953674316, 3.0], [3.0999999046325684, 4.0], [4.133333206176758, 6.0]]}}
+[2026.09.27-12.20.58:692][  0]LogInit: Display: 
+[2026.09.27-12.20.58:692][  0]LogInit: Display: Failure - 1 error(s), 3 warning(s)
+[2026.09.27-12.20.58:692][  0]LogInit: Display: 
+
+Execution of commandlet took:  0.20 seconds, PeakPhysMemoryMB=1903 MB, PeakVirtMemoryMB=1814 MB
+[2026.09.27-12.20.58:712][  0]LogToolsetRegistry: Display: Unregistering Toolset ToolsetRegistry.AgentSkillToolset
+[2026.09.27-12.20.58:853][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles (PostWrite): 1 .ref files found, 1 referenced binaries
+[2026.09.27-12.20.58:853][  0]LogAssetRegistry: Display: CleanupOrphanedCacheFiles: 1 total binaries, 1 referenced (kept), 0 old-style pre-migration (kept), 0 orphans deleted, 0 orphans locked (kept)
+[2026.09.27-12.20.59:346][  0]LogShaderCompilers: Display: Exiting ShaderCompilingThread

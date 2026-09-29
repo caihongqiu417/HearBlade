@@ -119,6 +119,8 @@ public:
 	// 与 GetBeatTimeSeconds 使用相同的时间轴，供攻击预定器比较。
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 	double GetAudioNowSeconds() const;
+	double AudioTimeToMusicSourceSeconds(double AudioTime) const { return AudioTime-ClockStartAudioSeconds+MusicStartSourceSeconds; }
+	class USoundBase* GetPlayingMusicSound() const;
 
 	// 返回一拍需要多少秒。
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
@@ -168,6 +170,7 @@ private:
 
 	// 开始计算拍子时的音频时间。
 	double ClockStartAudioSeconds = 0.0;
+	double MusicStartSourceSeconds = 0.0;
 
 	// 上一次已经发出的拍子编号；-1 表示还没有发出过拍子事件。
 	int32 LastEmittedBeat = -1;

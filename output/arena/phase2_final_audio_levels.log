@@ -1,0 +1,37 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'output/arena/HearBlade_PhaseTwo_Final.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Duration: 00:01:05.00, start: 0.000000, bitrate: 8734 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuvj420p(pc, bt470bg/unknown/unknown, progressive), 1280x720 [SAR 1:1 DAR 16:9], 8529 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+    Metadata:
+      handler_name    : VideoHandler
+      encoder         : Lavc63.1.101 libx264
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 196 kb/s (default)
+    Metadata:
+      handler_name    : SoundHandler
+[Parsed_volumedetect_0 @ 000001dd1255f300] n_samples: 0
+Stream mapping:
+  Stream #0:1 -> #0:0 (aac (native) -> pcm_s16le (native))
+Press [q] to stop, [?] for help
+Output #0, null, to 'NUL':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf63.1.101
+  Stream #0:0(und): Audio: pcm_s16le, 48000 Hz, stereo, s16, 1536 kb/s (default)
+    Metadata:
+      encoder         : Lavc63.1.101 pcm_s16le
+      handler_name    : SoundHandler
+[Parsed_volumedetect_0 @ 000001dd149cc740] n_samples: 6240248
+[Parsed_volumedetect_0 @ 000001dd149cc740] mean_volume: -15.6 dB
+[Parsed_volumedetect_0 @ 000001dd149cc740] max_volume: -0.5 dB
+[Parsed_volumedetect_0 @ 000001dd149cc740] histogram_0db: 89
+[Parsed_volumedetect_0 @ 000001dd149cc740] histogram_1db: 2140
+[Parsed_volumedetect_0 @ 000001dd149cc740] histogram_2db: 3077
+[Parsed_volumedetect_0 @ 000001dd149cc740] histogram_3db: 5344
+[out#0/null @ 000001dd12580040] video:0KiB audio:12188KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+size=N/A time=00:01:05.00 bitrate=N/A speed=1.63e+03x elapsed=0:00:00.03    

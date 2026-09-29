@@ -2,6 +2,8 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
+#include "UObject/StrongObjectPtr.h"
+#include "Combat/MusicEmphasisData.h"
 
 class UAttackDataAsset;
 class IDetailsView;
@@ -35,9 +37,11 @@ public:
 	const UAttackDataAsset* GetAttackData() const { return AttackData.Get(); }
 	float GetPreviewRate() const { return PreviewRate; }
 	int32 GetSelectedBeat() const;
+	const UMusicEmphasisData* GetMusicEmphasis() const;
 	double GetPreviewRequestSourceSeconds() const { return PreviewRequestSourceSeconds; }
 	void PickRequestAtSourceSeconds(double SourceSeconds);
 	bool IsImpactResponseValid(int32 ImpactIndex) const;
+	bool IsPhaseTwoPreview() const { return bPhaseTwoPreview; }
 	bool TryBeginHoldEndpointDrag(double SourceSeconds, double ToleranceSeconds, FName& OutGroup, bool& bOutStart) const;
 	void DragHoldEndpoint(FName Group, bool bStartEndpoint, double SourceSeconds);
 
@@ -62,6 +66,7 @@ private:
 	void OnAssetPropertiesChanged(const FPropertyChangedEvent& Event);
 
 	TWeakObjectPtr<UAttackDataAsset> AttackData;
+	TStrongObjectPtr<UMusicEmphasisData> EmphasisData;
 	TSharedPtr<IDetailsView> DetailsView;
 	TSharedPtr<SEditableTextBox> WavPathBox;
 	TSharedPtr<class SBeatComboTimeline> Timeline;
@@ -82,4 +87,5 @@ private:
 	bool bUseSegmentRates = false;
 	double PreviewRequestSourceSeconds = 49.0;
 	int32 PendingHoldRangeStart = INDEX_NONE;
+	bool bPhaseTwoPreview = false;
 };

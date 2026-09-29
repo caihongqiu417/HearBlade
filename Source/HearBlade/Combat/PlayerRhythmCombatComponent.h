@@ -34,6 +34,7 @@ USTRUCT(BlueprintType)
 struct FRhythmSuccessFeedbackData
 {
 	GENERATED_BODY()
+	UPROPERTY(BlueprintReadOnly) bool bPlayerAttack = false;
 	UPROPERTY(BlueprintReadOnly) ERhythmResponseType Response = ERhythmResponseType::Dodge;
 	UPROPERTY(BlueprintReadOnly) ERhythmHoldMarkerType HoldMarker = ERhythmHoldMarkerType::None;
 	UPROPERTY(BlueprintReadOnly) ERhythmDodgeJudgment Grade = ERhythmDodgeJudgment::None;
@@ -61,12 +62,18 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 
 public:
 	UPlayerRhythmCombatComponent();
+	void AwardPlayerAttack(bool bPerfect, float BaseGain);
+	void SetPhaseCinematic(bool bEnabled);
+	bool IsPhaseCinematic() const { return bPhaseCinematic; }
+	bool bPhaseCinematic = false;
+	uint8 PhaseSavedMovementMode = 1;
+	uint8 PhaseSavedCustomMode = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="生命", meta=(ClampMin="1.0"))
-	float MaxHealth = 100.0f;
+	float MaxHealth = 500.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="生命")
-	float Health = 100.0f;
+	float Health = 500.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="节奏闪避")
 	float Resonance = 0.0f;
@@ -114,6 +121,13 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category="生命")
 	void ApplyCombatDamage(float Damage);
+	void ApplyGroundBurstDamage(float Damage, const FVector& Center);
+	void AwardRhythmicEscape(float Amount, float ErrorSeconds);
+	float GetEscapeDodgeBonus(float WalkingSpeed, double AvailableSeconds) const
+	{ return AvailableSeconds>DodgeDurationSeconds+.55 ? FMath::Max(0.f,DodgeDistanceCm-WalkingSpeed*DodgeDurationSeconds) : 0.f; }
+	UPROPERTY(BlueprintReadOnly, Category="范围攻击") double LastRhythmicEscapeWorldSeconds = -1000.0;
+	UPROPERTY(BlueprintReadOnly, Category="范围攻击") float LastRhythmicEscapeGain = 0.f;
+	bool bGroundBurstTestExited = false;
 
 	UFUNCTION(BlueprintCallable, Category="生命")
 	void RestoreHealth(float Amount);
@@ -130,6 +144,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category="节奏防御") bool TryBlockStart();
 	UFUNCTION(BlueprintCallable, Category="节奏防御") void EndBlock();
 	UFUNCTION(BlueprintCallable, Category="节奏防御") bool TryCounter();
+	// Ordinary attacks never write defense timing histories or counter state.
+	bool PrepareForOrdinaryAttack();
+	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsMouseDefenseWindow() const;
+	FString GetMouseDefensePrompt() const;
+	double GetLastCounterInputAudioSeconds() const { return LastCounterInputAudioSeconds; }
 	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsBlocking() const { return bBlocking; }
 	// The visual starts after a very short sustained press, then remains active
 	// through authored HoldBlock markers. A tap block therefore stays clean while
@@ -139,8 +158,8 @@ public:
 		return bBlocking && !bActiveHoldBroken && GetWorld() &&
 			GetWorld()->GetTimeSeconds() - BlockStartWorldSeconds >= HoldArmorActivationSeconds;
 	}
-	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsInDefensePose() const { return bBlocking || bBlockRecovering || bCountering; }
-	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsPerformingAction() const { return bDodging || bBlocking || bCountering || bBlockRecovering || bPoiseBroken || bHitReacting; }
+	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsInDefensePose() const { return bPhaseCinematic || bBlocking || bBlockRecovering || bCountering; }
+	UFUNCTION(BlueprintPure, Category="节奏防御") bool IsPerformingAction() const { return bPhaseCinematic || bDodging || bBlocking || bCountering || bBlockRecovering || bPoiseBroken || bHitReacting; }
 	UFUNCTION(BlueprintPure, Category="韧性") bool IsPoiseBroken() const { return bPoiseBroken; }
 	UFUNCTION(BlueprintPure, Category="受击") bool IsHitReacting() const { return bHitReacting || bPoiseBroken; }
 	UFUNCTION(BlueprintPure, Category="韧性") float GetPoiseFraction() const { return MaxPoise > 0.0f ? Poise / MaxPoise : 0.0f; }
@@ -159,6 +178,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category="节奏闪避")
 	bool IsDodging() const { return bDodging; }
+	double GetLastDodgeInputAudioSeconds() const { return LastDodgeInputAudioSeconds; }
 
 	UFUNCTION(BlueprintPure, Category="节奏闪避")
 	bool IsInvulnerable() const;
@@ -202,6 +222,7 @@ private:
 	FRotator HitFacingRotation = FRotator::ZeroRotator;
 	double HitTurnEndWorldSeconds = -1000.0;
 	double HitReactionEndWorldSeconds = -1000.0;
+	double HitInputUnlockWorldSeconds = -1000.0;
 	double PoiseBreakStartWorldSeconds = -1000.0;
 	double LastPoiseDamageWorldSeconds = -1000.0;
 	double LastBlockStartAudioSeconds = -1000.0;
@@ -326,8 +347,15 @@ private:
 	UPROPERTY(Transient) TObjectPtr<class UAnimSequence> BlockHitReactAnimation;
 	UPROPERTY(Transient) TObjectPtr<class UParticleSystem> BlockImpactEffect;
 	UPROPERTY(Transient) TObjectPtr<class UParticleSystem> CounterImpactEffect;
+	// Action sounds from the attack's punch family (/Game/Audio/SFX/HitRush):
+	// a swish on dodge / counter start, a guard-up thud, and the counter's hit.
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> DodgeSwishSound;
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> CounterSwishSound;
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> GuardUpSound;
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> CounterStrikeSound;
 	UPROPERTY(Transient) TObjectPtr<class UNiagaraSystem> PerfectHoldShockEffect;
 	float DodgeDistanceApplied = 0.0f;
+	bool bRecoveryStrikePending = false;
 	double GetCurrentInputAudioSeconds() const;
 	void BufferInput(EBufferedRhythmAction Action, double InputAudioSeconds, FVector Direction = FVector::ZeroVector);
 	void ProcessBufferedInput();

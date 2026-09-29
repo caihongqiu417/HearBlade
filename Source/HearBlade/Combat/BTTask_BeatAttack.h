@@ -25,6 +25,8 @@ public:
 	// 从这里随机选择一套完整连招。数组为空时使用上方 AttackData。
 	UPROPERTY(EditAnywhere, Category="节拍攻击")
 	TArray<TObjectPtr<UAttackDataAsset>> AttackPool;
+	UPROPERTY(EditAnywhere, Category="节拍攻击|二阶段")
+	TSoftObjectPtr<UAttackDataAsset> PhaseTwoAreaAttack = TSoftObjectPtr<UAttackDataAsset>(FSoftObjectPath(TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/DA_DragonKnight_Combo03_Beat.DA_DragonKnight_Combo03_Beat")));
 
 	UPROPERTY(EditAnywhere, Category="节拍攻击", meta=(ClampMin="0.0"))
 	float ActivationRange = 1500.0f;
@@ -80,6 +82,7 @@ private:
 	float UpdateOrbitMovement(UBeatSyncedComboComponent* Combo, AActor* Boss, const APawn* Player,
 		const UBeatClockSubsystem* Clock, float DeltaSeconds);
 	bool bAttackStarted = false;
+	TWeakObjectPtr<UAttackDataAsset> LastSelectedAttack;
 	bool bLoggedWaitingForRange = false;
 	bool bLoggedTurning = false;
 	bool bOrbitClockwise = true;

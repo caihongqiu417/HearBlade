@@ -8,6 +8,50 @@
 #include "AttackData.generated.h"
 
 class UTexture2D;
+class USoundBase;
+
+UENUM(BlueprintType)
+enum class EBossAttackDamageShape : uint8
+{
+	Blade UMETA(DisplayName="近战刀刃"),
+	GroundBurst UMETA(DisplayName="落地范围爆发")
+};
+
+UENUM(BlueprintType)
+enum class EAttackRecognitionShape : uint8
+{
+	Auto UMETA(DisplayName="跟随实际指令"),
+	ShortGlint UMETA(DisplayName="短刀芒"),
+	WideArc UMETA(DisplayName="横扫宽弧"),
+	Cross UMETA(DisplayName="交汇反击"),
+	SustainedArc UMETA(DisplayName="持续格挡光带"),
+	GroundWarning UMETA(DisplayName="范围危险圈")
+};
+
+USTRUCT(BlueprintType)
+struct FAttackRecognitionInfo
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息") FText ActionName;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息", meta=(MultiLine=true)) FText Description;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息") EAttackRecognitionShape Shape = EAttackRecognitionShape::Auto;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息", meta=(ClampMin="0.25")) float LeadBeats = 1.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息") bool bOverrideColor = false;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息", meta=(EditCondition="bOverrideColor")) FLinearColor Color = FLinearColor::White;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息") TObjectPtr<USoundBase> CueSound;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息") TObjectPtr<UTexture2D> Symbol;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="识别信息") bool bShowSymbol = true;
+};
+
+USTRUCT(BlueprintType)
+struct FGroundBurstSettings
+{
+	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="范围攻击", meta=(ClampMin="50")) float RadiusCm = 450.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="范围攻击", meta=(ClampMin="1")) float WarningBeats = 4.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="范围攻击", meta=(ClampMin="0")) float EscapeReward = 12.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="范围攻击", meta=(ClampMin="0", ClampMax="0.3")) float EscapeWindowSeconds = .12f;
+};
 
 UENUM(BlueprintType)
 enum class ERhythmResponseType : uint8
@@ -15,7 +59,8 @@ enum class ERhythmResponseType : uint8
 	Dodge UMETA(DisplayName="闪避"),
 	Block UMETA(DisplayName="格挡"),
 	Counter UMETA(DisplayName="反击"),
-	HoldBlock UMETA(DisplayName="持续格挡")
+	HoldBlock UMETA(DisplayName="持续格挡"),
+	DodgeOrBlock UMETA(DisplayName="闪避或格挡")
 };
 
 UENUM(BlueprintType)
@@ -65,6 +110,11 @@ USTRUCT(BlueprintType)
 struct FAttackImpactMarker
 {
 	GENERATED_BODY()
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss攻击数据|识别信息") FAttackRecognitionInfo Recognition;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss攻击数据|伤害") EBossAttackDamageShape DamageShape = EBossAttackDamageShape::Blade;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss攻击数据|范围攻击", meta=(EditCondition="DamageShape == EBossAttackDamageShape::GroundBurst")) FGroundBurstSettings GroundBurst;
+	// Informational source frame; time remains authoritative for existing assets.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Boss攻击数据|识别信息") int32 SourceFrame = -1;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据", meta = (ClampMin = "0.0"))
 	float AnimationTimeSeconds = 0.0f;
@@ -167,6 +217,17 @@ class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 	GENERATED_BODY()
 
 public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="技能信息") FText SkillName;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="技能信息", meta=(MultiLine=true)) FText SkillDescription;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="技能信息", meta=(ClampMin="1", ClampMax="2")) int32 MinimumBossPhase = 1;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="技能信息") FAttackRecognitionInfo DefaultRecognition;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="技能信息") float SourceFrameRate = 0.f;
+	// A non-damaging pose hold lets a committed ground attack reserve escape time.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="蓄力动作", meta=(ClampMin="0")) float ChargePoseAnimationSeconds = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="蓄力动作", meta=(ClampMin="0")) float ChargeHoldSeconds = 0.f;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="蓄力动作") int32 ChargePoseSourceFrame = -1;
+	float GetMotionElapsedAtAnimationTime(float AnimationTime) const;
+	float GetMotionAnimationTimeAtElapsed(float ElapsedSeconds) const;
 	// 行为树可独立调度的一段攻击动画
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据")
 	TObjectPtr<UAnimMontage> AttackMontage = nullptr;

@@ -10,6 +10,7 @@ class HEARBLADE_API ASoundstageBeatController : public AActor
     GENERATED_BODY()
 public:
     ASoundstageBeatController();
+	void TriggerAscensionAccent(double Beat) { AscensionAccentBeat=Beat; }
     virtual void Tick(float DeltaSeconds) override;
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Soundstage|Rhythm", meta=(ClampMin="0", ClampMax="2"))
     float MotionIntensity = 1.f;
@@ -35,4 +36,5 @@ private:
     UPROPERTY(Transient)
     TArray<TObjectPtr<class UMaterialInstanceDynamic>> SkyMaterials;
     float Envelope = 0.f;
+	double AscensionAccentBeat=-10000.;
 };

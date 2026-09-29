@@ -1,0 +1,3 @@
+[aist#1:0/pcm_s16le @ 000002015a788bc0] Guessed Channel Layout: stereo
+[swscaler @ 000002015cafd400] deprecated pixel format used, make sure you did set range correctly
+Encoded 1751 timestamped frames: D:\Udev\HearBlade\output\arena\HearBlade_PhaseTwo_Final.mp4

@@ -1,6 +1,7 @@
 #include "Combat/PlayerCombatAnimInstance.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "Combat/PlayerRhythmCombatComponent.h"
+#include "Combat/PlayerBeatAttackComponent.h"
 #include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
@@ -45,7 +46,9 @@ struct FPlayerCombatAnimProxy : FAnimInstanceProxy
 		// pelvis. Moving the pelvis lifts both legs and makes the feet visibly
 		// leave the floor; spine_01 keeps the authored foot planting intact.
 		PelvisBeatNode.BoneToModify.BoneName = TEXT("spine_01");
-		PelvisBeatNode.TranslationMode = BMM_Additive;
+		// Translating a spine bone stretches the torso. Keep the timing cue in
+		// the HUD; the authored animation owns body proportions and foot planting.
+		PelvisBeatNode.TranslationMode = BMM_Ignore;
 		// Component-space Z is the character's real vertical axis.
 		PelvisBeatNode.TranslationSpace = BCS_ComponentSpace;
 		SpineBeatNode.ComponentPose.SetLinkNode(&PelvisBeatNode);
@@ -86,8 +89,10 @@ struct FPlayerCombatAnimProxy : FAnimInstanceProxy
 
 UPlayerCombatAnimInstance::UPlayerCombatAnimInstance()
 {
-	Locomotion = LoadObject<UBlendSpace>(nullptr, TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/BS_DKM_CombatLocomotion.BS_DKM_CombatLocomotion"));
+	Locomotion = LoadObject<UBlendSpace>(nullptr, TEXT("/Game/Combat/Player/BS_PlayerEightWay.BS_PlayerEightWay"));
 	DirectionalHit = LoadObject<UBlendSpace>(nullptr, TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/BS_DKM_DirectionalHit.BS_DKM_DirectionalHit"));
+	// Ordinary attacks explicitly sample their montage and consume root deltas
+	// through CharacterMovement. Strip root from the pose but do not apply twice.
 	SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
 }
 
@@ -100,6 +105,7 @@ void UPlayerCombatAnimInstance::StartDirectionalHit(FVector2D ReactionDirection,
 	HitReactionEndWorldSeconds = GetWorld()->GetTimeSeconds() + FMath::Max(.1f, Duration);
 	++HitReactionSerial;
 	if (VisualAction) Montage_Stop(.06f, VisualAction);
+	EndBeatAttack(BeatAttackMontage);
 }
 
 void UPlayerCombatAnimInstance::EndDirectionalHit()
@@ -108,21 +114,56 @@ void UPlayerCombatAnimInstance::EndDirectionalHit()
 	HitReactionEndWorldSeconds = -1.0;
 }
 
+UAnimMontage* UPlayerCombatAnimInstance::BeginBeatAttack(UAnimSequence* Sequence, float StartPosition, float BlendInSeconds)
+{
+	if (!Sequence) return nullptr;
+	EndDirectionalHit(); HitBlendAlpha=0.f;
+	ReleaseAtWorldSeconds=-1.; VisualAction=nullptr;
+	// Let the outgoing follow-through move during crossfade, rather than
+	// blending from a frozen last frame of the previous swing.
+	if(BeatAttackMontage) Montage_SetPlayRate(BeatAttackMontage,1.f);
+	BeatAttackMontage = PlaySlotAnimationAsDynamicMontage(Sequence, TEXT("DefaultSlot"), BlendInSeconds, .14f, 1.f, 1, -1.f, StartPosition);
+	if (BeatAttackMontage)
+	{
+		BeatAttackMontage->bEnableAutoBlendOut = false;
+		// Keep the montage active while the music clock drives its position.
+		Montage_SetPlayRate(BeatAttackMontage,0.f);
+	}
+	return BeatAttackMontage;
+}
+
+void UPlayerCombatAnimInstance::EndBeatAttack(UAnimMontage* Montage, float BlendOutSeconds)
+{
+	if (Montage) Montage_Stop(BlendOutSeconds, Montage);
+	if (BeatAttackMontage == Montage) BeatAttackMontage=nullptr;
+}
+
+void UPlayerCombatAnimInstance::ReleaseCombatAction(float BlendOutSeconds)
+{
+	if (VisualAction) Montage_Stop(BlendOutSeconds, VisualAction);
+	VisualAction = nullptr; ReleaseAtWorldSeconds = -1.0;
+}
+
 FAnimInstanceProxy* UPlayerCombatAnimInstance::CreateAnimInstanceProxy() { return new FPlayerCombatAnimProxy(this); }
 void UPlayerCombatAnimInstance::DestroyAnimInstanceProxy(FAnimInstanceProxy* Proxy) { delete Proxy; }
 
 void UPlayerCombatAnimInstance::PlayCombatAction(UAnimSequence* Sequence, bool bLooping, float Duration, float ChainGrace)
 {
 	if (!Sequence || !GetWorld()) return;
+	// A committed defense owns the slot. Never silently discard it because an
+	// attack montage reference survives its blend-out.
+	EndBeatAttack(BeatAttackMontage);
+	EndDirectionalHit(); HitBlendAlpha=0.f;
 	const float ActualDuration = Duration > 0.f ? Duration : Sequence->GetPlayLength();
 	const float Rate = Sequence->GetPlayLength() / FMath::Max(.05f, ActualDuration);
 	UAnimMontage* Next = PlaySlotAnimationAsDynamicMontage(Sequence, TEXT("DefaultSlot"),
-		.10f, .18f, Rate, bLooping ? 100000 : 1);
+		.07f, .18f, Rate, bLooping ? 100000 : 1);
 	if (!Next) return;
 	// The outgoing action stays available for crossfade until the next operation
 	// or the short recovery deadline. No forced idle between consecutive actions.
 	Next->bEnableAutoBlendOut = false;
 	VisualAction = Next;
+	UE_LOG(LogTemp,Display,TEXT("DefenseAnimation: PLAY clip=%s montage=%s rate=%.2f"),*Sequence->GetName(),*Next->GetName(),Rate);
 	ReleaseAtWorldSeconds = bLooping ? -1.0 : GetWorld()->GetTimeSeconds() + ActualDuration + ChainGrace;
 }
 
@@ -141,7 +182,14 @@ void UPlayerCombatAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	{
 		bMoving = Pawn->GetVelocity().SizeSquared2D() > 225.0f;
 		const UPlayerRhythmCombatComponent* Combat = Pawn->FindComponentByClass<UPlayerRhythmCombatComponent>();
+		const auto* Attacks = Pawn->FindComponentByClass<UPlayerBeatAttackComponent>();
+		if (Attacks && Attacks->IsAttacking())
+		{
+			SmoothedBeatPoseAlpha=0.f; BeatPoseAlpha=0.f;
+			BeatPelvisTranslation=FVector::ZeroVector; BeatSpineRotation=FRotator::ZeroRotator;
+		}
 		const bool bActionBusy = (Combat && Combat->IsPerformingAction()) ||
+			(Attacks && Attacks->IsAttacking()) ||
 			(VisualAction && Montage_IsPlaying(VisualAction));
 		if (!bActionBusy && !bDirectionalHitActive)
 		{
@@ -182,7 +230,7 @@ void UPlayerCombatAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 		DeltaSeconds, TargetPoseAlpha > SmoothedBeatPoseAlpha ? 16.0f : 24.0f);
 	SmoothedLocomotionPlayRate = FMath::FInterpTo(SmoothedLocomotionPlayRate, TargetPlayRate, DeltaSeconds, 12.0f);
 	BeatPoseAlpha = SmoothedBeatPoseAlpha;
-	LocomotionPlayRate = SmoothedLocomotionPlayRate;
+	LocomotionPlayRate = SmoothedLocomotionPlayRate * SpeedMatchPlayRate;
 	const float BodyAmount = bMoving ? 0.65f : 1.0f;
 	BeatPelvisTranslation = FVector(0.0f, 0.0f, Pulse * 2.60f * BodyAmount);
 	// Keep this layer purely vertical. The authored locomotion continues to own

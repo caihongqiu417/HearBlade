@@ -26,7 +26,7 @@ public class HearBlade : ModuleRules
 			,"DeveloperSettings"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "SlateCore", "RenderCore" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "SlateCore", "RenderCore", "MovieSceneCapture", "ImageCore" });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"HearBlade"

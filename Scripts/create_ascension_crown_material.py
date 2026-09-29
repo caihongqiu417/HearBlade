@@ -1,0 +1,30 @@
+import unreal
+P='/Game/Combat/Ascension'
+name='M_Ascension_DarkCrown'
+mat=unreal.load_asset(P+'/'+name)
+if not mat:
+    mat=unreal.AssetToolsHelpers.get_asset_tools().create_asset(name,P,unreal.Material,unreal.MaterialFactoryNew())
+L=unreal.MaterialEditingLibrary
+L.delete_all_material_expressions(mat)
+def node(cls,x,y):return L.create_material_expression(mat,cls,x,y)
+base=node(unreal.MaterialExpressionConstant3Vector,-500,-250)
+base.set_editor_property('constant',unreal.LinearColor(.018,.014,.012,1))
+L.connect_material_property(base,'',unreal.MaterialProperty.MP_BASE_COLOR)
+metal=node(unreal.MaterialExpressionConstant,-500,-150);metal.set_editor_property('r',.82)
+L.connect_material_property(metal,'',unreal.MaterialProperty.MP_METALLIC)
+rough=node(unreal.MaterialExpressionConstant,-500,-50);rough.set_editor_property('r',.36)
+L.connect_material_property(rough,'',unreal.MaterialProperty.MP_ROUGHNESS)
+edge=node(unreal.MaterialExpressionFresnel,-600,120)
+edge.set_editor_property('exponent',5.5);edge.set_editor_property('base_reflect_fraction',.015)
+color=node(unreal.MaterialExpressionVectorParameter,-600,250)
+color.set_editor_property('parameter_name','EdgeColor');color.set_editor_property('default_value',unreal.LinearColor(1,.38,.065,1))
+strength=node(unreal.MaterialExpressionScalarParameter,-600,350)
+strength.set_editor_property('parameter_name','EdgeGlow');strength.set_editor_property('default_value',.65)
+mult=node(unreal.MaterialExpressionMultiply,-340,180)
+L.connect_material_expressions(edge,'',mult,'A');L.connect_material_expressions(color,'',mult,'B')
+power=node(unreal.MaterialExpressionMultiply,-120,180)
+L.connect_material_expressions(mult,'',power,'A');L.connect_material_expressions(strength,'',power,'B')
+L.connect_material_property(power,'',unreal.MaterialProperty.MP_EMISSIVE_COLOR)
+L.recompile_material(mat)
+unreal.EditorAssetLibrary.save_loaded_asset(mat)
+unreal.log_warning('ASCENSION_DARK_CROWN_MATERIAL_READY')

@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "Combat/PlayerRhythmCombatComponent.h"
+#include "Combat/PlayerAttackSet.h"
 #include "BeatClockTestActor.generated.h"
 
 class UAudioComponent;
@@ -114,9 +115,17 @@ private:
 	UFUNCTION()
 	void HandleBeat(int32 BeatIndex /* 全部拍子编号 */, int32 BeatInBar /* 当前小节内的拍子编号 */);
 	UFUNCTION() void HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback);
+	UFUNCTION() void HandlePlayerResonance(EPlayerResonanceState State);
 	void StartComboLayers(float SourceStartTime);
 	void ApplyComboTierAtBar();
 	TWeakObjectPtr<UPlayerRhythmCombatComponent> BoundCombat;
 	int32 PendingComboTier = 0;
 	int32 CurrentComboTier = 0;
+	bool bResonanceMusic = false;
+	// Music watchdog: keeps the song playing and beat-aligned. If the voice is
+	// ever dropped (voice stealing / end of file) it is restarted at the position
+	// the beat clock expects, and the song loops on a whole number of bars.
+	void MaintainMusic();
+	double MusicClockStartAudio = 0., MusicSourceStart = 0., MusicLoopSeconds = 0., MusicBarSeconds = 2., DrumSourceStart = 0.;
+	int64 MusicLoopIndex = 0;
 };

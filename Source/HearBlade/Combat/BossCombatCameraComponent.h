@@ -14,6 +14,8 @@ class HEARBLADE_API UBossCombatCameraComponent : public UActorComponent
 	GENERATED_BODY()
 public:
 	UBossCombatCameraComponent();
+	void SetPhasePresentation(bool bEnabled) { bPhasePresentation=bEnabled; CancelFeedback(); }
+	bool bPhasePresentation=false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Combat Camera") TObjectPtr<UBossCameraConfig> Config;
 	UFUNCTION(BlueprintCallable, Category="Combat Camera") void SetCombatTarget(AActor* NewTarget);
 	UFUNCTION(BlueprintCallable, Category="Combat Camera") void ClearCombatTarget();
@@ -25,6 +27,15 @@ public:
 		FVector BladeWorldLocation, FVector AttackDirection, bool bStrongBeat,
 		float LateralShiftCm, float DollyShiftCm, float YawKickDegrees, float PitchKickDegrees,
 		float ReboundStrength);
+	// Kick finisher: punch-in, a Dutch-angle roll toward the kick side and a pitch
+	// dip, held through the hit-stop and released with a small overshoot.
+	void TriggerKickAccent(float FOVKickDegrees, float RollDegrees, float PitchDipDegrees,
+		float ShakeDegrees, FVector ContactWorld, float HoldSeconds);
+	// Short upward camera response for the player's third heavy strike.
+	void TriggerUppercutAccent(float Strength);
+	// Launcher: a smooth side close-up of player + launched boss (blend in, slow
+	// dolly-in with the rising body, blend back to gameplay framing).
+	void TriggerLaunchShot(AActor* Subject, float Seconds);
 	void TriggerFailureFeedback(bool bMiss);
 	void StartHoldFeedback(float ShakeDegrees);
 	void TriggerHoldImpact(float ShakeDegrees, float DurationSeconds);
@@ -55,6 +66,13 @@ private:
 	float ManualYaw = 0.f;
 	float ManualPitch = 0.f;
 	float LastLookInputTime = -100.f;
+	void TickLaunchShot(float DeltaTime);
+	TWeakObjectPtr<AActor> ShotSubject;
+	double ShotStartWorld = -1000.0;
+	float ShotSeconds = 0.f, ShotSide = 1.f;
+	bool bShotInit = false;
+	FVector ShotSmoothedLoc = FVector::ZeroVector;
+	FRotator ShotSmoothedRot = FRotator::ZeroRotator;
 	FVector CinematicFocusLocation = FVector::ZeroVector;
 	double CinematicFocusEndWorldSeconds = -1000.0;
 };

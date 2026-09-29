@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "case": "neutral S",
+      "yaw": 0,
+      "backward_distance_cm": 180.09625244140625,
+      "passed": true
+    },
+    {
+      "case": "block to S dodge",
+      "yaw": 90,
+      "backward_distance_cm": 178.76922607421875,
+      "passed": true
+    },
+    {
+      "case": "S chained dodge",
+      "yaw": 180,
+      "backward_distance_cm": 232.66900634765625,
+      "passed": true
+    }
+  ],
+  "error": null
+}

@@ -1,5 +1,7 @@
 #include "Combat/BeatSyncedComboComponent.h"
 #include "Combat/TransientCombatFX.h"
+#include "Combat/AttackReadabilityComponent.h"
+#include "Combat/MusicEmphasisData.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "UnrealClient.h"
@@ -105,9 +107,9 @@ UBeatSyncedComboComponent::UBeatSyncedComboComponent()
 	FinalImpactCinematic.ClashActorSlowSeconds = .11f;
 	LocomotionAnimClass = UBossLocomotionAnimInstance::StaticClass();
 	BloodHitMetalEffect = LoadObject<UNiagaraSystem>(nullptr,
-		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/Stylized/P_Splash_Hit_Metal_Stylized.P_Splash_Hit_Metal_Stylized"));
+		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/P_Splash_HitWithMetal_01.P_Splash_HitWithMetal_01"));
 	BloodHeavyMetalEffect = LoadObject<UNiagaraSystem>(nullptr,
-		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/Stylized/P_BigSplash_Hit_Metal_Stylized.P_BigSplash_Hit_Metal_Stylized"));
+		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/P_BigSplash_HitWithMetal.P_BigSplash_HitWithMetal"));
 }
 
 void UBeatSyncedComboComponent::ReceiveBossDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser)
@@ -120,13 +122,21 @@ void UBeatSyncedComboComponent::ApplyBossDamage(float Damage)
 	ApplyBossDamageFrom(Damage, AttackTarget.Get());
 }
 
-void UBeatSyncedComboComponent::ApplyBossDamageFrom(float Damage, const AActor* DamageSource, bool bForceHeavyBlood)
+void UBeatSyncedComboComponent::ApplyBossDamageFrom(float Damage, const AActor* DamageSource, bool bForceHeavyBlood, float ExplicitPoise, FVector ImpactLocation)
 {
-	if (!FMath::IsFinite(Damage) || Damage <= 0.f || BossHealth <= 0.f) return;
-	const float PoiseDamage = Damage * PoiseDamagePerHealthDamage;
+	if (!FMath::IsFinite(Damage) || Damage <= 0.f || BossHealth <= 0.f || bPhaseTransitionActive) return;
+	const float PoiseDamage = ExplicitPoise >= 0.f ? ExplicitPoise : Damage * PoiseDamagePerHealthDamage;
 	const bool bHeavyBlood = bForceHeavyBlood || PoiseDamage >= BossPoise || Damage >= BossHealth;
-	SpawnBossBlood(DamageSource, bHeavyBlood);
+	SpawnBossBlood(DamageSource, bHeavyBlood, ImpactLocation);
+	// Tutorial sparring: hits still land (blood, flinch, stagger) but cost no health,
+	// so beating on the boss can never trigger phase two mid-lesson.
+	if (bTutorialNoDamage) { ApplyBossPoiseDamage(PoiseDamage, DamageSource); return; }
 	BossHealth = FMath::Clamp(BossHealth - Damage, 0.f, MaxBossHealth);
+	if (bEnableSecondPhase && BossPhase == 1 && BossHealth > 0.f && GetBossHealthFraction() <= SecondPhaseHealthThreshold)
+	{
+		if(!bPhaseChangePending) PhaseRequestWorldSeconds=GetWorld()->GetTimeSeconds();
+		bPhaseChangePending = true;
+	}
 	UE_LOG(LogTemp, Display, TEXT("BossHealth: %.0f / %.0f"), BossHealth, MaxBossHealth);
 	if (BossHealth <= 0.f)
 	{
@@ -136,10 +146,10 @@ void UBeatSyncedComboComponent::ApplyBossDamageFrom(float Damage, const AActor* 
 				It->BehaviorTreeComponent->StopTree(EBTStopMode::Forced);
 		return;
 	}
-	ApplyBossPoiseDamage(PoiseDamage, DamageSource);
+	if(!bPhaseChangePending) ApplyBossPoiseDamage(PoiseDamage, DamageSource);
 }
 
-void UBeatSyncedComboComponent::SpawnBossBlood(const AActor* DamageSource, bool bHeavy) const
+void UBeatSyncedComboComponent::SpawnBossBlood(const AActor* DamageSource, bool bHeavy, FVector ImpactLocation) const
 {
 	if (!GetWorld() || !GetOwner()) return;
 	UNiagaraSystem* Effect = bHeavy ? BloodHeavyMetalEffect.Get() : BloodHitMetalEffect.Get();
@@ -150,11 +160,11 @@ void UBeatSyncedComboComponent::SpawnBossBlood(const AActor* DamageSource, bool 
 	Direction.Z = FMath::Clamp(Direction.Z, -0.25f, 0.25f);
 	if (!Direction.Normalize()) Direction = GetOwner()->GetActorForwardVector();
 	const UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(GetOwner()->GetRootComponent());
-	const float Height = Capsule ? Capsule->GetScaledCapsuleHalfHeight() * 0.82f : 95.0f;
-	const FVector Location = GetOwner()->GetActorLocation() + FVector(0, 0, Height);
-	const float Scale = bHeavy ? BloodHeavyScale : BloodHitScale;
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, Location,
-		Direction.Rotation(), FVector(Scale));
+	const float Height = Capsule ? Capsule->GetScaledCapsuleHalfHeight() * 0.25f : 25.0f;
+	const FVector Location = ImpactLocation.IsNearlyZero() ? GetOwner()->GetActorLocation() + FVector(0, 0, Height) : ImpactLocation;
+	const float Scale = (bHeavy ? BloodHeavyScale : BloodHitScale)*.65f;
+	RetireCombatFX(UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, Location,
+		Direction.Rotation(), FVector(Scale)), .12f, .65f);
 	UE_LOG(LogTemp, Display, TEXT("BossBloodVFX: heavy=%d effect=%s location=%s"),
 		bHeavy ? 1 : 0, *GetNameSafe(Effect), *Location.ToString());
 }
@@ -172,9 +182,16 @@ void UBeatSyncedComboComponent::ApplyBossPoiseDamage(float Amount, const AActor*
 		StartBossHitReaction(DamageSource, HeavyHitReactionSeconds, true);
 		BossPoise = MaxBossPoise;
 	}
-	else if (!bWasAttacking && !bBossHitReacting)
+	else if (!bWasAttacking)
 	{
 		StartBossHitReaction(DamageSource, LightHitReactionSeconds, false);
+	}
+	else
+	{
+		TArray<USkeletalMeshComponent*> Meshes; GetOwner()->GetComponents(Meshes);
+		const FVector Local=GetOwner()->GetActorTransform().InverseTransformVectorNoScale(DamageSource?DamageSource->GetActorLocation()-GetOwner()->GetActorLocation():GetOwner()->GetActorForwardVector()).GetSafeNormal2D();
+		for(auto* Mesh:Meshes) if(auto* Anim=Cast<UBossLocomotionAnimInstance>(Mesh->GetAnimInstance())) Anim->PlayArmorFlinch(FVector2D(Local.X,Local.Y),Amount>=25.f?1.f:.65f);
+		UE_LOG(LogTemp,Display,TEXT("BossHitFeedback: armored flinch poise=%.1f"),BossPoise);
 	}
 }
 
@@ -182,8 +199,8 @@ void UBeatSyncedComboComponent::StartBossHitReaction(const AActor* DamageSource,
 {
 	if (!GetWorld() || !GetOwner() || BossHealth <= 0.0f) return;
 	FVector ReactionDirection = DamageSource
-		? GetOwner()->GetActorLocation() - DamageSource->GetActorLocation()
-		: -GetOwner()->GetActorForwardVector();
+		? DamageSource->GetActorLocation() - GetOwner()->GetActorLocation()
+		: GetOwner()->GetActorForwardVector();
 	ReactionDirection.Z = 0.0f;
 	if (!ReactionDirection.Normalize()) ReactionDirection = -GetOwner()->GetActorForwardVector();
 	const FVector Local = GetOwner()->GetActorTransform().InverseTransformVectorNoScale(ReactionDirection).GetSafeNormal2D();
@@ -226,8 +243,40 @@ void UBeatSyncedComboComponent::EndBossHitReaction()
 void UBeatSyncedComboComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	LoadedMusicEmphasis=MusicEmphasisData.LoadSynchronous();
+	if (!GetOwner()->FindComponentByClass<UAttackReadabilityComponent>())
+	{
+		auto* Readability=NewObject<UAttackReadabilityComponent>(GetOwner());
+		Readability->RegisterComponent();
+	}
+	// Migrate previous defaults retained by existing Blueprint/level instances.
+	if (FMath::IsNearlyEqual(MaxBossHealth, 1000.f) || FMath::IsNearlyEqual(MaxBossHealth, 1200.f) || FMath::IsNearlyEqual(MaxBossHealth, 1500.f) ||
+		FMath::IsNearlyEqual(MaxBossHealth, 2000.f) || FMath::IsNearlyEqual(MaxBossHealth, 5000.f) ||
+		FMath::IsNearlyEqual(MaxBossHealth, 1800.f)) MaxBossHealth = 2700.f; // +50% (was 1800)
 	BossHealth = FMath::Max(1.f, MaxBossHealth);
+#if !UE_BUILD_SHIPPING
+	if (FParse::Param(FCommandLine::Get(), TEXT("PhaseTwoVisualTest")))
+	{
+		BossPhase=2; CompletedPhaseTwoMelee=2; NextAreaAfterMelee=2;
+		UE_LOG(LogTemp,Display,TEXT("PhaseTwoVisualTest: test-only immediate phase 2 and area selection"));
+	}
+#endif
+	// Tougher boss: twice the poise (was 160) so it is not broken out of every combo.
+	if (FMath::IsNearlyEqual(MaxBossPoise, 160.f)) MaxBossPoise = 320.f;
+	if (FMath::IsNearlyEqual(BossPoiseRecoveryPerSecond, 48.f)) BossPoiseRecoveryPerSecond = 64.f;
 	BossPoise = FMath::Max(1.f, MaxBossPoise);
+#if !UE_BUILD_SHIPPING
+	if(FParse::Param(FCommandLine::Get(),TEXT("PhaseTransitionTest")))
+	{
+		FTimerHandle TestHandle;
+		GetWorld()->GetTimerManager().SetTimer(TestHandle,FTimerDelegate::CreateWeakLambda(this,[this]()
+		{
+			BossPoise=MaxBossPoise+MaxBossHealth*PoiseDamagePerHealthDamage;
+			ApplyBossDamage(MaxBossHealth*.41f);
+			UE_LOG(LogTemp,Display,TEXT("PhaseTransitionTest: crossed threshold while playing=%d queued=%d"),bPlaying,bQueued);
+		}),6.f,false);
+	}
+#endif
 	GetOwner()->OnTakeAnyDamage.AddUniqueDynamic(this, &UBeatSyncedComboComponent::ReceiveBossDamage);
 	// The Boss is an Actor rather than a Character. Its root capsule is the only
 	// primitive swept by locomotion and montage root motion. Old placed instances
@@ -396,6 +445,9 @@ void UBeatSyncedComboComponent::BeginPlay()
 
 void UBeatSyncedComboComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	EndUppercutFeedback();
+	EndPlayerResonance();
+	ClearGroundBurst();
 	EndCinematicAccent(true);
 	Super::EndPlay(EndPlayReason);
 }
@@ -433,9 +485,14 @@ void UBeatSyncedComboComponent::UpdateBeatFirePulse(const UBeatClockSubsystem* C
 			Scale *= 1.f + .95f * FMath::Exp(static_cast<float>(UntilImpact / .11));
 		}
 	}
+	FAttackRecognitionInfo ReadInfo;FVector ReadPosition;float ReadProgress=0.f;double ReadKey=0.;
+	const bool bReadingAttack=BossPhase>=2 && GetRecognitionCue(ReadInfo,ReadPosition,ReadProgress,ReadKey);
 	for (const FFirePulseTarget& Target : FirePulseTargets)
 		if (UNiagaraComponent* Component = Target.Component.Get())
-			Component->SetRelativeScale3D(Target.BaseScale * Scale);
+		{
+			const bool bWeapon=Component->GetName().Contains(TEXT("Sword"),ESearchCase::IgnoreCase)||Component->GetName().Contains(TEXT("Weapon"),ESearchCase::IgnoreCase);
+			Component->SetRelativeScale3D(Target.BaseScale * Scale * (bReadingAttack&&!bWeapon?.65f:1.f));
+		}
 }
 
 void UBeatSyncedComboComponent::UpdateStrongBeatPresentation(const UBeatClockSubsystem* Clock)
@@ -539,8 +596,10 @@ void UBeatSyncedComboComponent::ResetStrongBeatPresentation()
 
 bool UBeatSyncedComboComponent::QueueAttack(UAttackDataAsset* InAttackData)
 {
+	if (bPlayerResonance && InAttackData != ResonanceCounterAttack) return false;
 	if (bQueued || bPlaying || bBossHitReacting || !IsValid(InAttackData)) return false;
 	AttackData = InAttackData;
+	bPracticeNote = false;
 	return QueueCombo();
 }
 
@@ -599,6 +658,7 @@ void UBeatSyncedComboComponent::SelectRuntimeCinematicAccents()
 	// Never discard an active accent flag before restoring music and actor rates.
 	EndCinematicAccent(true);
 	RuntimeCinematicEnabled.Init(false, RuntimeImpactMarkers.Num());
+	if (bPlayerResonance) return;
 	bool bHasAuthoredAccent = false;
 	for (int32 Index = 0; Index < RuntimeImpactMarkers.Num(); ++Index)
 	{
@@ -635,6 +695,7 @@ void UBeatSyncedComboComponent::UpdateCinematicAccent(UBeatClockSubsystem* Clock
 
 void UBeatSyncedComboComponent::TriggerCinematicClash(int32 ImpactIndex, const FVector& ClashLocation, bool bStrongBeat)
 {
+	if(bPhaseChangePending || bPhaseTransitionActive) return;
 	if (ImpactIndex != GetImpactCount() - 1 || !RuntimeCinematicEnabled.IsValidIndex(ImpactIndex) ||
 		!RuntimeCinematicEnabled[ImpactIndex] || !RuntimeImpactMarkers.IsValidIndex(ImpactIndex)) return;
 	UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
@@ -810,14 +871,14 @@ bool UBeatSyncedComboComponent::GetNextImpactDodgeTiming(double& OutImpactAudioS
 	return true;
 }
 
-void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>& OutCues, int32 MaxCount) const
+void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>& OutCues, int32 MaxCount, bool bIncludeRecent) const
 {
 	OutCues.Reset();
 	if ((!bQueued && !bPlaying) || !IsValid(AttackData) || MaxCount <= 0) return;
 	const UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
 	const int32 BeatsPerBar = Clock ? FMath::Max(1, Clock->GetBeatsPerBar()) : 4;
 	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds);
-	for (int32 Index = NextImpactIndex; Index < GetImpactCount() && OutCues.Num() < MaxCount; ++Index)
+	for (int32 Index = bIncludeRecent?FMath::Max(0,NextImpactIndex-1):NextImpactIndex; Index < GetImpactCount() && OutCues.Num() < MaxCount; ++Index)
 	{
 		FUpcomingImpactCue& Cue = OutCues.AddDefaulted_GetRef();
 		const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(Index)) - ClipStartElapsed;
@@ -829,6 +890,8 @@ void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>
 		{
 			const FAttackImpactMarker& Marker = GetImpactMarker(Index);
 			Cue.PromptLeadBeats = Marker.PromptLeadBeats;
+			Cue.DamageShape = Marker.DamageShape;
+			if (Marker.DamageShape == EBossAttackDamageShape::GroundBurst) Cue.IdealDodgeLeadSeconds = 0.f;
 			Cue.RequiredResponse = Marker.RequiredResponse;
 			Cue.HoldMarker = Marker.HoldMarker;
 			if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock && Marker.HoldMarker == ERhythmHoldMarkerType::End)
@@ -861,6 +924,18 @@ bool UBeatSyncedComboComponent::QueueCombo()
 		return false;
 	}
 	SelectRuntimeResponsePattern();
+	// Phase two permits either defense on all blade attacks. Keep authored data
+	// and first-phase random instructions intact; area impacts still require exit.
+	if(BossPhase>=2)
+	{
+		for(auto& Marker:RuntimeImpactMarkers)
+		{
+			if(Marker.DamageShape!=EBossAttackDamageShape::Blade) continue;
+			Marker.RequiredResponse=ERhythmResponseType::DodgeOrBlock;
+			Marker.HoldMarker=ERhythmHoldMarkerType::None;
+			Marker.HoldGroup=NAME_None;
+		}
+	}
 	SelectRuntimeCinematicAccents();
 
 	UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
@@ -928,6 +1003,14 @@ bool UBeatSyncedComboComponent::QueueCombo()
 		const int32 WantedBeatInBar = FMath::Clamp(AttackData->FirstImpactBeatInBar, 1, BeatsPerBar) - 1;
 		CandidateBeat += (WantedBeatInBar - CandidateBeat % BeatsPerBar + BeatsPerBar) % BeatsPerBar;
 	}
+	float MusicPriority=0.f;
+	const int32 EmphasisBeat=SelectMusicEmphasisBeat(AttackData,MusicPriority);
+	if(!bPlayerResonance && EmphasisBeat>=CandidateBeat)
+	{
+		CandidateBeat=EmphasisBeat;
+		const double TailGap=AttackData->GetElapsedAtAnimationTime(GetImpactTime(GetImpactCount()-1))-AttackData->GetElapsedAtAnimationTime(GetImpactTime(0));
+		UE_LOG(LogTemp,Display,TEXT("MusicEmphasis: attack=%s priority=%.3f firstBeat=%d finalSource=%.3f"),*GetNameSafe(AttackData),MusicPriority,CandidateBeat,Clock->AudioTimeToMusicSourceSeconds(Clock->GetBeatTimeSeconds(CandidateBeat)+TailGap));
+	}
 	FirstImpactBeat = CandidateBeat;
 	bStrongBeatThisAttack = bBlinkRequested && CandidateBeat % FMath::Max(1, Clock->GetBeatsPerBar()) == 0;
 	bStrongBeatChargeStarted = false;
@@ -941,15 +1024,18 @@ bool UBeatSyncedComboComponent::QueueCombo()
 	NextDamageWindowIndex = 0;
 	ActiveDamageImpactIndex = INDEX_NONE;
 	bActiveDamageResolved = false;
-	bActiveDamageThreatened = false;
+	bActiveDamageThreatened = false; bContactAtMarker = false;
 	BladeTraceMesh = FindBladeMesh();
 	bLastAttackCompleted = false;
+	bPhaseTwoAttackCounted = false;
 	bQueued = true;
 	return true;
 }
 
 void UBeatSyncedComboComponent::CancelCombo()
 {
+	RecordPhaseTwoAttackOutcome(false);
+	ClearGroundBurst();
 	EndCinematicAccent(true);
 	ClearBlink();
 	ClearWarping();
@@ -981,7 +1067,7 @@ void UBeatSyncedComboComponent::CancelCombo()
 	NextDamageWindowIndex = 0;
 	ActiveDamageImpactIndex = INDEX_NONE;
 	bActiveDamageResolved = false;
-	bActiveDamageThreatened = false;
+	bActiveDamageThreatened = false; bContactAtMarker = false;
 	BladeTraceMesh.Reset();
 	RootMotionMesh.Reset();
 	AttackTarget.Reset();
@@ -1017,6 +1103,15 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 			? GetImpactMarker(NextDamageWindowIndex) : Defaults;
 		const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(NextDamageWindowIndex)) - ClipStartElapsed;
 		const double MarkerTime = ScheduledStartAudioSeconds + MarkerElapsed;
+		if (Marker.DamageShape == EBossAttackDamageShape::GroundBurst)
+		{
+			// A short late grace lets a dodge pressed right on the detonation beat count.
+			if (AudioNow < MarkerTime + (bGroundBurstDodgeThrough ? GroundBurstLateGraceSeconds : 0.f)) break;
+			ResolveGroundBurst(NextDamageWindowIndex, AudioNow);
+			++NextDamageWindowIndex;
+			ActiveDamageImpactIndex = INDEX_NONE;
+			continue;
+		}
 		float WindowAfter = Marker.DamageWindowAfterSeconds;
 		if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock && Marker.HoldMarker == ERhythmHoldMarkerType::End)
 		{
@@ -1028,7 +1123,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 		{
 			ActiveDamageImpactIndex = NextDamageWindowIndex;
 			bActiveDamageResolved = false;
-			bActiveDamageThreatened = FVector::Dist2D(AttackTarget->GetActorLocation(), GetOwner()->GetActorLocation()) <= 450.0f;
+			bActiveDamageThreatened = bPracticeNote || FVector::Dist2D(AttackTarget->GetActorLocation(), GetOwner()->GetActorLocation()) <= 450.0f;
 			ClosestBladeFeedbackLocation = FVector::ZeroVector;
 			ClosestBladeAttackDirection = (AttackTarget->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal();
 			ClosestBladeFeedbackDistance = BIG_NUMBER;
@@ -1036,7 +1131,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 		if (!bActiveDamageResolved) ResolveUncontactedDamageWindow(NextDamageWindowIndex);
 		++NextDamageWindowIndex;
 		ActiveDamageImpactIndex = INDEX_NONE;
-		bActiveDamageThreatened = false;
+		bActiveDamageThreatened = false; bContactAtMarker = false;
 	}
 	if (NextDamageWindowIndex >= GetImpactCount()) return;
 
@@ -1046,6 +1141,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 		? GetImpactMarker(WindowIndex) : Defaults;
 	const double MarkerElapsed = AttackData->GetElapsedAtAnimationTime(GetImpactTime(WindowIndex)) - ClipStartElapsed;
 	const double MarkerAudioTime = ScheduledStartAudioSeconds + MarkerElapsed;
+	if (WindowMarker.DamageShape == EBossAttackDamageShape::GroundBurst) return;
 	if (AudioNow < MarkerAudioTime - WindowMarker.DamageWindowBeforeSeconds) return;
 
 	UMeshComponent* Blade = BladeTraceMesh.Get();
@@ -1061,7 +1157,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	{
 		ActiveDamageImpactIndex = WindowIndex;
 		bActiveDamageResolved = false;
-		bActiveDamageThreatened = false;
+		bActiveDamageThreatened = false; bContactAtMarker = false;
 		PreviousBladeTraceLocation = CurrentBlade;
 		ClosestBladeFeedbackLocation = CurrentBlade;
 		ClosestBladeAttackDirection = GetOwner()->GetActorForwardVector();
@@ -1069,7 +1165,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	}
 	if (bActiveDamageResolved) return;
 
-	const AActor* Target = AttackTarget.Get();
+	AActor* Target = AttackTarget.Get();
 	const UCapsuleComponent* Capsule = Target ? Target->FindComponentByClass<UCapsuleComponent>() : nullptr;
 	const FVector TargetCenter = Capsule ? Capsule->GetComponentLocation() : Target->GetActorLocation();
 	const float TargetRadius = Capsule ? Capsule->GetScaledCapsuleRadius() : 42.0f;
@@ -1086,10 +1182,14 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	}
 	const float OwnerDistance = FVector::Dist2D(TargetCenter, GetOwner()->GetActorLocation());
 	if (bNewWindow)
-		bActiveDamageThreatened = OwnerDistance <= 450.0f;
+		bActiveDamageThreatened = bPracticeNote || OwnerDistance <= 450.0f;
 	const bool bAtMarkerFallback = FMath::Abs(AudioNow - MarkerAudioTime) <= 0.035 && OwnerDistance <= 300.0f;
 	PreviousBladeTraceLocation = CurrentBlade;
-	if (SweepDistance > BladeRadius + TargetRadius && !bAtMarkerFallback) return;
+	if (SweepDistance > BladeRadius + TargetRadius && !bAtMarkerFallback && !bContactAtMarker) return;
+	// The hit is seen and heard ON the beat: a blade that reaches the player during the
+	// pre-window (up to ~100 ms early) waits for the marker instead of landing early.
+	// Input is still judged against the marker, so nothing about defending changes.
+	if (AudioNow < MarkerAudioTime) { bContactAtMarker = true; return; }
 	// A release note is judged at its authored tail, never on an early blade overlap.
 	if (WindowMarker.RequiredResponse == ERhythmResponseType::HoldBlock &&
 		WindowMarker.HoldMarker == ERhythmHoldMarkerType::End && AudioNow < MarkerAudioTime) return;
@@ -1123,6 +1223,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 			const bool bPerfectCounter = PlayerState->LastJudgment == ERhythmDodgeJudgment::Perfect;
 			FVector Away = (GetOwner()->GetActorLocation() - Target->GetActorLocation()).GetSafeNormal2D();
 			ApplyBossDamageFrom(CounterDamage * (bPerfectCounter ? 1.f : .5f), Target, bPerfectCounter);
+			if(TryBeginPhaseAscension(Target,ClosestBladeFeedbackLocation,true)) return;
 			if (Away.IsNearlyZero()) Away = -GetOwner()->GetActorForwardVector();
 			FHitResult StaggerHit;
 			GetOwner()->AddActorWorldOffset(Away * (bPerfectCounter ? 95.f : 45.f), true, &StaggerHit);
@@ -1133,6 +1234,9 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 			TriggerCinematicClash(WindowIndex, ClosestBladeFeedbackLocation, bStrong);
 			return;
 		}
+		if(bAvoided && PlayerState->LastResponse!=ERhythmResponseType::Dodge &&
+			(PlayerState->LastJudgment==ERhythmDodgeJudgment::Good || PlayerState->LastJudgment==ERhythmDodgeJudgment::Perfect || PlayerState->LastJudgment==ERhythmDodgeJudgment::GoodHold || PlayerState->LastJudgment==ERhythmDodgeJudgment::PerfectHold) &&
+			TryBeginPhaseAscension(Target,ClosestBladeFeedbackLocation,true)) return;
 		if (bAvoided && Marker.RequiredResponse == ERhythmResponseType::HoldBlock &&
 			Marker.HoldMarker == ERhythmHoldMarkerType::End &&
 			PlayerState->LastJudgment == ERhythmDodgeJudgment::PerfectHold)
@@ -1269,6 +1373,10 @@ bool UBeatSyncedComboComponent::StartPlayback(double AudioNowSeconds)
 void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if(TickComboPoseAudit()) return;
+	UpdateBossPhase(GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr);
+	if(bPhaseTransitionActive) return;
+	TickPlayerResonance();
 	if (GetWorld())
 	{
 		const double WorldNow = GetWorld()->GetTimeSeconds();
@@ -1289,7 +1397,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		bLastLocomotionBlocked = false;
 		// A queued attack may be waiting for the next downbeat. Keep locomotion alive
 		// until montage playback actually starts so the Boss does not freeze in place.
-		if (!bPlaying && !bBossHitReacting && GetWorld()->GetTimeSeconds() >= LocomotionResumeWorldSeconds &&
+		if (!bPlaying && !IsPhaseTransitionBlocking() && !bBossHitReacting && GetWorld()->GetTimeSeconds() >= LocomotionResumeWorldSeconds &&
 			Anim && Anim->bIsMoving && DirectionalWalkAnimations.IsValidIndex(0))
 		{
 			// All eight walk samples share the same duration and root travel. The Blend Space
@@ -1461,6 +1569,8 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	{
 		return;
 	}
+	UpdateGroundBurst(Now);
+	if (!bPlaying) return;
 	UpdateDamageSweep(Now);
 	if (!bPlaying) return;
 
@@ -1505,7 +1615,8 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			UAnimInstance* Instance = Mesh->GetAnimInstance();
 			if (!Instance || !Instance->Montage_IsPlaying(AttackData->AttackMontage)) continue;
 			Instance->Montage_SetPlayRate(AttackData->AttackMontage,
-				AttackData->GetRateAtAnimationTime(static_cast<float>(AnimationPosition)));
+				AttackData->ChargeHoldSeconds > 0.f && FMath::IsNearlyEqual(static_cast<float>(AnimationPosition), AttackData->ChargePoseAnimationSeconds, .0001f)
+				? 0.f : AttackData->GetRateAtAnimationTime(static_cast<float>(AnimationPosition)));
 			if (FMath::Abs(Instance->Montage_GetPosition(AttackData->AttackMontage) - AnimationPosition) > 0.02)
 				Instance->Montage_SetPosition(AttackData->AttackMontage, static_cast<float>(AnimationPosition));
 		}
@@ -1519,7 +1630,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	}
 	const float CurrentRootPosition = FMath::Clamp(static_cast<float>(AnimationPosition), 0.0f,
 		AttackData->GetClipEndSeconds());
-	if (RootMotionMesh.IsValid() && (!bBlinkRequested || bBlinkExecuted) && CurrentRootPosition > LastRootMotionPosition)
+	if (GroundBurstImpact == INDEX_NONE && RootMotionMesh.IsValid() && (!bBlinkRequested || bBlinkExecuted) && CurrentRootPosition > LastRootMotionPosition)
 	{
 		UpdateWarpTarget(LastRootMotionPosition);
 		const FTransform LocalDelta = AttackData->AttackMontage->ExtractRootMotionFromTrackRange(
@@ -1579,6 +1690,8 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		bPlaying = false;
 		EndCinematicAccent(false);
 		bLastAttackCompleted = true;
+		RecordPhaseTwoAttackOutcome(true);
+		ClearGroundBurst();
 		RootMotionMesh.Reset();
 		LocomotionResumeWorldSeconds = GetWorld()->GetTimeSeconds() + 0.2;
 		ClearWarping();

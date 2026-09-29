@@ -1,0 +1,447 @@
+{
+  "source": "D:\\Udev\\HearBlade\\Music\\Paramore_AintItFun_UE.wav",
+  "sha256": "e27970b94a61b0557329f60f7d3b8f03235b29f8e50c01ef993d5c21dd3a01cf",
+  "duration_seconds": 227.9503125,
+  "method": "local contrast + spectral attack + center-channel midrange rise",
+  "limitations": "Mixed-audio candidates, not isolated vocals or verified high-note detection. Times are source-file seconds.",
+  "points": [
+    {
+      "source_seconds": 5.534,
+      "strength": 0.8452,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 7.824,
+      "strength": 0.8388,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 10.134,
+      "strength": 0.8209,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 12.444,
+      "strength": 0.7478,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 14.744,
+      "strength": 0.6522,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 17.044,
+      "strength": 0.7616,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 19.364,
+      "strength": 0.7207,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 21.664,
+      "strength": 0.7142,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 23.974,
+      "strength": 0.643,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 26.274,
+      "strength": 0.7887,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 27.874,
+      "strength": 0.7801,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 30.884,
+      "strength": 0.6355,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 34.364,
+      "strength": 0.7089,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 36.674,
+      "strength": 0.6979,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 38.984,
+      "strength": 0.6478,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 40.574,
+      "strength": 0.8748,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 41.854,
+      "strength": 0.7461,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 43.594,
+      "strength": 0.5537,
+      "reason": "mix transient + local contrast",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 47.044,
+      "strength": 0.6735,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 49.364,
+      "strength": 0.5877,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 51.664,
+      "strength": 0.5793,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 53.974,
+      "strength": 0.7952,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 57.444,
+      "strength": 0.6477,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 62.054,
+      "strength": 0.65,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 64.364,
+      "strength": 0.6797,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 67.814,
+      "strength": 0.7843,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 70.124,
+      "strength": 0.7318,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 72.434,
+      "strength": 0.7354,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 75.904,
+      "strength": 0.6864,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 77.904,
+      "strength": 0.5798,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 79.644,
+      "strength": 0.6887,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 81.684,
+      "strength": 0.6244,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 83.974,
+      "strength": 0.7774,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 86.274,
+      "strength": 0.6365,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 90.904,
+      "strength": 0.7036,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 94.364,
+      "strength": 0.7424,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 95.954,
+      "strength": 0.7977,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 97.834,
+      "strength": 0.6019,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 100.124,
+      "strength": 0.7227,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 102.434,
+      "strength": 0.6394,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 104.744,
+      "strength": 0.6098,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 107.054,
+      "strength": 0.6092,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 109.364,
+      "strength": 0.6617,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 112.824,
+      "strength": 0.6641,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 117.454,
+      "strength": 0.6046,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 125.514,
+      "strength": 0.6758,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 130.124,
+      "strength": 0.756,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 132.444,
+      "strength": 0.5956,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 134.744,
+      "strength": 0.6851,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 137.054,
+      "strength": 0.679,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 139.354,
+      "strength": 0.7698,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 141.674,
+      "strength": 0.7077,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 143.974,
+      "strength": 0.7524,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 146.284,
+      "strength": 0.7012,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 148.594,
+      "strength": 0.7374,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 150.324,
+      "strength": 0.6153,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 153.204,
+      "strength": 0.7214,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 155.524,
+      "strength": 0.7428,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 157.824,
+      "strength": 0.7664,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 160.144,
+      "strength": 0.6619,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 162.444,
+      "strength": 0.6383,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 163.894,
+      "strength": 0.6303,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 165.894,
+      "strength": 0.7675,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 170.514,
+      "strength": 0.6532,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 172.824,
+      "strength": 0.6699,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 175.144,
+      "strength": 0.7369,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 178.004,
+      "strength": 0.6628,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 179.724,
+      "strength": 0.7866,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 182.904,
+      "strength": 0.5956,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 185.504,
+      "strength": 0.7806,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 190.124,
+      "strength": 0.6039,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 192.144,
+      "strength": 0.5698,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    },
+    {
+      "source_seconds": 199.364,
+      "strength": 0.6188,
+      "reason": "center-midrange rise + attack",
+      "vocal_verified": false
+    }
+  ]
+}

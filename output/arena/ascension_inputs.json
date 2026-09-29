@@ -1,0 +1,70 @@
+{
+  "Buff": {
+    "skeleton": "/Game/SwordAnim/demo/Characters/Mannequins/Meshes/SK_Mannequin.SK_Mannequin",
+    "length": 2.0999999046325684
+  },
+  "Taunt": {
+    "skeleton": "/Game/SwordAnim/demo/Characters/Mannequins/Meshes/SK_Mannequin.SK_Mannequin",
+    "length": 5.166666507720947
+  },
+  "Defense01_Start": {
+    "skeleton": "/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SK_DKM_Full.SK_DKM_Full",
+    "length": 1.3333333730697632
+  },
+  "Defense01_Loop": {
+    "skeleton": "/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SK_DKM_Full.SK_DKM_Full",
+    "length": 1.6666666269302368
+  },
+  "hit_front": {
+    "skeleton": "/Game/Enemies/DF_DRAGON_KNIGHT/MESHES/UE5/SK_Mannequin.SK_Mannequin",
+    "length": 0.4000000059604645
+  },
+  "animation_api": [
+    "add_virtual_bone",
+    "copy_animation_curve_names_to_skeleton",
+    "does_bone_name_exist",
+    "evaluate_bone_timecode_and_slate_attributes_at_time",
+    "evaluate_root_bone_timecode_attributes_at_time",
+    "evaluate_root_bone_timecode_subframe_attribute_at_time",
+    "finalize_bone_animation",
+    "find_bone_path_to_root",
+    "get_bone_compression_settings",
+    "get_bone_pose_for_frame",
+    "get_bone_pose_for_time",
+    "get_bone_poses_for_frame",
+    "get_bone_poses_for_time",
+    "get_skeleton_additional_preview_meshes",
+    "get_skeleton_preview_mesh",
+    "remove_all_bone_animation",
+    "remove_all_virtual_bones",
+    "remove_bone_animation",
+    "remove_bone_selective_animation",
+    "remove_virtual_bone",
+    "remove_virtual_bones",
+    "set_bone_compression_settings",
+    "set_skeleton_additional_preview_meshes",
+    "set_skeleton_preview_mesh"
+  ],
+  "skeleton_api": [
+    "add_compatible_skeleton",
+    "add_compatible_skeleton_soft",
+    "compatible_skeletons",
+    "copy_bones_from_skeleton",
+    "get_reference_pose"
+  ],
+  "seq_api": [
+    "get_skeleton"
+  ],
+  "SM_HC2_BeatHalo_029": {
+    "origin": "<Struct 'Vector' (0x000002378D044500) {x: -587.061096, y: 0.500000, z: -170.342092}>",
+    "extent": "<Struct 'Vector' (0x000002378D044518) {x: 97.825500, y: 65.827492, z: 152.162761}>"
+  },
+  "SM_HC2_BeatShard_004": {
+    "origin": "<Struct 'Vector' (0x000002378D044C00) {x: 0.000000, y: 0.000000, z: 9.999969}>",
+    "extent": "<Struct 'Vector' (0x000002378D044C18) {x: 41.211536, y: 41.211536, z: 75.000000}>"
+  },
+  "Sword": {
+    "origin": "<Struct 'Vector' (0x000002378D047E40) {x: 0.000000, y: 0.000000, z: 50.172674}>",
+    "extent": "<Struct 'Vector' (0x000002378D047E58) {x: 21.237198, y: 3.796417, z: 84.536036}>"
+  }
+}

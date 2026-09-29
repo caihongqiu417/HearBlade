@@ -5,6 +5,8 @@
 #include "AnimNodes/AnimNode_Slot.h"
 #include "AnimNodes/AnimNode_TwoWayBlend.h"
 #include "Engine/World.h"
+#include "Animation/AnimNodeSpaceConversions.h"
+#include "BoneControllers/AnimNode_ModifyBone.h"
 
 struct FBossCombatAnimProxy : FAnimInstanceProxy
 {
@@ -12,6 +14,9 @@ struct FBossCombatAnimProxy : FAnimInstanceProxy
 	FAnimNode_Slot AttackSlot;
 	FAnimNode_BlendSpacePlayer_Standalone HitNode;
 	FAnimNode_TwoWayBlend RootBlend;
+	FAnimNode_ConvertLocalToComponentSpace ToComponent;
+	FAnimNode_ModifyBone Flinch;
+	FAnimNode_ConvertComponentToLocalSpace ToLocal;
 	int32 LastHitReactionSerial = INDEX_NONE;
 
 	explicit FBossCombatAnimProxy(UAnimInstance* Instance) : FAnimInstanceProxy(Instance)
@@ -24,9 +29,14 @@ struct FBossCombatAnimProxy : FAnimInstanceProxy
 		RootBlend.A.SetLinkNode(&AttackSlot);
 		RootBlend.B.SetLinkNode(&HitNode);
 		RootBlend.AlphaInputType = EAnimAlphaInputType::Float;
+		ToComponent.LocalPose.SetLinkNode(&RootBlend);
+		Flinch.ComponentPose.SetLinkNode(&ToComponent);
+		Flinch.BoneToModify.BoneName=TEXT("spine_03");
+		Flinch.RotationMode=BMM_Additive; Flinch.RotationSpace=BCS_ComponentSpace; Flinch.Alpha=1.f;
+		ToLocal.ComponentPose.SetLinkNode(&Flinch);
 	}
 
-	virtual FAnimNode_Base* GetCustomRootNode() override { return &RootBlend; }
+	virtual FAnimNode_Base* GetCustomRootNode() override { return &ToLocal; }
 
 	virtual void Initialize(UAnimInstance* Instance) override
 	{
@@ -50,6 +60,7 @@ struct FBossCombatAnimProxy : FAnimInstanceProxy
 			LastHitReactionSerial = Combat->HitReactionSerial;
 		}
 		RootBlend.Alpha = Combat->HitBlendAlpha;
+		Flinch.Rotation=Combat->ArmorFlinchRotation;
 	}
 };
 
@@ -93,8 +104,17 @@ void UBossLocomotionAnimInstance::EndDirectionalHit()
 void UBossLocomotionAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
+	const float Age=GetWorld()?float(GetWorld()->GetTimeSeconds()-ArmorFlinchStart):1.f;
+	const float Envelope=Age>=0.f && Age<.20f?FMath::Sin(FMath::Clamp(Age/.035f,0.f,1.f)*HALF_PI)*FMath::Square(1.f-Age/.20f):0.f;
+	ArmorFlinchRotation=FRotator(-ArmorFlinchDirection.X*12.f,0.f,ArmorFlinchDirection.Y*9.f)*ArmorFlinchStrength*Envelope;
 	if (bDirectionalHitActive && GetWorld() && GetWorld()->GetTimeSeconds() >= HitReactionEndWorldSeconds)
 		EndDirectionalHit();
 	HitBlendAlpha = FMath::FInterpTo(HitBlendAlpha, bDirectionalHitActive ? 1.0f : 0.0f,
 		DeltaSeconds, bDirectionalHitActive ? 38.0f : 10.0f);
+}
+
+void UBossLocomotionAnimInstance::PlayArmorFlinch(FVector2D Direction,float Strength)
+{
+	ArmorFlinchStart=GetWorld()?GetWorld()->GetTimeSeconds():0.;
+	ArmorFlinchDirection=Direction.GetSafeNormal(); ArmorFlinchStrength=Strength;
 }

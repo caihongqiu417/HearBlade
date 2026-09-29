@@ -1,0 +1,64 @@
+[
+  {
+    "asset": "/Game/SwordAnim/Animation/UE5/Taunt",
+    "exists": true,
+    "skeleton": "/Game/SwordAnim/demo/Characters/Mannequins/Meshes/SK_Mannequin.SK_Mannequin",
+    "length": 5.166666507720947,
+    "frames": 155,
+    "root_motion": false
+  },
+  {
+    "asset": "/Game/SwordAnim/Animation/UE5/Defense01",
+    "exists": true,
+    "skeleton": "/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SK_DKM_Full.SK_DKM_Full",
+    "length": 4.766666889190674,
+    "frames": 143,
+    "root_motion": false
+  },
+  {
+    "asset": "/Game/SwordAnim/Animation/UE5/Defense01_CounterAttack",
+    "exists": true,
+    "skeleton": "/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SK_DKM_Full.SK_DKM_Full",
+    "length": 2.799999952316284,
+    "frames": 84,
+    "root_motion": false
+  },
+  {
+    "asset": "/Game/SwordAnim/Animation/UE5/hit_front",
+    "exists": true,
+    "skeleton": "/Game/Enemies/DF_DRAGON_KNIGHT/MESHES/UE5/SK_Mannequin.SK_Mannequin",
+    "length": 0.4000000059604645,
+    "frames": 12,
+    "root_motion": false
+  },
+  {
+    "asset": "/Game/SwordAnim/Animation/UE5/Combo03",
+    "exists": true,
+    "skeleton": "/Game/Enemies/DF_DRAGON_KNIGHT/MESHES/UE5/SK_Mannequin.SK_Mannequin",
+    "length": 8.199999809265137,
+    "frames": 246,
+    "root_motion": false
+  },
+  {
+    "asset": "/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/Defense01_CounterAttack",
+    "exists": true,
+    "skeleton": "/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SK_DKM_Full.SK_DKM_Full",
+    "length": 2.799999952316284,
+    "frames": 84,
+    "root_motion": false
+  },
+  {
+    "asset": "/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/Defense01_Loop",
+    "exists": true,
+    "skeleton": "/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SK_DKM_Full.SK_DKM_Full",
+    "length": 1.6666666269302368,
+    "frames": 50,
+    "root_motion": false
+  },
+  {
+    "asset": "/Game/Enemies/DF_DRAGON_KNIGHT/Montage/Combo01_Montage",
+    "exists": true,
+    "skeleton": "/Game/Enemies/DF_DRAGON_KNIGHT/MESHES/UE5/SK_Mannequin.SK_Mannequin",
+    "length": 7.133333206176758
+  }
+]

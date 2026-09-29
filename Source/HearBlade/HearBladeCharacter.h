@@ -42,6 +42,8 @@ class AHearBladeCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UPlayerRhythmCombatComponent> RhythmCombat;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
+	TObjectPtr<class UPlayerBeatAttackComponent> BeatAttack;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UPerfectDodgeFeedbackComponent> PerfectDodgeFeedback;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta=(AllowPrivateAccess="true"))
 	TObjectPtr<UStaticMeshComponent> EquippedSword;
@@ -72,6 +74,7 @@ public:
 	AHearBladeCharacter();	
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void BeginPlay() override;
+	void SyncAttackWeapon() { UpdateSwordDirection(0.f); }
 
 protected:
 
@@ -90,6 +93,9 @@ protected:
 	void BlockStarted();
 	void BlockEnded();
 	void Counter();
+	void LightAttack();
+	void HeavyAttack();
+	void ActivateResonance();
 
 public:
 
@@ -117,13 +123,25 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	UFUNCTION(BlueprintCallable, Category="Combat") void DoDodge();
+	// Camera-relative world direction the stick/WASD currently asks for (read even while an action ignores movement).
+	FVector GetWorldMoveIntent() const;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> DodgeAction;
 	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> DodgeMapping;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> BlockAction;
 	UPROPERTY(Transient) TObjectPtr<UInputAction> CounterAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> LightAttackAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> HeavyAttackAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> MousePrimaryCombatAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> MouseSecondaryCombatAction;
+	UPROPERTY(Transient) TObjectPtr<UInputAction> ResonanceAction;
 	UPROPERTY(Transient) TObjectPtr<UInputMappingContext> DefenseMapping;
 
 private:
+	bool bMouseSecondaryOwnsBlock=false;
+	void MousePrimaryCombatPressed();
+	void MouseSecondaryCombatReleased();
+	void MouseSecondaryCombatPressed();
+	FVector2D CurrentMoveInput=FVector2D::ZeroVector;
 	void UpdateKnightLocomotion(float DeltaSeconds);
 	void UpdateCombatFacing(float DeltaSeconds);
 	void UpdateSwordDirection(float DeltaSeconds);
@@ -138,10 +156,18 @@ private:
 	UPROPERTY(Transient) TObjectPtr<UBlendSpace> KnightLocomotionBlendSpace;
 	TWeakObjectPtr<UAnimationAsset> ActiveKnightAnimation;
 	FVector2D SmoothedLocomotionInput = FVector2D::ZeroVector;
+	bool bPursuitGait = false;
 	UPROPERTY(EditAnywhere, Category="移动|战斗锁定", meta=(ClampMin="100.0", ClampMax="350.0"))
 	float LockedCombatWalkSpeed = 200.0f;
 	UPROPERTY(EditAnywhere, Category="移动|自由状态", meta=(ClampMin="300.0", ClampMax="800.0"))
-	float FreeRunSpeed = 500.0f;
+	float FreeRunSpeed = 400.0f;
+	// Authored ground speeds of the walk / run / fast-run rings of the locomotion
+	// blend space, measured from the clips at BeginPlay (fallbacks if in-place).
+	// Velocity is mapped onto these so the pose matches the speed (no foot skate).
+	float WalkAnimSpeed = 170.f, RunAnimSpeed = 380.f, FastAnimSpeed = 560.f;
+	void MeasureLocomotionSpeeds();
+	float LocomotionRadiusForSpeed(float Speed) const;
+	float LocomotionSpeedForRadius(float Radius) const;
 	UPROPERTY(EditAnywhere, Category="移动|战斗锁定", meta=(ClampMin="0.25", ClampMax="0.55"))
 	float LockedWalkBlendRadius = 0.38f;
 	UPROPERTY(EditAnywhere, Category="移动|战斗锁定", meta=(ClampMin="1.0", ClampMax="30.0"))

@@ -1,6 +1,8 @@
 #include "BeatComboEditorWidget.h"
+#include "Misc/CommandLine.h"
 
 #include "Combat/AttackData.h"
+#include "Combat/MusicEmphasisData.h"
 #include "Combat/RhythmResponseVisualData.h"
 #include "AssetRegistry/AssetData.h"
 #include "DesktopPlatformModule.h"
@@ -237,6 +239,14 @@ int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geome
 			FText::FromString(FString::Printf(TEXT("%d s"), Second)), SmallFont,
 			ESlateDrawEffect::None, FLinearColor(0.72f, 0.78f, 0.86f));
 	}
+	if(const auto* Emphasis=Editor->GetMusicEmphasis())
+		for(const auto& Point:Emphasis->Points)
+			if(Point.bEnabled&&Point.Strength>=Emphasis->MinimumStrength&&Point.SourceSeconds>=Start&&Point.SourceSeconds<=End)
+			{
+				const float X=ToX(Point.SourceSeconds);
+				DrawLine(Elements,LayerId+3,Geometry,X,Height*.68f,X,Height*.86f,FLinearColor(1.f,.45f,.15f),2.f);
+				FSlateDrawElement::MakeText(Elements,LayerId+4,Geometry.ToPaintGeometry(FVector2D(80,17),FSlateLayoutTransform(FVector2D(X+3,Height*.68f))),FText::FromString(FString::Printf(TEXT("强调 %.0f"),Point.Strength*100)),SmallFont,ESlateDrawEffect::None,FLinearColor(1.f,.65f,.25f));
+			}
 	const double RequestTime = Editor->GetPreviewRequestSourceSeconds();
 	if (RequestTime >= Start && RequestTime <= End)
 	{
@@ -271,6 +281,17 @@ int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geome
 			}
 		}
 		const int32 Count = Data->ImpactMarkers.Num();
+		if(Data->ChargeHoldSeconds>0.f)
+		{
+			const double PoseTime=MontageStart+Editor->GetPreviewElapsedAtAnimationTime(Data->ChargePoseAnimationSeconds)-Editor->GetPreviewElapsedAtAnimationTime(Data->ClipStartSeconds);
+			if(PoseTime>=Start&&PoseTime<=End)
+			{
+				const float PoseX=ToX(PoseTime);
+				DrawLine(Elements,LayerId+3,Geometry,PoseX,0,PoseX,Height,FLinearColor(.7f,.45f,1.f),1.5f);
+				DrawLine(Elements,LayerId+3,Geometry,PoseX,Height*.32f,ToX(FMath::Min(End,PoseTime+Data->ChargeHoldSeconds)),Height*.32f,FLinearColor(.7f,.45f,1.f),5.f);
+				FSlateDrawElement::MakeText(Elements,LayerId+4,Geometry.ToPaintGeometry(FVector2D(230,17),FSlateLayoutTransform(FVector2D(PoseX+3,Height*.32f+5.f))),FText::FromString(FString::Printf(TEXT("蓄力姿态 %df / %.3fs（不伤害）"),Data->ChargePoseSourceFrame,Data->ChargeHoldSeconds)),SmallFont,ESlateDrawEffect::None,FLinearColor(.8f,.6f,1.f));
+			}
+		}
 		for (int32 Index = 0; Index < Count; ++Index)
 		{
 			const double AnimationTime = Data->ImpactMarkers[Index].AnimationTimeSeconds;
@@ -293,6 +314,25 @@ int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geome
 				ResponseColor = FLinearColor(1.0f, .03f, .03f);
 				ResponseLabel += TEXT(" 配置错误");
 			}
+			const auto& Marker=Data->ImpactMarkers[Index];
+			if (Marker.DamageShape==EBossAttackDamageShape::GroundBurst) ResponseLabel=TEXT("范围落地");
+			if (Editor->IsPhaseTwoPreview()) {ResponseColor=FLinearColor(.85f,.9f,1.f);ResponseLabel=TEXT("节拍");}
+			const FString FrameLabel=Marker.SourceFrame>=0?FString::Printf(TEXT(" [%df]"),Marker.SourceFrame):TEXT("");
+			ResponseLabel+=FrameLabel;
+			const double InputLead=Marker.DamageShape==EBossAttackDamageShape::GroundBurst ||
+				(Marker.RequiredResponse==ERhythmResponseType::HoldBlock&&Marker.HoldMarker==ERhythmHoldMarkerType::End)?0.:Marker.IdealDodgeLeadSeconds;
+			const double HintTime=Time-InputLead-Marker.Recognition.LeadBeats*Editor->GetBeatPeriod();
+			if(HintTime>=Start&&HintTime<=End)
+			{
+				const float HintX=ToX(HintTime);
+				DrawLine(Elements,LayerId+3,Geometry,HintX,Height*.55f,HintX,Height*.8f,FLinearColor(.9f,.75f,.3f,.8f),1.f);
+				FSlateDrawElement::MakeText(Elements,LayerId+4,Geometry.ToPaintGeometry(FVector2D(90,17),FSlateLayoutTransform(FVector2D(HintX+3,Height*.55f))),FText::FromString(TEXT("识别提示")),SmallFont,ESlateDrawEffect::None,FLinearColor(.9f,.75f,.3f));
+			}
+			if(Marker.DamageShape==EBossAttackDamageShape::GroundBurst&&Index>0)
+			{
+				const double LockTime=MontageStart+Editor->GetPreviewElapsedAtAnimationTime(Data->ImpactMarkers[Index-1].AnimationTimeSeconds)-Editor->GetPreviewElapsedAtAnimationTime(Data->ClipStartSeconds);
+				DrawLine(Elements,LayerId+3,Geometry,ToX(FMath::Max(Start,LockTime)),Height*.88f,X,Height*.88f,FLinearColor(1,.25f,.05f),4.f);
+			}
 			DrawLine(Elements, LayerId + 4, Geometry, X, 0, X, Height,
 				ResponseColor, 3.0f);
 			FSlateDrawElement::MakeText(Elements, LayerId + 5,
@@ -301,7 +341,13 @@ int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geome
 				ESlateDrawEffect::None, ResponseColor);
 			UTexture2D* Icon = Data->ImpactMarkers[Index].PromptIconOverride;
 			if (!Icon && ResponseVisuals) Icon = ResponseVisuals->Get(Data->ImpactMarkers[Index].RequiredResponse).Icon;
-			if (Icon)
+			if (Editor->IsPhaseTwoPreview())
+			{
+				TArray<FVector2D> Circle;
+				for(int32 P=0;P<=32;++P) {const float A=P*UE_TWO_PI/32.f;Circle.Add(FVector2D(ToX(Time-InputLead)+12.f*FMath::Cos(A),Height-43.f+12.f*FMath::Sin(A)));}
+				FSlateDrawElement::MakeLines(Elements,LayerId+6,Geometry.ToPaintGeometry(),Circle,ESlateDrawEffect::None,ResponseColor,true,2.f);
+			}
+			else if (Icon)
 			{
 				FSlateBrush IconBrush;
 				IconBrush.SetResourceObject(Icon);
@@ -555,6 +601,7 @@ void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("中段持续格挡"))).OnClicked_Lambda([this](){ return ApplyResponseTemplate(4); })]
 				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("清除覆盖"))).OnClicked_Lambda([this](){ return ApplyResponseTemplate(5); })]
 				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text(FText::FromString(TEXT("检查配置"))).OnClicked(this, &SBeatComboEditorWidget::ValidateResponses)]
+				+ SHorizontalBox::Slot().AutoWidth().Padding(3)[SNew(SButton).Text_Lambda([this](){return FText::FromString(bPhaseTwoPreview?TEXT("预览：二阶段圆圈"):TEXT("预览：一阶段指令"));}).OnClicked_Lambda([this](){bPhaseTwoPreview=!bPhaseTwoPreview;RefreshTimeline();return FReply::Handled();})]
 			]
 			+ SVerticalBox::Slot().AutoHeight().Padding(4)
 			[
@@ -606,8 +653,16 @@ void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 		]
 	];
 
+	EmphasisData.Reset(LoadObject<UMusicEmphasisData>(nullptr,TEXT("/Game/Audio/Music/DA_AintItFun_Emphasis")));
 	SelectAsset(LoadObject<UAttackDataAsset>(nullptr,
 		TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/DA_DragonKnight_Combo01_Beat.DA_DragonKnight_Combo01_Beat")));
+	if(FParse::Param(FCommandLine::Get(),TEXT("BeatEditorAudit")))
+	{
+		SelectAsset(LoadObject<UAttackDataAsset>(nullptr,TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/DA_DragonKnight_Combo03_Beat")));
+		bPhaseTwoPreview=true;ViewStart=46.;ViewDuration=12.;
+		FString Error;
+		UE_LOG(LogTemp,Display,TEXT("BeatEditorAudit: config valid=%d %s"),ValidateResponseConfiguration(Error),*Error);
+	}
 	LoadWav();
 }
 
@@ -673,10 +728,23 @@ bool SBeatComboEditorWidget::ValidateResponseConfiguration(FString& OutError) co
 {
 	const UAttackDataAsset* Data = AttackData.Get();
 	if (!Data) { OutError=TEXT("错误：未选择攻击数据"); return false; }
+	if(Data->ChargeHoldSeconds>0.f&&(Data->ChargePoseAnimationSeconds<Data->ClipStartSeconds||Data->ChargePoseAnimationSeconds>=Data->GetClipEndSeconds()))
+	{OutError=TEXT("错误：蓄力姿态必须位于动作片段内部");return false;}
 	TMap<FName, FIntPoint> Ranges;
 	for (int32 Index=0; Index<Data->ImpactMarkers.Num(); ++Index)
 	{
 		const FAttackImpactMarker& Marker=Data->ImpactMarkers[Index];
+		if (Marker.Recognition.LeadBeats<.25f || Marker.AnimationTimeSeconds<Data->ClipStartSeconds || Marker.AnimationTimeSeconds>Data->GetClipEndSeconds())
+		{OutError=FString::Printf(TEXT("错误：第%d击识别提前量或动画时间无效"),Index+1);return false;}
+		if(Index>0&&Marker.AnimationTimeSeconds<=Data->ImpactMarkers[Index-1].AnimationTimeSeconds)
+		{OutError=TEXT("错误：命中时间必须严格递增");return false;}
+		if(Marker.DamageShape==EBossAttackDamageShape::GroundBurst)
+		{
+			const double LockAnimation=Index>0?Data->ImpactMarkers[Index-1].AnimationTimeSeconds:Data->ClipStartSeconds;
+			const double Warning=GetPreviewElapsedAtAnimationTime(Marker.AnimationTimeSeconds)-GetPreviewElapsedAtAnimationTime(LockAnimation);
+			if(Warning+.001<Marker.GroundBurst.WarningBeats*GetBeatPeriod())
+			{OutError=FString::Printf(TEXT("错误：第%d击范围预警只有%.2f拍，至少需要%.2f拍"),Index+1,Warning/GetBeatPeriod(),Marker.GroundBurst.WarningBeats);return false;}
+		}
 		if (Marker.PromptLeadBeats < 0.f || Marker.PromptIconScale <= 0.f)
 		{ OutError=FString::Printf(TEXT("错误：第 %d 击的图标/提前量无效"),Index+1); return false; }
 		if (Marker.RequiredResponse==ERhythmResponseType::HoldBlock)
@@ -831,6 +899,11 @@ void SBeatComboEditorWidget::RebuildResponseControls()
 	if (!Data) return;
 	for (int32 Index = 0; Index < Data->ImpactMarkers.Num(); ++Index)
 	{
+		if(Data->ImpactMarkers[Index].DamageShape==EBossAttackDamageShape::GroundBurst)
+		{
+			ResponsesBox->AddSlot().AutoHeight().Padding(5)[SNew(STextBlock).Text(FText::FromString(FString::Printf(TEXT("第 %d 击：范围落地 — 移动脱离危险圈；格挡、反击和闪避无敌帧不能抵消。半径与奖励在下方范围攻击设置中调整。"),Index+1)))];
+			continue;
+		}
 		ResponsesBox->AddSlot().AutoHeight().Padding(2)
 		[
 			SNew(SHorizontalBox)
@@ -883,6 +956,12 @@ FReply SBeatComboEditorWidget::SelectHoldRangeEndpoint(int32 ImpactIndex)
 	return FReply::Handled();
 }
 
+const UMusicEmphasisData* SBeatComboEditorWidget::GetMusicEmphasis() const
+{
+	const auto* Data=EmphasisData.Get();
+	return Data&&Data->bEnabled&&FPaths::GetCleanFilename(WavPath)==Data->SourceWavFilename?Data:nullptr;
+}
+
 double SBeatComboEditorWidget::GetFirstBeatSourceSeconds() const
 {
 	const double Period = GetBeatPeriod();
@@ -911,6 +990,17 @@ int32 SBeatComboEditorWidget::GetSelectedBeat() const
 		const int32 WantedBeatInBar = FMath::Clamp(Data->FirstImpactBeatInBar, 1, BeatsPerBar) - 1;
 		CandidateBeat += (WantedBeatInBar - CandidateBeat % BeatsPerBar + BeatsPerBar) % BeatsPerBar;
 	}
+	if(const auto* Emphasis=GetMusicEmphasis();Emphasis&&Data&&!Data->ImpactMarkers.IsEmpty())
+	{
+		const double Gap=GetPreviewElapsedAtAnimationTime(Data->ImpactMarkers.Last().AnimationTimeSeconds)-GetPreviewElapsedAtAnimationTime(FirstTime);
+		const int32 First=CandidateBeat,Step=Data->FirstImpactBeatInBar>0?4:1;
+		float Best=0.f;
+		for(int32 Beat=First;Beat<=First+FMath::Clamp(Emphasis->MaxExtraWaitBeats,0.f,8.f);Beat+=Step)
+		{
+			const float Score=Emphasis->ScoreAt(GetFirstBeatSourceSeconds()+Beat*GetBeatPeriod()+Gap)-.035f*(Beat-First);
+			if(Score>Best){Best=Score;CandidateBeat=Beat;}
+		}
+	}
 	return CandidateBeat;
 }
 
@@ -927,9 +1017,11 @@ double SBeatComboEditorWidget::GetMontageStartSourceSeconds() const
 double SBeatComboEditorWidget::GetPreviewElapsedAtAnimationTime(double AnimationTime) const
 {
 	const UAttackDataAsset* Data = AttackData.Get();
+	const double Hold = Data && Data->ChargeHoldSeconds > 0.f && AnimationTime > Data->ChargePoseAnimationSeconds
+		? Data->ChargeHoldSeconds : 0.0;
 	if (!Data || !bUseSegmentRates || PreviewSegmentRates.Num() != Data->ImpactMarkers.Num() + 1)
 	{
-		return AnimationTime / FMath::Max(0.01f, PreviewRate);
+		return AnimationTime / FMath::Max(0.01f, PreviewRate) + Hold;
 	}
 	double Elapsed = 0.0;
 	double Previous = 0.0;
@@ -938,11 +1030,11 @@ double SBeatComboEditorWidget::GetPreviewElapsedAtAnimationTime(double Animation
 	{
 		const double End = FMath::Min(AnimationTime, static_cast<double>(Marker.AnimationTimeSeconds));
 		if (End > Previous) Elapsed += (End - Previous) / PreviewSegmentRates[Segment];
-		if (AnimationTime <= Marker.AnimationTimeSeconds) return Elapsed;
+		if (AnimationTime <= Marker.AnimationTimeSeconds) return Elapsed + Hold;
 		Previous = Marker.AnimationTimeSeconds;
 		++Segment;
 	}
-	return Elapsed + FMath::Max(0.0, AnimationTime - Previous) / PreviewSegmentRates[Segment];
+	return Elapsed + FMath::Max(0.0, AnimationTime - Previous) / PreviewSegmentRates[Segment] + Hold;
 }
 
 void SBeatComboEditorWidget::PickRequestAtSourceSeconds(double SourceSeconds)
@@ -1127,8 +1219,10 @@ FReply SBeatComboEditorWidget::AutoAlignSegments()
 	{
 		const double AnimationGap = Data->ImpactMarkers[Index].AnimationTimeSeconds -
 			Data->ImpactMarkers[Index - 1].AnimationTimeSeconds;
-		const double BeatGap = (Data->ImpactMarkers[Index].BeatOffset -
+		double BeatGap = (Data->ImpactMarkers[Index].BeatOffset -
 			Data->ImpactMarkers[Index - 1].BeatOffset) * Period;
+		if(Data->ChargeHoldSeconds>0.f&&Data->ChargePoseAnimationSeconds>=Data->ImpactMarkers[Index-1].AnimationTimeSeconds&&Data->ChargePoseAnimationSeconds<Data->ImpactMarkers[Index].AnimationTimeSeconds)
+			BeatGap-=Data->ChargeHoldSeconds;
 		if (AnimationGap <= 0.0 || BeatGap <= 0.0)
 		{
 			Status = TEXT("相邻命中时间和目标拍数必须递增");
@@ -1216,17 +1310,29 @@ FText SBeatComboEditorWidget::GetSummary() const
 	const double FirstTime = Data->ImpactMarkers.IsEmpty()
 		? Data->AuthoredImpactTime : Data->ImpactMarkers[0].AnimationTimeSeconds;
 	double MaxError = 0.0;
+	double SignedMaxError = 0.0;
+	int32 MaxErrorIndex = INDEX_NONE;
+	int32 MarkerIndex = 0;
 	for (const FAttackImpactMarker& Marker : Data->ImpactMarkers)
 	{
 		const double Actual = GetPreviewElapsedAtAnimationTime(Marker.AnimationTimeSeconds) -
 			GetPreviewElapsedAtAnimationTime(FirstTime);
 		const double Desired = Marker.BeatOffset * GetBeatPeriod();
-		MaxError = FMath::Max(MaxError, FMath::Abs(Actual - Desired));
+		if(FMath::Abs(Actual-Desired)>MaxError)
+		{
+			MaxError=FMath::Abs(Actual-Desired);
+			SignedMaxError=Actual-Desired;
+			MaxErrorIndex=MarkerIndex;
+		}
+		++MarkerIndex;
 	}
+	const FString TimingWarning=MaxError>.05
+		? FString::Printf(TEXT(" | 提醒：第%d击比配置拍点%s%.0f毫秒，仅供参考，不阻止保存"),MaxErrorIndex+1,SignedMaxError<0.?TEXT("提前"):TEXT("延后"),MaxError*1000.)
+		: FString();
 	return FText::FromString(FString::Printf(
-		TEXT("触发攻击 %.3f s  |  第一击限小节第 %d 拍  |  目标拍 %d / 第一击 %.3f s  |  起手 %.3f s  |  %s  |  最大偏差 %.1f ms  |  %s"),
+		TEXT("触发攻击 %.3f s  |  第一击限小节第 %d 拍  |  目标拍 %d / 第一击 %.3f s  |  起手 %.3f s  |  %s  |  最大偏差 %.1f ms  |  %s%s"),
 		PreviewRequestSourceSeconds, Data->FirstImpactBeatInBar, GetSelectedBeat(), Impact, Start,
-		bUseSegmentRates ? TEXT("逐击变速") : TEXT("整段同速"), MaxError * 1000.0, *Status));
+		bUseSegmentRates ? TEXT("逐击变速") : TEXT("整段同速"), MaxError * 1000.0, *Status,*TimingWarning));
 }
 
 void SBeatComboEditorWidget::RefreshTimeline()

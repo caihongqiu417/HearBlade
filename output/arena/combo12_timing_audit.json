@@ -1,0 +1,300 @@
+{
+  "DA_DragonKnight_Combo01_Beat": {
+    "baseline": {
+      "attack_montage": "/Game/Enemies/DF_DRAGON_KNIGHT/Montage/Combo01_Montage.Combo01_Montage",
+      "clip_start_seconds": 0.0,
+      "clip_end_seconds": 0.0,
+      "authored_impact_time": 0.800000011920929,
+      "play_rate": 1.0030001401901245,
+      "segment_play_rates": [
+        1.3715405464172363,
+        1.4532060623168945,
+        1.3077986240386963,
+        1.3519597053527832
+      ],
+      "reference_bpm": 104.0,
+      "reference_beat_phase_seconds": 0.204,
+      "reference_music_start_seconds": 4.0,
+      "first_impact_beat_in_bar": 1,
+      "charge_hold_seconds": 0.0,
+      "charge_pose_animation_seconds": 0.0,
+      "markers": [
+        {
+          "animation_time_seconds": 0.800000011920929,
+          "beat_offset": 0.0,
+          "damage": 18.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.DODGE: 0>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 2.5329999923706055,
+          "beat_offset": 3.0,
+          "damage": 20.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.BLOCK: 1>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 3.9830000400543213,
+          "beat_offset": 5.5,
+          "damage": 30.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.COUNTER: 2>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        }
+      ],
+      "patterns": []
+    },
+    "current": {
+      "attack_montage": "/Game/Enemies/DF_DRAGON_KNIGHT/Montage/Combo01_Montage.Combo01_Montage",
+      "clip_start_seconds": 0.0,
+      "clip_end_seconds": 0.0,
+      "authored_impact_time": 0.800000011920929,
+      "play_rate": 1.0030001401901245,
+      "segment_play_rates": [
+        1.3715405464172363,
+        1.4532060623168945,
+        1.3077986240386963,
+        1.3519597053527832
+      ],
+      "reference_bpm": 104.0,
+      "reference_beat_phase_seconds": 0.204,
+      "reference_music_start_seconds": 4.0,
+      "first_impact_beat_in_bar": 1,
+      "charge_hold_seconds": 0.0,
+      "charge_pose_animation_seconds": 0.0,
+      "markers": [
+        {
+          "animation_time_seconds": 0.800000011920929,
+          "beat_offset": 0.0,
+          "damage": 18.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.DODGE: 0>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 2.5329999923706055,
+          "beat_offset": 3.0,
+          "damage": 20.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.BLOCK: 1>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 3.9830000400543213,
+          "beat_offset": 5.5,
+          "damage": 30.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.COUNTER: 2>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        }
+      ],
+      "patterns": []
+    },
+    "differences": {}
+  },
+  "DA_DragonKnight_Combo02_Beat": {
+    "baseline": {
+      "attack_montage": "/Game/Enemies/DF_DRAGON_KNIGHT/Montage/Combo02_BeatMontage.Combo02_BeatMontage",
+      "clip_start_seconds": 0.0,
+      "clip_end_seconds": 0.0,
+      "authored_impact_time": 0.46666666865348816,
+      "play_rate": 1.0,
+      "segment_play_rates": [
+        0.8411146402359009,
+        1.1555556058883667,
+        1.0399999618530273,
+        1.2133333683013916,
+        0.8955555558204651,
+        1.5826666355133057
+      ],
+      "reference_bpm": 104.0,
+      "reference_beat_phase_seconds": 0.204,
+      "reference_music_start_seconds": 4.0,
+      "first_impact_beat_in_bar": 1,
+      "charge_hold_seconds": 0.0,
+      "charge_pose_animation_seconds": 0.0,
+      "markers": [
+        {
+          "animation_time_seconds": 0.46666666865348816,
+          "beat_offset": 0.0,
+          "damage": 10.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.DODGE: 0>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 1.7999999523162842,
+          "beat_offset": 2.0,
+          "damage": 12.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.HOLD_BLOCK: 3>",
+          "hold_marker": "<RhythmHoldMarkerType.START: 1>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 2.4000000953674316,
+          "beat_offset": 3.0,
+          "damage": 14.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.HOLD_BLOCK: 3>",
+          "hold_marker": "<RhythmHoldMarkerType.CONTINUE: 2>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 3.0999999046325684,
+          "beat_offset": 4.0,
+          "damage": 18.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.HOLD_BLOCK: 3>",
+          "hold_marker": "<RhythmHoldMarkerType.END: 3>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 4.133333206176758,
+          "beat_offset": 6.0,
+          "damage": 28.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.COUNTER: 2>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        }
+      ],
+      "patterns": [
+        "(PatternName=\"HoldChain\",Weight=1.000000,FirstImpactIndex=1,Instructions=((RequiredResponse=HoldBlock,HoldMarker=Start,HoldGroup=\"Combo02Hold\"),(RequiredResponse=HoldBlock,HoldMarker=Continue,HoldGroup=\"Combo02Hold\"),(RequiredResponse=HoldBlock,HoldMarker=End,HoldGroup=\"Combo02Hold\")))",
+        "(PatternName=\"ParryParryCounter\",Weight=1.000000,FirstImpactIndex=1,Instructions=((HoldGroup=\"\"),(HoldGroup=\"\"),(RequiredResponse=Counter,HoldGroup=\"\")))",
+        "(PatternName=\"ParryDodgeCounter\",Weight=1.000000,FirstImpactIndex=1,Instructions=((HoldGroup=\"\"),(RequiredResponse=Dodge,HoldGroup=\"\"),(RequiredResponse=Counter,HoldGroup=\"\")))"
+      ]
+    },
+    "current": {
+      "attack_montage": "/Game/Enemies/DF_DRAGON_KNIGHT/Montage/Combo02_BeatMontage.Combo02_BeatMontage",
+      "clip_start_seconds": 0.0,
+      "clip_end_seconds": 0.0,
+      "authored_impact_time": 0.46666666865348816,
+      "play_rate": 1.0,
+      "segment_play_rates": [
+        0.8411146402359009,
+        1.1555556058883667,
+        1.0399999618530273,
+        1.2133333683013916,
+        0.8955555558204651,
+        1.5826666355133057
+      ],
+      "reference_bpm": 104.0,
+      "reference_beat_phase_seconds": 0.204,
+      "reference_music_start_seconds": 4.0,
+      "first_impact_beat_in_bar": 1,
+      "charge_hold_seconds": 0.0,
+      "charge_pose_animation_seconds": 0.0,
+      "markers": [
+        {
+          "animation_time_seconds": 0.46666666865348816,
+          "beat_offset": 0.0,
+          "damage": 10.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.DODGE: 0>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 1.7999999523162842,
+          "beat_offset": 2.0,
+          "damage": 12.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.HOLD_BLOCK: 3>",
+          "hold_marker": "<RhythmHoldMarkerType.START: 1>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 2.4000000953674316,
+          "beat_offset": 3.0,
+          "damage": 14.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.HOLD_BLOCK: 3>",
+          "hold_marker": "<RhythmHoldMarkerType.CONTINUE: 2>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 3.0999999046325684,
+          "beat_offset": 4.0,
+          "damage": 18.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.HOLD_BLOCK: 3>",
+          "hold_marker": "<RhythmHoldMarkerType.END: 3>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        },
+        {
+          "animation_time_seconds": 4.133333206176758,
+          "beat_offset": 6.0,
+          "damage": 28.0,
+          "ideal_dodge_lead_seconds": 0.14000000059604645,
+          "damage_window_before_seconds": 0.10000000149011612,
+          "damage_window_after_seconds": 0.10000000149011612,
+          "required_response": "<RhythmResponseType.COUNTER: 2>",
+          "hold_marker": "<RhythmHoldMarkerType.NONE: 0>",
+          "hold_group": "HoldA",
+          "prompt_lead_beats": 3.0
+        }
+      ],
+      "patterns": [
+        "(PatternName=\"HoldChain\",Weight=1.000000,FirstImpactIndex=1,Instructions=((RequiredResponse=HoldBlock,HoldMarker=Start,HoldGroup=\"Combo02Hold\"),(RequiredResponse=HoldBlock,HoldMarker=Continue,HoldGroup=\"Combo02Hold\"),(RequiredResponse=HoldBlock,HoldMarker=End,HoldGroup=\"Combo02Hold\")))",
+        "(PatternName=\"ParryParryCounter\",Weight=1.000000,FirstImpactIndex=1,Instructions=((HoldGroup=\"\"),(HoldGroup=\"\"),(RequiredResponse=Counter,HoldGroup=\"\")))",
+        "(PatternName=\"ParryDodgeCounter\",Weight=1.000000,FirstImpactIndex=1,Instructions=((HoldGroup=\"\"),(RequiredResponse=Dodge,HoldGroup=\"\"),(RequiredResponse=Counter,HoldGroup=\"\")))"
+      ]
+    },
+    "differences": {}
+  }
+}

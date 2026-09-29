@@ -1,0 +1,83 @@
+Using bundled DotNet SDK version: 10.0 win-x64
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" HearBladeEditor Win64 Development D:\Udev\HearBlade\HearBlade.uproject -WaitMutex -NoHotReloadFromIDE
+Log file: C:\Users\26349\AppData\Local\UnrealBuildTool\Log.txt
+Determining max actions to execute in parallel (16 physical cores, 32 logical cores)
+  Executing up to 16 processes, one per physical core
+Using 'git status' to determine working set for adaptive non-unity build (D:\Udev\HearBlade).
+UbaServer - Listening on 0.0.0.0:1345
+UHT compiled-in object format Default
+Building HearBladeEditor...
+===== Toolchain Information =====
+Using ISPC compiler (D:\Epic Games\UE_5.8\Engine\Source\ThirdParty\Intel\ISPC\bin\Windows\ispc.exe)
+  Intel(r) Implicit SPMD Program Compiler (Intel(r) ISPC), 1.24.0 (build commit  @ 20250404, LLVM 18.1.2) 
+Using Visual Studio 14.44.35228 toolchain (C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+[Adaptive Build] Excluded from HearBladeBeatEditor unity file: BeatComboEditorWidget.cpp, HearBladeBeatEditorModule.cpp
+[Adaptive Build] Excluded from HearBlade unity file: BeatClockSubsystem.cpp, AttackData.cpp, AttackReadabilityComponent.cpp, AttackTimingTests.cpp, BeatSyncedComboComponent.cpp, BossCombatCameraComponent.cpp, BossGroundBurst.cpp, BossMusicEmphasis.cpp, BossPhaseTransition.cpp, BTTask_BeatAttack.cpp, ComboPoseAudit.cpp, PlayerRhythmCombatComponent.cpp, RhythmCaptureComponent.cpp, SoundstageBeatController.cpp, RhythmCombatHUD.cpp
+=================================
+Using Unreal Build Accelerator local executor to run 18 action(s)
+  CPU 16 physical cores, 32 logical cores
+  Memory 31.8 GB physical, 49.89 GB/111.8 GB committed
+  UBA Storage capacity 40 GB
+[1/18] Compile [x64] HearBladeBeatEditorModule.cpp
+D:\Epic Games\UE_5.8\Engine\Source\Runtime\Core\Public\Templates\PointerIsConvertibleFromTo.h(19,3): error C2027: 使用了未定义类型“UMusicEmphasisData”
+		UE_STATIC_ASSERT_COMPLETE_TYPE(From, "TPointerIsConvertibleFromTo must not be instantiated with incomplete types");
+		^
+D:\Udev\HearBlade\Plugins\HearBladeBeatEditor\Source\HearBladeBeatEditor\Private\BeatComboEditorWidget.h(8,7): note: 参见“UMusicEmphasisData”的声明
+class UMusicEmphasisData;
+      ^
+D:\Epic Games\UE_5.8\Engine\Source\Runtime\Core\Public\Templates\PointerIsConvertibleFromTo.h(19,3): note: 模板实例化上下文(最早的实例化上下文)为
+		UE_STATIC_ASSERT_COMPLETE_TYPE(From, "TPointerIsConvertibleFromTo must not be instantiated with incomplete types");
+		^
+D:\Udev\HearBlade\Plugins\HearBladeBeatEditor\Source\HearBladeBeatEditor\Private\BeatComboEditorWidget.h(69,39): note: 查看对正在编译的 类 模板 实例化“TStrongObjectPtr<UMusicEmphasisData,UEStrongObjectPtr_Private::FInternalReferenceCollectorReferencerNameProvider>”的引用
+	TStrongObjectPtr<UMusicEmphasisData> EmphasisData;
+	                                     ^
+D:\Epic Games\UE_5.8\Engine\Source\Runtime\Core\Public\UObject\StrongObjectPtrTemplates.h(52,16): note: 在编译 类 模板 成员函数“TStrongObjectPtr<UMusicEmphasisData,UEStrongObjectPtr_Private::FInternalReferenceCollectorReferencerNameProvider>::TStrongObjectPtr(TYPE_OF_NULLPTR)”时
+	[[nodiscard]] UE_FORCEINLINE_HINT TStrongObjectPtr(TYPE_OF_NULLPTR = nullptr)
+	              ^
+D:\Udev\HearBlade\Plugins\HearBladeBeatEditor\Source\HearBladeBeatEditor\Private\BeatComboEditorWidget.h(91,1): note: 请参阅 "SBeatComboEditorWidget::SBeatComboEditorWidget" 中对 "TStrongObjectPtr<UMusicEmphasisData,UEStrongObjectPtr_Private::FInternalReferenceCollectorReferencerNameProvider>::TStrongObjectPtr" 的第一个引用
+};
+^
+D:\Epic Games\UE_5.8\Engine\Source\Runtime\Core\Public\UObject\StrongObjectPtrTemplates.h(54,82): note: 查看对正在编译的 类 模板 实例化“TPointerIsConvertibleFromTo<ObjectType,volatile const UObject>”的引用
+        with
+        [
+            ObjectType=UMusicEmphasisData
+        ]
+		static_assert(TPointerIsConvertibleFromTo<ObjectType, const volatile UObject>::Value, "TStrongObjectPtr can only be constructed with UObject types");
+		                                                                               ^
+D:\Epic Games\UE_5.8\Engine\Source\Runtime\Core\Public\Templates\PointerIsConvertibleFromTo.h(59,85): note: 查看对正在编译的 类 模板 实例化“UE::Core::Private::PointerIsConvertibleFromTo::TImpl<From,To,UMusicEmphasisData,UObject>”的引用
+        with
+        [
+            From=UMusicEmphasisData,
+            To=volatile const UObject
+        ]
+struct TPointerIsConvertibleFromTo : UE::Core::Private::PointerIsConvertibleFromTo::TImpl<From, To>
+                                                                                    ^
+D:\Epic Games\UE_5.8\Engine\Source\Runtime\Core\Public\Templates\PointerIsConvertibleFromTo.h(19,3): error C2338: static_assert failed: 'TPointerIsConvertibleFromTo must not be instantiated with incomplete types'
+		UE_STATIC_ASSERT_COMPLETE_TYPE(From, "TPointerIsConvertibleFromTo must not be instantiated with incomplete types");
+		^
+D:\Epic Games\UE_5.8\Engine\Source\Runtime\Core\Public\UObject\StrongObjectPtrTemplates.h(54,82): error C2338: static_assert failed: 'TStrongObjectPtr can only be constructed with UObject types'
+		static_assert(TPointerIsConvertibleFromTo<ObjectType, const volatile UObject>::Value, "TStrongObjectPtr can only be constructed with UObject types");
+		                                                                               ^
+[2/18] Compile [x64] BossMusicEmphasis.cpp
+[3/18] Compile [x64] BossPhaseTransition.cpp
+[4/18] Compile [x64] BossGroundBurst.cpp
+[5/18] Compile [x64] BossCombatCameraComponent.cpp
+[6/18] Compile [x64] RhythmCombatHUD.cpp
+[7/18] Compile [x64] BTTask_BeatAttack.cpp
+[8/18] Compile [x64] BeatComboEditorWidget.cpp
+[9/18] Compile [x64] ComboPoseAudit.cpp
+[10/18] Compile [x64] AttackReadabilityComponent.cpp
+[11/18] Compile [x64] PlayerRhythmCombatComponent.cpp
+[12/18] Compile [x64] BeatSyncedComboComponent.cpp
+[13/18] Compile [x64] Module.HearBlade.cpp
+[14/18] Link [x64] UnrealEditor-HearBlade.lib
+  正在创建库 D:/Udev/HearBlade/Intermediate/Build/Win64/x64/UnrealEditor/Development/HearBlade/UnrealEditor-HearBlade.lib 和对象 D:/Udev/HearBlade/Intermediate/Build/Win64/x64/UnrealEditor/Development/HearBlade/UnrealEditor-HearBlade.exp
+UbaSessionServer - ERROR opening file D:\Udev\HearBlade\Binaries\Win64\UnrealEditor-HearBlade.dll for write after retrying for 20 seconds (The process cannot access the file because it is being used by another process. - D:\Epic Games\UE_5.8\Engine\Binaries\Win64\UnrealEditor.exe)
+Link [x64] UnrealEditor-HearBlade.dll: Exited with error code 9001. This action will retry without UBA
+[15/18] Link [x64] UnrealEditor-HearBlade.dll [NoUba]
+LINK : fatal error LNK1104: ￎ￞ﾷﾨﾴ￲﾿ﾪￎￄﾼ￾ﾡﾰD:\Udev\HearBlade\Binaries\Win64\UnrealEditor-HearBlade.dllﾡﾱ
+Total time in Unreal Build Accelerator local executor: 36.82 seconds
+
+Result: Failed (OtherCompilationError)
+Total execution time: 39.61 seconds
+Trace written to file C:\Users\26349\AppData\Local\UnrealBuildTool\Trace.uba with size 16.1kb

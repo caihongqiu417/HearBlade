@@ -14,6 +14,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Paths.h"
 #include "UnrealClient.h"
@@ -29,6 +30,13 @@ UPerfectDodgeFeedbackComponent::UPerfectDodgeFeedbackComponent()
 void UPerfectDodgeFeedbackComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	EnsureGhostPool(); // pay the mesh setup cost at load, not mid-dodge
+	auto LoadHit=[](const TCHAR* Name){ return LoadObject<USoundBase>(nullptr,*FString::Printf(TEXT("/Game/Audio/SFX/HitRush/%s.%s"),Name,Name)); };
+	DodgeHitSound=LoadHit(TEXT("SW_HitRush_Light1")); // for now: the attack punch (SW_HitRush_Dodge kept for later)
+	BlockHitSound=LoadHit(TEXT("SW_HitRush_Block"));
+	CounterHitSound=LoadHit(TEXT("SW_HitRush_Counter"));
+	HoldHitSound=LoadHit(TEXT("SW_HitRush_HoldHit"));
+	TierUpHitSound=LoadHit(TEXT("SW_HitRush_Finisher"));
 	if (UPlayerRhythmCombatComponent* Combat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>())
 		Combat->OnRhythmSuccessFeedback.AddDynamic(this, &UPerfectDodgeFeedbackComponent::HandleRhythmFeedback);
 	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
@@ -40,6 +48,26 @@ void UPerfectDodgeFeedbackComponent::BeginPlay()
 	}
 }
 
+void UPerfectDodgeFeedbackComponent::EnsureGhostPool()
+{
+	if (GhostPool.Num() > 0 || !Config || !Config->GhostMaterial || !GetOwner() || !GetWorld()) return;
+	USkeletalMeshComponent* Source = GetOwner()->FindComponentByClass<USkeletalMeshComponent>();
+	if (!Source || !Source->GetSkeletalMeshAsset()) return;
+	for (int32 Index = 0; Index < FMath::Clamp(Config->GhostCount, 1, 5); ++Index)
+	{
+		UPoseableMeshComponent* Ghost = NewObject<UPoseableMeshComponent>(GetOwner());
+		Ghost->SetSkinnedAssetAndUpdate(Source->GetSkeletalMeshAsset(), true);
+		Ghost->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		Ghost->SetCastShadow(false);
+		Ghost->RegisterComponentWithWorld(GetWorld());
+		UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(Config->GhostMaterial, Ghost);
+		for (int32 MatIndex = 0; MatIndex < Ghost->GetNumMaterials(); ++MatIndex) Ghost->SetMaterial(MatIndex, MID);
+		if (MID) MID->SetVectorParameterValue(TEXT("GhostColor"), FLinearColor(.0f, .32f, 1.0f, 1.0f));
+		Ghost->SetVisibility(false);
+		GhostPool.Add({Ghost, MID, Index * .018f});
+	}
+}
+
 void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (UPlayerRhythmCombatComponent* Combat = GetOwner() ? GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr)
@@ -48,6 +76,8 @@ void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 	if (AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner()); Player && PostProcessMID)
 		Player->GetFollowCamera()->PostProcessSettings.AddBlendable(PostProcessMID, 0.0f);
 	ClearTransientVisuals();
+	for (FGhostVisual& Visual : GhostPool) if (Visual.Mesh.IsValid()) Visual.Mesh->DestroyComponent();
+	GhostPool.Reset();
 	DestroyHoldArmorVisual();
 	Super::EndPlay(EndPlayReason);
 }
@@ -55,12 +85,31 @@ void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback)
 {
 	if (!Config || !GetOwner()) return;
+	if (Feedback.bPlayerAttack) return; // Attacks own their lighter, high-frequency feedback.
 	if (Feedback.bSuccess)
 	{
 		const bool bTierUp = Feedback.FeedbackTier > UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(Feedback.PreviousCombo);
-		USoundBase* Sound = bTierUp ? Config->TierUpSound.Get() :
-			Feedback.bPerfect ? Config->PerfectSound.Get() : Config->GoodSound.Get();
-		if (Sound) UGameplayStatics::PlaySound2D(this, Sound, bTierUp ? .82f : Feedback.bPerfect ? .68f : .48f);
+		// Same punch family as the attacks: a slipped-punch snap for dodges, a gloved
+		// thud for blocks/parries, the heaviest punch for counters. Timing sets the
+		// level; a combo tier-up layers the finisher hit underneath.
+		USoundBase* Punch = nullptr;
+		switch (Feedback.Response)
+		{
+		case ERhythmResponseType::Dodge: Punch = DodgeHitSound; break;
+		case ERhythmResponseType::Counter: Punch = CounterHitSound; break;
+		case ERhythmResponseType::HoldBlock:
+			Punch = Feedback.HoldMarker == ERhythmHoldMarkerType::Start ? BlockHitSound.Get() : HoldHitSound.Get(); break;
+		default: Punch = BlockHitSound; break; // Block, DodgeOrBlock
+		}
+		const float Pitch = 1.f + .03f * FMath::Clamp(Feedback.FeedbackTier, 0, 3);
+		if (Punch) UGameplayStatics::PlaySound2D(this, Punch, Feedback.bPerfect ? 1.2f : .9f, Pitch);
+		if (bTierUp && TierUpHitSound) UGameplayStatics::PlaySound2D(this, TierUpHitSound, .7f);
+		if (!Punch) // assets not imported yet: keep the old cues
+		{
+			USoundBase* Sound = bTierUp ? Config->TierUpSound.Get() :
+				Feedback.bPerfect ? Config->PerfectSound.Get() : Config->GoodSound.Get();
+			if (Sound) UGameplayStatics::PlaySound2D(this, Sound, bTierUp ? .82f : Feedback.bPerfect ? .68f : .48f);
+		}
 		if (FParse::Param(FCommandLine::Get(), TEXT("RhythmCombatCaptureTest")) &&
 			(Feedback.ComboCount == 1 || Feedback.ComboCount == 5 || Feedback.ComboCount == 6 ||
 			 Feedback.ComboCount == 8 || Feedback.ComboCount == 16))
@@ -102,6 +151,16 @@ void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFe
 	const float TierScale = Tier == 0 ? Config->TierStrengths.X : Tier == 1 ? Config->TierStrengths.Y :
 		Tier == 2 ? Config->TierStrengths.Z : Config->TierStrengths.W;
 	PlayPerfectFeedback(Perfect, TierScale, Feedback.bKeyPerfect);
+}
+
+void UPerfectDodgeFeedbackComponent::PlayResonanceAttack(bool bBurst)
+{
+	if(!Config || !GetOwner()) return;
+	if(!bBurst) { SpawnGhosts(.65f); return; }
+	FPerfectDodgeFeedbackData Data;
+	Data.BladeWorldLocation=GetOwner()->GetActorLocation()+GetOwner()->GetActorForwardVector()*90.f;
+	Data.AttackDirection=GetOwner()->GetActorForwardVector();Data.bStrongBeat=true;Data.ResonanceFraction=1.f;
+	PlayPerfectFeedback(Data,1.2f,false);
 }
 
 void UPerfectDodgeFeedbackComponent::PlayPerfectFeedback(const FPerfectDodgeFeedbackData& Feedback,
@@ -210,28 +269,25 @@ void UPerfectDodgeFeedbackComponent::SpawnGhosts(float Strength)
 	USkeletalMeshComponent* Source = GetOwner()->FindComponentByClass<USkeletalMeshComponent>();
 	UPlayerRhythmCombatComponent* Combat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>();
 	if (!Source || !Source->GetSkeletalMeshAsset() || !Combat) return;
-	const int32 Count = FMath::Clamp(Config->GhostCount, 1, 5);
+	EnsureGhostPool();
+	const int32 Count = GhostPool.Num();
 	for (int32 Index = 0; Index < Count; ++Index)
 	{
-		UPoseableMeshComponent* Ghost = NewObject<UPoseableMeshComponent>(GetOwner());
-		Ghost->SetSkinnedAssetAndUpdate(Source->GetSkeletalMeshAsset(), true);
-		Ghost->RegisterComponentWithWorld(GetWorld());
+		FGhostVisual& Pooled = GhostPool[Index];
+		UPoseableMeshComponent* Ghost = Pooled.Mesh.Get();
+		if (!Ghost) continue;
 		Ghost->CopyPoseFromSkeletalComponent(Source);
 		const float Fraction = static_cast<float>(Index + 1) / static_cast<float>(Count + 1);
 		const FVector Location = FMath::Lerp(GetOwner()->GetActorLocation(), Combat->GetDodgeStartLocation(), Fraction);
 		Ghost->SetWorldTransform(Source->GetComponentTransform());
 		Ghost->AddWorldOffset(Location - GetOwner()->GetActorLocation());
-		Ghost->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		Ghost->SetCastShadow(false);
-		UMaterialInstanceDynamic* MID = UMaterialInstanceDynamic::Create(Config->GhostMaterial, Ghost);
-		for (int32 MatIndex = 0; MatIndex < Ghost->GetNumMaterials(); ++MatIndex) Ghost->SetMaterial(MatIndex, MID);
-		if (MID)
+		Ghost->SetVisibility(true);
+		if (UMaterialInstanceDynamic* MID = Pooled.Material.Get())
 		{
 			MID->SetScalarParameterValue(TEXT("Opacity"), .28f * Strength);
 			MID->SetScalarParameterValue(TEXT("GhostIndex"), Index);
-			MID->SetVectorParameterValue(TEXT("GhostColor"), FLinearColor(.0f, .32f, 1.0f, 1.0f));
 		}
-		Ghosts.Add({Ghost, MID, Index * .018f});
+		Ghosts.Add(Pooled);
 	}
 }
 
@@ -381,7 +437,7 @@ void UPerfectDodgeFeedbackComponent::UpdateHoldArmorVisual(float DeltaTime)
 
 void UPerfectDodgeFeedbackComponent::ClearTransientVisuals()
 {
-	for (FGhostVisual& Visual : Ghosts) if (Visual.Mesh.IsValid()) Visual.Mesh->DestroyComponent();
+	for (FGhostVisual& Visual : Ghosts) if (Visual.Mesh.IsValid()) Visual.Mesh->SetVisibility(false); // pooled
 	for (FRingVisual& Visual : Rings) if (Visual.Mesh.IsValid()) Visual.Mesh->DestroyComponent();
 	Ghosts.Reset(); Rings.Reset();
 }

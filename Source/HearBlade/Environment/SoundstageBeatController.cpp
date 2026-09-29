@@ -1,4 +1,5 @@
 #include "Environment/SoundstageBeatController.h"
+#include "Combat/RhythmCaptureComponent.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "EngineUtils.h"
 #include "Components/SceneComponent.h"
@@ -23,6 +24,12 @@ ASoundstageBeatController::ASoundstageBeatController()
 void ASoundstageBeatController::BeginPlay()
 {
     Super::BeginPlay();
+#if !UE_BUILD_SHIPPING
+    if(FParse::Param(FCommandLine::Get(),TEXT("PhaseTwoVideo")))
+    {
+        auto* Capture=NewObject<URhythmCaptureComponent>(this);Capture->RegisterComponent();
+    }
+#endif
     for (TActorIterator<AActor> It(GetWorld()); It; ++It)
     {
         if (It->ActorHasTag(TEXT("HB_RhythmSky")))
@@ -87,7 +94,8 @@ void ASoundstageBeatController::Tick(float DeltaSeconds)
     // the next beat. Absolute clock sampling is safe across seeks and frame hitches.
     const float D = FMath::Min(Phase, 1.f-Phase);
     const float Pulse = bRunning ? FMath::Exp(-FMath::Square(D / .16f)) : 0.f;
-    const float Accent = bRunning && Clock->GetCurrentBeatInBar() == 0 ? 1.35f : 1.f;
+    const float AscensionAccent=bRunning && Beat>=AscensionAccentBeat? .45f*FMath::Exp(-float(Beat-AscensionAccentBeat)*3.f):0.f;
+    const float Accent = (bRunning && Clock->GetCurrentBeatInBar() == 0 ? 1.35f : 1.f)+AscensionAccent;
     Envelope = FMath::FInterpTo(Envelope, Pulse * Accent, DeltaSeconds, 24.f);
     const float Amount = FMath::Clamp(MotionIntensity, 0.f, 2.f) * (bReducedMotion ? .2f : 1.f);
     const float SkyBreath = bRunning ? .5f + .5f * FMath::Sin(static_cast<float>(Beat * 2.0 * PI / (Clock->GetBeatsPerBar() * 4.0))) : .5f;

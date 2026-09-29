@@ -1,0 +1,30 @@
+{
+  "ref_type": "<class 'AnimPose'>",
+  "ref_methods": [
+    "assign",
+    "cast",
+    "copy",
+    "evaluate_animation_blueprint_with_input_pose",
+    "export_text",
+    "get_bone_names",
+    "get_bone_pose",
+    "get_curve_names",
+    "get_curve_weight",
+    "get_editor_property",
+    "get_ref_bone_pose",
+    "get_ref_pose_relative_transform",
+    "get_relative_to_ref_pose_transform",
+    "get_relative_transform",
+    "get_socket_names",
+    "get_socket_pose",
+    "import_text",
+    "is_valid",
+    "set_bone_pose",
+    "set_editor_properties",
+    "set_editor_property",
+    "static_struct",
+    "to_dict",
+    "to_tuple"
+  ],
+  "target_ref": "<Struct 'AnimPose' (0x00000250EE215640) {}>"
+}

@@ -17,11 +17,18 @@ class HEARBLADE_API UPerfectDodgeFeedbackComponent : public UActorComponent
 	GENERATED_BODY()
 public:
 	UPerfectDodgeFeedbackComponent();
+	void PlayResonanceAttack(bool bBurst);
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Perfect Dodge") TObjectPtr<UPerfectDodgeFeedbackConfig> Config;
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 private:
+	// Punch-family defense sounds (same synthesized set as the attacks, /Game/Audio/SFX/HitRush).
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> DodgeHitSound;
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> BlockHitSound;
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> CounterHitSound;
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> HoldHitSound;
+	UPROPERTY(Transient) TObjectPtr<class USoundBase> TierUpHitSound;
 	UFUNCTION() void HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback);
 	void PlayPerfectFeedback(const FPerfectDodgeFeedbackData& Feedback, float TierScale, bool bKeyPerfect);
 	void StartImpactFrame();
@@ -35,6 +42,10 @@ private:
 	struct FGhostVisual { TWeakObjectPtr<UPoseableMeshComponent> Mesh; TWeakObjectPtr<UMaterialInstanceDynamic> Material; float Delay=0.f; };
 	struct FRingVisual { TWeakObjectPtr<UStaticMeshComponent> Mesh; TWeakObjectPtr<UMaterialInstanceDynamic> Material; double Start=0.0; };
 	TArray<FGhostVisual> Ghosts;
+	// Ghost meshes are created once and reused: building skinned meshes + render
+	// state at the moment of a perfect dodge caused a visible frame hitch.
+	TArray<FGhostVisual> GhostPool;
+	void EnsureGhostPool();
 	TArray<FRingVisual> Rings;
 	UPROPERTY(Transient) TObjectPtr<UMaterialInstanceDynamic> PostProcessMID;
 	// The Dark Knight body and cloak are separate skeletal components.  Keep one

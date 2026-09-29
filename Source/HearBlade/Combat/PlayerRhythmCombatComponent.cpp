@@ -1,6 +1,9 @@
 #include "Combat/PlayerRhythmCombatComponent.h"
+#include "Combat/PlayerBeatAttackComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "Combat/TransientCombatFX.h"
 #include "Combat/PlayerCombatAnimInstance.h"
+#include "HearBladeCharacter.h"
 #include "Combat/BeatSyncedComboComponent.h"
 #include "Combat/BossCombatCameraComponent.h"
 #include "Animation/AnimInstance.h"
@@ -14,6 +17,7 @@
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Kismet/GameplayStatics.h"
+#include "Sound/SoundBase.h"
 #include "Particles/ParticleSystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
@@ -34,17 +38,30 @@ UPlayerRhythmCombatComponent::UPlayerRhythmCombatComponent()
 	CounterImpactEffect = LoadObject<UParticleSystem>(nullptr, TEXT("/Game/SwordAnim/demo/FX/P_Hit.P_Hit"));
 	PerfectHoldShockEffect = LoadObject<UNiagaraSystem>(nullptr, TEXT("/Game/Combat/Feedback/NS_PerfectDodge_Ring.NS_PerfectDodge_Ring"));
 	BloodHitEffect = LoadObject<UNiagaraSystem>(nullptr,
-		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/Stylized/P_Splash_Hit_Stylized.P_Splash_Hit_Stylized"));
+		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/P_Splash_Hit_01.P_Splash_Hit_01"));
 	BloodPoiseBreakEffect = LoadObject<UNiagaraSystem>(nullptr,
-		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/Stylized/P_SplashWithBurst_Hit_Stylized.P_SplashWithBurst_Hit_Stylized"));
+		TEXT("/Game/Blood_VFX_Pack/Particles/Systems/P_SplashWithBurst_Hit_01.P_SplashWithBurst_Hit_01"));
 }
 
 void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if(bPhaseCinematic) return;
 	if (GetWorld())
 	{
 		const double WorldNow = GetWorld()->GetTimeSeconds();
+		if(bRecoveryStrikePending && (!bCountering || bHitReacting || bDodging || Health<=0.f)) bRecoveryStrikePending=false;
+		if(bRecoveryStrikePending && WorldNow-CounterStartWorldSeconds>=.20)
+		{
+			bRecoveryStrikePending=false;
+			for(TActorIterator<AActor> It(GetWorld());It;++It)
+				if(auto* Boss=It->FindComponentByClass<UBeatSyncedComboComponent>();Boss && Boss->TryRecoveryStrike(GetOwner()))
+				{
+					Resonance=FMath::Min(MaxResonance,Resonance+8.f);LastResonanceGainWorldSeconds=WorldNow;
+					if(CounterStrikeSound) UGameplayStatics::PlaySound2D(this,CounterStrikeSound,1.15f); // the counter's blade lands
+					PlayResponseFeedback(ERhythmResponseType::Counter,ERhythmDodgeJudgment::Good,It->GetActorLocation(),GetOwner()->GetActorForwardVector(),false);break;
+				}
+		}
 		if (bHitReacting)
 		{
 			if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
@@ -84,7 +101,8 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		else if (!bPoiseBroken && Poise < MaxPoise &&
 			WorldNow - LastPoiseDamageWorldSeconds >= PoiseRecoveryDelaySeconds)
 			Poise = FMath::Min(MaxPoise, Poise + PoiseRecoveryPerSecond * DeltaTime);
-		if (Resonance > 0.0f && WorldNow - LastResonanceGainWorldSeconds >= ResonanceDecayDelaySeconds)
+		const auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
+		if (Resonance > 0.0f && Resonance < MaxResonance && (!Attacks || Attacks->ResonanceState == EPlayerResonanceState::Filling) && WorldNow - LastResonanceGainWorldSeconds >= ResonanceDecayDelaySeconds)
 			Resonance = FMath::Max(0.0f, Resonance - ResonanceDecayPerSecond * DeltaTime);
 	}
 	ProcessBufferedInput();
@@ -124,9 +142,53 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 				UBeatSyncedComboComponent* Combo = It->FindComponentByClass<UBeatSyncedComboComponent>();
 				TArray<FUpcomingImpactCue> Cues;
 				if (!Combo) continue;
+#if !UE_BUILD_SHIPPING
+				if(FParse::Param(FCommandLine::Get(),TEXT("GroundBurstPursuitTest")) && Combo->IsGroundBurstRecovery())
+				{
+					if(auto* Character=Cast<ACharacter>(GetOwner());Character && !IsPerformingAction())
+					{
+						const FVector Toward=(It->GetActorLocation()-GetOwner()->GetActorLocation()).GetSafeNormal2D();
+						Character->SetActorRotation(Toward.Rotation());
+						if(FVector::Dist2D(It->GetActorLocation(),GetOwner()->GetActorLocation())>250.f) Character->AddMovementInput(Toward,1.f,true);
+						else TryCounter();
+					}
+					continue;
+				}
+#endif
 				Combo->GetUpcomingImpactCues(Cues, 1);
 				if (Cues.IsEmpty()) continue;
 				const FUpcomingImpactCue& Cue = Cues[0];
+				// Ground bursts require spatial escape, not an automated defense key.
+				if (Cue.DamageShape == EBossAttackDamageShape::GroundBurst)
+				{
+#if !UE_BUILD_SHIPPING
+					const bool bEarlyEscape=FParse::Param(FCommandLine::Get(),TEXT("GroundBurstEarlyTest"));
+					const bool bReenter=FParse::Param(FCommandLine::Get(),TEXT("GroundBurstReenterTest"));
+					if(FParse::Param(FCommandLine::Get(),TEXT("GroundBurstEscapeTest"))||bEarlyEscape||bReenter)
+					{
+						FVector Center;float Radius,Progress;
+						if(auto* Character=Cast<ACharacter>(GetOwner());Character && Combo->GetGroundBurstPreview(Center,Radius,Progress))
+						{
+							auto* Movement=Character->GetCharacterMovement();
+							const float Boundary=Radius+Character->GetCapsuleComponent()->GetScaledCapsuleRadius();
+							if(bReenter&&FVector::Dist2D(Center,Character->GetActorLocation())>Boundary+2.f) bGroundBurstTestExited=true;
+							const float Distance=FMath::Max(0.f,Boundary-FVector::Dist2D(Center,Character->GetActorLocation()));
+							const float Speed=FMath::Max(1.f,Movement->MaxWalkSpeed);
+							const double Until=Cue.ImpactAudioSeconds-Clock->GetAudioNowSeconds();
+							if(FParse::Param(FCommandLine::Get(),TEXT("GroundBurstWalkDodgeTest")) && Until<=DodgeDurationSeconds+.1 && Until>.1 && Distance>20.f && LastDodgeInputAudioSeconds<Cue.ImpactAudioSeconds-1.)
+								TryDodge((Character->GetActorLocation()-Center).GetSafeNormal2D());
+							const double Travel=Distance/Speed+.5*Speed/FMath::Max(1.f,Movement->MaxAcceleration)+.08;
+							if(Until<=Travel||bEarlyEscape||bReenter)
+							{
+								const float Direction=bReenter&&bGroundBurstTestExited?-1.f:1.f;
+								if(Distance>0.f||Direction<0.f||!bEarlyEscape)
+									Character->AddMovementInput((Character->GetActorLocation()-Center).GetSafeNormal2D(),Direction,true);
+							}
+						}
+					}
+#endif
+					continue;
+				}
 				const double SecondsUntilImpact = Cue.ImpactAudioSeconds - Clock->GetAudioNowSeconds();
 				const bool bNewImpact = Cue.ImpactAudioSeconds > LastAutomatedImpactAudioSeconds + 0.001;
 				if (Cue.RequiredResponse == ERhythmResponseType::HoldBlock && Cue.HoldMarker == ERhythmHoldMarkerType::End &&
@@ -140,7 +202,9 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 				const double InputLead = Cue.IdealDodgeLeadSeconds;
 				if (!bNewImpact || SecondsUntilImpact > InputLead + .055 || SecondsUntilImpact < InputLead - .055) continue;
 				bool bIssued = false;
-				switch (Cue.RequiredResponse)
+				const ERhythmResponseType TestResponse=Cue.RequiredResponse==ERhythmResponseType::DodgeOrBlock
+					? (Cue.ImpactIndex%2==0?ERhythmResponseType::Block:ERhythmResponseType::Dodge):Cue.RequiredResponse;
+				switch (TestResponse)
 				{
 				case ERhythmResponseType::Dodge:
 				{
@@ -201,14 +265,29 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 			DodgeDistanceApplied += Step * (Hit.IsValidBlockingHit() ? Hit.Time : 1.0f);
 		}
 	}
-	if (Elapsed >= DodgeDurationSeconds)
+	// Holding a direction lets the last 30% of the roll flow straight into a run
+	// with momentum, instead of stopping dead and waiting for the clip to end
+	// (the "hitch" after every dodge).
+	const AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
+	const FVector Intent = Player ? Player->GetWorldMoveIntent() : FVector::ZeroVector;
+	const bool bRunOut = Intent.SizeSquared() > .09f && Elapsed >= DodgeDurationSeconds * .7f;
+	if (Elapsed >= DodgeDurationSeconds || bRunOut)
 	{
 		bDodging = false;
 		if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
 		{
 			// Keep translation suppressed until locomotion replaces the outgoing roll.
 			if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+			{
 				Movement->SetMovementMode(MOVE_Walking);
+				if (Intent.SizeSquared() > .09f)
+				{
+					const FVector Dir = Intent.GetSafeNormal2D();
+					Movement->Velocity = Dir * Movement->MaxWalkSpeed * (FVector::DotProduct(Dir, DodgeDirection) > .3f ? .85f : .55f);
+					if (auto* Instance = Cast<UPlayerCombatAnimInstance>(Character->GetMesh()->GetAnimInstance()))
+						Instance->ReleaseCombatAction(.16f);
+				}
+			}
 			UE_LOG(LogTemp, Display, TEXT("RhythmDodgeMotion: completed distance=%.1fcm meshRelative=(%.1f,%.1f,%.1f)"),
 				FVector::Dist2D(DodgeStartLocation, Character->GetActorLocation()),
 				Character->GetMesh()->GetRelativeLocation().X, Character->GetMesh()->GetRelativeLocation().Y,
@@ -221,6 +300,14 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 void UPlayerRhythmCombatComponent::BeginPlay()
 {
 	Super::BeginPlay();
+	auto LoadHit=[](const TCHAR* Name){ return LoadObject<USoundBase>(nullptr,*FString::Printf(TEXT("/Game/Audio/SFX/HitRush/%s.%s"),Name,Name)); };
+	DodgeSwishSound=LoadHit(TEXT("SW_HitRush_WhooshLight"));
+	CounterSwishSound=LoadHit(TEXT("SW_HitRush_WhooshHeavy"));
+	GuardUpSound=LoadHit(TEXT("SW_HitRush_HoldHit"));
+	CounterStrikeSound=LoadHit(TEXT("SW_HitRush_Counter"));
+	// Migrate existing Blueprint templates that still serialize the old 100 HP.
+	MaxHealth = FMath::Max(MaxHealth,500.f);
+	Health = MaxHealth;
 	// Existing Blueprint component templates can retain older native defaults.
 	// Apply the responsive floor/ceiling here so old level instances receive the
 	// same input contract without requiring every placed actor to be recreated.
@@ -254,6 +341,7 @@ void UPlayerRhythmCombatComponent::ApplyCombatDamage(float Damage)
 {
 	if (Damage <= 0.0f || Health <= 0.0f) return;
 	Health = FMath::Clamp(Health - Damage, 0.0f, MaxHealth);
+	UE_LOG(LogTemp,Display,TEXT("PlayerHealth: %.1f/%.1f%s"),Health,MaxHealth,Health<=0.f?TEXT(" DEFEATED - Enter to retry"):TEXT(""));
 	ComboCount = 0;
 	OnHealthChanged.Broadcast(Health, MaxHealth);
 }
@@ -263,6 +351,38 @@ void UPlayerRhythmCombatComponent::RestoreHealth(float Amount)
 	if (Amount <= 0.0f) return;
 	Health = FMath::Clamp(Health + Amount, 0.0f, MaxHealth);
 	OnHealthChanged.Broadcast(Health, MaxHealth);
+}
+
+void UPlayerRhythmCombatComponent::ApplyGroundBurstDamage(float Damage, const FVector& Center)
+{
+	if (Health <= 0.f || Damage <= 0.f) return;
+	ApplyCombatDamage(Damage);
+	const FVector Direction = (GetOwner()->GetActorLocation() - Center).GetSafeNormal2D();
+	StartHitReaction(GetOwner()->GetActorLocation(), Direction, false, Center);
+	UE_LOG(LogTemp, Display, TEXT("GroundBurst: player damaged %.1f (area requires spatial exit)"), Damage);
+}
+
+void UPlayerRhythmCombatComponent::AwardRhythmicEscape(float Amount, float ErrorSeconds)
+{
+	if (Health <= 0.f || !GetWorld() || !GetOwner()) return;
+	const float PreviousResonance=Resonance;
+	Resonance = FMath::Clamp(Resonance + Amount, 0.f, MaxResonance);
+	LastResonanceGainWorldSeconds = GetWorld()->GetTimeSeconds();
+	LastRhythmicEscapeWorldSeconds=LastResonanceGainWorldSeconds;
+	LastRhythmicEscapeGain=Resonance-PreviousResonance;
+	FRhythmSuccessFeedbackData Feedback;
+	Feedback.Response=ERhythmResponseType::Dodge;Feedback.Grade=ERhythmDodgeJudgment::Perfect;
+	Feedback.PreviousCombo=Feedback.ComboCount=ComboCount;
+	Feedback.FeedbackTier=GetFeedbackTierForCombo(ComboCount);
+	// The area dodge is a headline moment: always the strong-beat version, with
+	// the monochrome impact frame, ghosts, rift and camera release.
+	Feedback.bSuccess=Feedback.bPerfect=true;Feedback.bStrongBeat=true;Feedback.bKeyPerfect=true;
+	Feedback.WorldLocation=GetOwner()->GetActorLocation();Feedback.AttackDirection=GetOwner()->GetActorForwardVector();
+	Feedback.EventId=++FeedbackEventSerial;
+	OnRhythmSuccessFeedback.Broadcast(Feedback);
+	PlayResponseFeedback(ERhythmResponseType::Dodge,ERhythmDodgeJudgment::Perfect,Feedback.WorldLocation,Feedback.AttackDirection,true);
+	// Spatial escape is its own success, not another defense judgment or Combo increment.
+	UE_LOG(LogTemp, Display, TEXT("GroundBurst: rhythmic escape reward=%.1f errorMs=%.1f"), Amount, ErrorSeconds*1000.f);
 }
 
 void UPlayerRhythmCombatComponent::SubmitDodgeJudgment(ERhythmDodgeJudgment Grade, float SignedErrorMs, bool bStrongBeat)
@@ -275,7 +395,7 @@ void UPlayerRhythmCombatComponent::SubmitDodgeJudgment(ERhythmDodgeJudgment Grad
 		Grade == ERhythmDodgeJudgment::GoodHold)
 	{
 		++ComboCount;
-		const float BaseGain = Grade == ERhythmDodgeJudgment::Perfect ? 12.0f : 6.0f;
+		const float BaseGain = Grade == ERhythmDodgeJudgment::Perfect ? (LastResponse == ERhythmResponseType::Counter ? 8.f : 4.f) : 2.f;
 		const float ComboMultiplier = ComboCount >= 8 ? 1.5f : (ComboCount >= 4 ? 1.25f : 1.0f);
 		Resonance = FMath::Clamp(Resonance + BaseGain * ComboMultiplier * (bStrongBeat ? 1.25f : 1.0f), 0.0f, MaxResonance);
 		LastResonanceGainWorldSeconds = LastJudgmentWorldSeconds;
@@ -287,7 +407,7 @@ void UPlayerRhythmCombatComponent::SubmitDodgeJudgment(ERhythmDodgeJudgment Grad
 	else if (Grade == ERhythmDodgeJudgment::PerfectHold)
 	{
 		++ComboCount;
-		Resonance = FMath::Clamp(Resonance + 20.0f, 0.0f, MaxResonance);
+		Resonance = FMath::Clamp(Resonance + 4.0f, 0.0f, MaxResonance);
 		LastResonanceGainWorldSeconds = LastJudgmentWorldSeconds;
 	}
 	else if (Grade == ERhythmDodgeJudgment::HoldBreak)
@@ -304,6 +424,7 @@ int32 UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(int32 Combo)
 
 void UPlayerRhythmCombatComponent::ResetCombatState()
 {
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>()) Attacks->Reset();
 	Health = MaxHealth;
 	Resonance = 0.0f;
 	ComboCount = 0;
@@ -325,6 +446,9 @@ void UPlayerRhythmCombatComponent::ResetCombatState()
 
 bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 {
+	if (Health<=0.f) return false;
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>(); Attacks && !Attacks->CancelForDefense(true)) return false;
+	if(bPhaseCinematic) return false;
 	if (!GetWorld() || !GetOwner()) return false;
 	const double InputAudioSeconds = GetCurrentInputAudioSeconds();
 	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Dodge, InputAudioSeconds, WorldDirection)) return true;
@@ -357,7 +481,9 @@ bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 bool UPlayerRhythmCombatComponent::StartDodge(FVector WorldDirection, double InputAudioSeconds)
 {
 	if (!GetWorld() || !GetOwner()) return false;
+	if(auto* Attack=GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>(); Attack && !Attack->CancelForDefense(true)) return false;
 	if (bPoiseBroken) EndPoiseBreak();
+	// (No separate start swish: it doubled up with the dodge's own "fwoosh".)
 	BufferedAction = EBufferedRhythmAction::None;
 	bBlockRecovering = false;
 	bBlockReleasePending = false;
@@ -398,6 +524,9 @@ bool UPlayerRhythmCombatComponent::StartDodge(FVector WorldDirection, double Inp
 
 void UPlayerRhythmCombatComponent::PlayDefenseAnimation(UAnimSequence* Animation, bool bLooping, float DesiredDuration)
 {
+	// This is called only after the defense state has accepted the input. Stop
+	// the attack clock writer before starting the independently timed defense.
+	if(auto* Attack=GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>()) Attack->NotifyInterrupted();
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (!Animation || !Character || !Character->GetMesh()) return;
 	DefenseAnimationDurationSeconds = DesiredDuration > 0.0f ? DesiredDuration : Animation->GetPlayLength();
@@ -411,6 +540,9 @@ void UPlayerRhythmCombatComponent::PlayDefenseAnimation(UAnimSequence* Animation
 
 bool UPlayerRhythmCombatComponent::TryBlockStart()
 {
+	if(Health<=0.f || bPhaseCinematic) return false;
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>(); Attacks && !Attacks->CancelForDefense(false)) return false;
+	if(bPhaseCinematic) return false;
 	if (!GetWorld() || bBlocking) return false;
 	const double InputAudioSeconds = GetCurrentInputAudioSeconds();
 	BlockInputHistory.Add(InputAudioSeconds);
@@ -443,6 +575,7 @@ bool UPlayerRhythmCombatComponent::TryBlockStart()
 
 bool UPlayerRhythmCombatComponent::StartBlock(double InputAudioSeconds)
 {
+	if(auto* Attack=GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>(); Attack && !Attack->CancelForDefense(false)) return false;
 	BufferedAction = EBufferedRhythmAction::None;
 	bBlocking = true;
 	bBlockRecovering = false;
@@ -451,12 +584,14 @@ bool UPlayerRhythmCombatComponent::StartBlock(double InputAudioSeconds)
 	DefenseAnimationStartWorldSeconds = GetWorld()->GetTimeSeconds();
 	LastBlockStartAudioSeconds = InputAudioSeconds;
 	BlockStartWorldSeconds = GetWorld()->GetTimeSeconds();
+	if (GuardUpSound) UGameplayStatics::PlaySound2D(this, GuardUpSound, .3f, 1.35f); // soft leather guard-up
 	PlayDefenseAnimation(BlockStartAnimation, false);
 	return true;
 }
 
 void UPlayerRhythmCombatComponent::EndBlock()
 {
+	if(bPhaseCinematic) return;
 	if (!GetWorld()) return;
 	// Preserve a buffered tap, including its release; it must not become a stuck hold.
 	if (!bBlocking && BufferedAction == EBufferedRhythmAction::Block)
@@ -474,7 +609,9 @@ void UPlayerRhythmCombatComponent::EndBlock()
 	const double ReleaseWorldSeconds = GetWorld()->GetTimeSeconds();
 	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	LastBlockReleaseAudioSeconds = Clock ? Clock->GetAudioNowSeconds() : ReleaseWorldSeconds;
-	bBlockReleasePending = ReleaseWorldSeconds - DefenseAnimationStartWorldSeconds < .22;
+	// Loop playback uses a sentinel animation time; release timing must use the
+	// real press time or a held guard can remain in recovery forever.
+	bBlockReleasePending = ReleaseWorldSeconds - BlockStartWorldSeconds < .22;
 	if (!bBlockReleasePending)
 	{
 		DefenseAnimationStartWorldSeconds = ReleaseWorldSeconds;
@@ -482,8 +619,56 @@ void UPlayerRhythmCombatComponent::EndBlock()
 	}
 }
 
+bool UPlayerRhythmCombatComponent::PrepareForOrdinaryAttack()
+{
+	if (!GetWorld() || Health<=0.f || bPhaseCinematic || bDodging || bCountering || bPoiseBroken || bHitReacting) return false;
+	// An intentional attack leaves guard without scheduling a later guard-end
+	// montage which could replace the new attack in DefaultSlot.
+	bBlocking=false; bBlockRecovering=false; bBlockReleasePending=false;
+	BufferedAction=EBufferedRhythmAction::None;
+	bBufferedBlockReleased=false;
+	if(auto* Camera=GetOwner()->FindComponentByClass<UBossCombatCameraComponent>()) Camera->StopHoldFeedback(.06f);
+	return true;
+}
+
+bool UPlayerRhythmCombatComponent::IsMouseDefenseWindow() const
+{
+	return !GetMouseDefensePrompt().IsEmpty();
+}
+
+FString UPlayerRhythmCombatComponent::GetMouseDefensePrompt() const
+{
+	if(!GetWorld() || Health<=0.f || bPhaseCinematic) return FString();
+	const auto* Clock=GetWorld()->GetSubsystem<UBeatClockSubsystem>();
+	if(!Clock || !Clock->IsRunning()) return FString();
+	for(TActorIterator<AActor> It(GetWorld());It;++It)
+	{
+		const auto* Boss=It->FindComponentByClass<UBeatSyncedComboComponent>();
+		if(!Boss || Boss->BossHealth<=0.f || Boss->IsPhaseTransitionActive() || FVector::DistSquared2D(It->GetActorLocation(),GetOwner()->GetActorLocation())>FMath::Square(600.f)) continue;
+		TArray<FUpcomingImpactCue> Cues; Boss->GetUpcomingImpactCues(Cues,3,true);
+		for(const auto& Cue:Cues)
+		{
+			if(Cue.DamageShape==EBossAttackDamageShape::GroundBurst) continue;
+			const double Remaining=Cue.ImpactAudioSeconds-Clock->GetAudioNowSeconds();
+			if(!PlayerAttackTiming::IsDefenseInputWindow(Remaining,Cue.IdealDodgeLeadSeconds)) continue;
+			switch(Cue.RequiredResponse)
+			{
+			case ERhythmResponseType::Block: return TEXT("RMB  BLOCK");
+			case ERhythmResponseType::Counter: return TEXT("LMB  COUNTER");
+			case ERhythmResponseType::HoldBlock: return Cue.HoldMarker==ERhythmHoldMarkerType::End?TEXT("RELEASE RMB"):TEXT("HOLD RMB");
+			case ERhythmResponseType::DodgeOrBlock: return TEXT("RMB BLOCK / SHIFT DODGE");
+			default: return TEXT("SHIFT  DODGE");
+			}
+		}
+	}
+	return FString();
+}
+
 bool UPlayerRhythmCombatComponent::TryCounter()
 {
+	if(Health<=0.f || bPhaseCinematic) return false;
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>(); Attacks && !Attacks->CancelForDefense(false)) return false;
+	if(bPhaseCinematic) return false;
 	if (!GetWorld()) return false;
 	const double InputAudioSeconds = GetCurrentInputAudioSeconds();
 	CounterInputHistory.Add(InputAudioSeconds);
@@ -492,7 +677,7 @@ bool UPlayerRhythmCombatComponent::TryCounter()
 	if (bHitReacting) FinishHitReaction();
 	if (bPoiseBroken) EndPoiseBreak();
 	// Counter is an intentional transition out of guard. Requiring the block key
-	// to finish its release event first made LMB appear unreliable in fast command
+	// to finish its release event first made counter input unreliable in fast command
 	// strings and replaced the player's real timing with a later animation time.
 	if (bBlocking)
 	{
@@ -524,12 +709,15 @@ bool UPlayerRhythmCombatComponent::TryCounter()
 
 bool UPlayerRhythmCombatComponent::StartCounter(double InputAudioSeconds)
 {
+	if(auto* Attack=GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>(); Attack && !Attack->CancelForDefense(false)) return false;
 	BufferedAction = EBufferedRhythmAction::None;
 	bCountering = true;
+	bRecoveryStrikePending = false; // General weapon sweeps now own pursuit damage.
 	bBlockRecovering = false;
 	bBlockReleasePending = false;
 	CounterStartWorldSeconds = GetWorld()->GetTimeSeconds();
 	LastCounterInputAudioSeconds = InputAudioSeconds;
+	if (CounterSwishSound) UGameplayStatics::PlaySound2D(this, CounterSwishSound, .6f, .92f);
 	PlayDefenseAnimation(CounterAnimation, false, CounterDurationSeconds);
 	return true;
 }
@@ -569,8 +757,7 @@ bool UPlayerRhythmCombatComponent::BufferWhilePoiseLocked(EBufferedRhythmAction 
 	if (!GetWorld()) return false;
 	const double Now = GetWorld()->GetTimeSeconds();
 	const bool bPoiseLocked = bPoiseBroken && Now - PoiseBreakStartWorldSeconds < PoiseBreakInputLockSeconds;
-	const bool bHitLocked = bHitReacting && Now < HitReactionEndWorldSeconds -
-		FMath::Max(0.0f, LightHitDurationSeconds - LightHitInputLockSeconds);
+	const bool bHitLocked = bHitReacting && Now < HitInputUnlockWorldSeconds;
 	if (!bPoiseLocked && !bHitLocked) return false;
 	BufferInput(Action, InputAudioSeconds, Direction);
 	return true;
@@ -597,8 +784,8 @@ void UPlayerRhythmCombatComponent::SpawnBloodFeedback(FVector ImpactLocation, FV
 		ImpactLocation = Torso;
 	if (!AttackDirection.Normalize()) AttackDirection = -GetOwner()->GetActorForwardVector();
 	const float Scale = bPoiseBreak ? BloodPoiseBreakScale : BloodHitScale;
-	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, ImpactLocation,
-		AttackDirection.Rotation(), FVector(Scale));
+	RetireCombatFX(UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), Effect, ImpactLocation,
+		AttackDirection.Rotation(), FVector(Scale*.65f)), .12f, .65f);
 	UE_LOG(LogTemp, Display, TEXT("PlayerBloodVFX: heavy=%d effect=%s location=%s"),
 		bPoiseBreak ? 1 : 0, *GetNameSafe(Effect), *ImpactLocation.ToString());
 }
@@ -640,6 +827,7 @@ void UPlayerRhythmCombatComponent::EndPoiseBreak()
 void UPlayerRhythmCombatComponent::StartHitReaction(FVector ImpactLocation, FVector AttackDirection, bool bHeavy,
 	FVector AttackerWorldLocation)
 {
+	if(auto* Attacks=GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>()) Attacks->NotifyInterrupted();
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (!GetWorld() || !Character || !Character->GetMesh()) return;
 	FVector TowardAttacker = AttackerWorldLocation.IsNearlyZero()
@@ -658,6 +846,10 @@ void UPlayerRhythmCombatComponent::StartHitReaction(FVector ImpactLocation, FVec
 	bHitTurnPending = true;
 	HitTurnEndWorldSeconds = Now + HitTurnSeconds;
 	HitReactionEndWorldSeconds = Now + HitTurnSeconds + Duration;
+	// Input lock is independent of the longer visual recoil and turn duration.
+	HitInputUnlockWorldSeconds = Now + (bHeavy ? PoiseBreakInputLockSeconds : LightHitInputLockSeconds);
+	BufferedAction = EBufferedRhythmAction::None;
+	bBufferedBlockReleased = false;
 	bDodging = false;
 	bBlocking = false;
 	bBlockRecovering = false;
@@ -691,9 +883,13 @@ void UPlayerRhythmCombatComponent::FinishHitReaction()
 
 void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 {
+	if (Health<=0.f) { BufferedAction=EBufferedRhythmAction::None; return; }
 	if (BufferedAction == EBufferedRhythmAction::None || !GetWorld()) return;
 	const double Now = GetWorld()->GetTimeSeconds();
-	if (Now - BufferedInputWorldSeconds > InputBufferSeconds)
+	double BufferDeadline = BufferedInputWorldSeconds + InputBufferSeconds;
+	if (bHitReacting) BufferDeadline = FMath::Max(BufferDeadline, HitInputUnlockWorldSeconds + .05);
+	if (bPoiseBroken) BufferDeadline = FMath::Max(BufferDeadline, PoiseBreakStartWorldSeconds + PoiseBreakInputLockSeconds + .05);
+	if (Now > BufferDeadline)
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("RhythmInputBuffer: expired action=%d"), static_cast<int32>(BufferedAction));
 		BufferedAction = EBufferedRhythmAction::None;
@@ -702,8 +898,7 @@ void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 	if (bDodging && Now - DodgeStartWorldSeconds < DodgeChainStartSeconds) return;
 	if (bCountering && Now - CounterStartWorldSeconds < CounterCancelStartSeconds) return;
 	if (bPoiseBroken && Now - PoiseBreakStartWorldSeconds < PoiseBreakInputLockSeconds) return;
-	if (bHitReacting && Now < HitReactionEndWorldSeconds -
-		FMath::Max(0.0f, LightHitDurationSeconds - LightHitInputLockSeconds)) return;
+	if (bHitReacting && Now < HitInputUnlockWorldSeconds) return;
 	if (bPoiseBroken) EndPoiseBreak();
 	if (bHitReacting) FinishHitReaction();
 
@@ -813,12 +1008,26 @@ bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, do
 	FVector AttackerWorldLocation)
 {
 	const int64 ImpactKey = FMath::RoundToInt64(ImpactAudioSeconds * 10000.0);
+	if (Health<=0.f) return false;
 	if (ResolvedImpactKeys.Contains(ImpactKey)) return true;
 	ResolvedImpactKeys.Add(ImpactKey);
 	if (ResolvedImpactKeys.Num() > 64) ResolvedImpactKeys.Reset();
 
-	LastResponse = RequiredResponse;
 	const double IdealInput = ImpactAudioSeconds - IdealLeadSeconds;
+	if(RequiredResponse==ERhythmResponseType::DodgeOrBlock)
+	{
+		// Select one actual defense and consume only its input. A stale block must
+		// never turn a valid dodge into BAD, or vice versa.
+		double BlockError=1000.;
+		for(double Time:BlockInputHistory) BlockError=FMath::Min(BlockError,FMath::Abs(Time-IdealInput));
+		const bool CanDodge=IsInvulnerable() || (!bPhysicalContact && DodgeSequenceId>0 &&
+			ImpactAudioSeconds-LastDodgeInputAudioSeconds>=-.10 && ImpactAudioSeconds-LastDodgeInputAudioSeconds<=.55);
+		const double DodgeError=FMath::Abs(LastDodgeInputAudioSeconds-IdealInput);
+		const bool GoodBlock=BlockError*1000.<=GoodWindowMs;
+		RequiredResponse=CanDodge && (!GoodBlock || DodgeError<BlockError)
+			? ERhythmResponseType::Dodge:ERhythmResponseType::Block;
+	}
+	LastResponse = RequiredResponse;
 	double JudgmentTargetAudioSeconds = IdealInput;
 	double InputTime = -1000.0;
 	bool bDefended = false;

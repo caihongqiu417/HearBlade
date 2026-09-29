@@ -2,6 +2,12 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "ToolMenus.h"
 #include "BeatComboEditorWidget.h"
+#include "Containers/Ticker.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/CommandLine.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
+#include "ImageUtils.h"
 
 class FHearBladeBeatEditorModule : public IModuleInterface
 {
@@ -15,16 +21,36 @@ public:
 			.SetMenuType(ETabSpawnerMenuType::Hidden);
 		UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(
 			this, &FHearBladeBeatEditorModule::RegisterMenu));
+		if(FParse::Param(FCommandLine::Get(),TEXT("BeatEditorAudit")))
+			AuditStart=FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this](float)
+			{
+				const auto Tab=FGlobalTabmanager::Get()->TryInvokeTab(FTabId(TEXT("HearBladeBeatComboEditor")));
+				AuditCapture=FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([Tab](float)
+				{
+					TArray<FColor> Pixels;FIntVector Size;
+					if(Tab.IsValid()&&FSlateApplication::Get().TakeScreenshot(Tab->GetContent(),Pixels,Size))
+					{
+						TArray64<uint8> Png;FImageUtils::PNGCompressImageArray(Size.X,Size.Y,Pixels,Png);
+						FFileHelper::SaveArrayToFile(Png,*(FPaths::ProjectSavedDir()/TEXT("Screenshots/BeatEditorPhaseTwo.png")));
+						UE_LOG(LogTemp,Display,TEXT("BeatEditorAudit: screenshot %dx%d"),Size.X,Size.Y);
+					}
+					FPlatformMisc::RequestExit(false);return false;
+				}),8.f);
+				return false;
+			}),12.f);
 	}
 
 	virtual void ShutdownModule() override
 	{
+		FTSTicker::GetCoreTicker().RemoveTicker(AuditStart);
+		FTSTicker::GetCoreTicker().RemoveTicker(AuditCapture);
 		UToolMenus::UnRegisterStartupCallback(this);
 		UToolMenus::UnregisterOwner(this);
 		FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(TEXT("HearBladeBeatComboEditor"));
 	}
 
 private:
+	FTSTicker::FDelegateHandle AuditStart,AuditCapture;
 	TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs&)
 	{
 		return SNew(SDockTab).TabRole(ETabRole::NomadTab)

@@ -10,6 +10,11 @@ class HEARBLADE_API UBossLocomotionAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 
 public:
+	void PlayArmorFlinch(FVector2D Direction,float Strength);
+	FRotator ArmorFlinchRotation=FRotator::ZeroRotator;
+	double ArmorFlinchStart=-1000.;
+	FVector2D ArmorFlinchDirection=FVector2D::ZeroVector;
+	float ArmorFlinchStrength=0.f;
 	UBossLocomotionAnimInstance();
 
 	UPROPERTY(Transient)

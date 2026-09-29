@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "round": 0,
+      "transition_seen": true,
+      "phase": 2,
+      "camera_returned": true,
+      "dodge_accepted": true
+    },
+    {
+      "round": 1,
+      "transition_seen": true,
+      "phase": 2,
+      "camera_returned": true,
+      "dodge_accepted": true
+    }
+  ],
+  "error": null
+}

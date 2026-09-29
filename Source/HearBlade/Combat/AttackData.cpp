@@ -23,6 +23,24 @@ float UAttackDataAsset::GetRateAtAnimationTime(float AnimationTime) const
 
 float UAttackDataAsset::GetElapsedAtAnimationTime(float AnimationTime) const
 {
+	return GetMotionElapsedAtAnimationTime(AnimationTime) +
+		(ChargeHoldSeconds > 0.f && AnimationTime > ChargePoseAnimationSeconds ? ChargeHoldSeconds : 0.f);
+}
+
+float UAttackDataAsset::GetAnimationTimeAtElapsed(float ElapsedSeconds) const
+{
+	if (ChargeHoldSeconds > 0.f)
+	{
+		const float HoldStart = GetMotionElapsedAtAnimationTime(ChargePoseAnimationSeconds);
+		if (ElapsedSeconds >= HoldStart && ElapsedSeconds < HoldStart + ChargeHoldSeconds)
+			return ChargePoseAnimationSeconds;
+		if (ElapsedSeconds >= HoldStart + ChargeHoldSeconds) ElapsedSeconds -= ChargeHoldSeconds;
+	}
+	return GetMotionAnimationTimeAtElapsed(ElapsedSeconds);
+}
+
+float UAttackDataAsset::GetMotionElapsedAtAnimationTime(float AnimationTime) const
+{
 	float Elapsed = 0.0f;
 	float Previous = 0.0f;
 	int32 Segment = 0;
@@ -42,7 +60,7 @@ float UAttackDataAsset::GetElapsedAtAnimationTime(float AnimationTime) const
 	return Elapsed + FMath::Max(0.0f, AnimationTime - Previous) / FMath::Max(0.01f, Rate);
 }
 
-float UAttackDataAsset::GetAnimationTimeAtElapsed(float ElapsedSeconds) const
+float UAttackDataAsset::GetMotionAnimationTimeAtElapsed(float ElapsedSeconds) const
 {
 	float Remaining = FMath::Max(0.0f, ElapsedSeconds);
 	float Previous = 0.0f;

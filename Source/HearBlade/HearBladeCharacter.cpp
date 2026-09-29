@@ -2,6 +2,7 @@
 
 #include "HearBladeCharacter.h"
 #include "Combat/PlayerCombatAnimInstance.h"
+#include "Combat/PlayerBeatAttackComponent.h"
 #include "Combat/RhythmCombatInputSettings.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
@@ -14,6 +15,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/Controller.h"
 #include "EnhancedInputComponent.h"
+#include "EnhancedPlayerInput.h"
+#include "GameFramework/PlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "HearBlade.h"
@@ -23,6 +26,7 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "InputCoreTypes.h"
+#include "Kismet/GameplayStatics.h"
 
 AHearBladeCharacter::AHearBladeCharacter()
 {
@@ -60,6 +64,7 @@ AHearBladeCharacter::AHearBladeCharacter()
 	FollowCamera->bUsePawnControlRotation = false;
 	CombatCamera = CreateDefaultSubobject<UBossCombatCameraComponent>(TEXT("BossCombatCamera"));
 	RhythmCombat = CreateDefaultSubobject<UPlayerRhythmCombatComponent>(TEXT("RhythmCombat"));
+	BeatAttack = CreateDefaultSubobject<UPlayerBeatAttackComponent>(TEXT("BeatAttack"));
 	PerfectDodgeFeedback = CreateDefaultSubobject<UPerfectDodgeFeedbackComponent>(TEXT("PerfectDodgeFeedback"));
 	EquippedSword = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("EquippedSword"));
 	EquippedSword->SetupAttachment(GetMesh(), TEXT("hand_r"));
@@ -75,7 +80,7 @@ AHearBladeCharacter::AHearBladeCharacter()
 		TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SM_DKM_Sword.SM_DKM_Sword")));
 
 	KnightLocomotionBlendSpace = LoadObject<UBlendSpace>(nullptr,
-		TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/BS_DKM_CombatLocomotion.BS_DKM_CombatLocomotion"));
+		TEXT("/Game/Combat/Player/BS_PlayerEightWay.BS_PlayerEightWay"));
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
@@ -92,6 +97,8 @@ void AHearBladeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 		// Moving
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AHearBladeCharacter::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Completed, this, &AHearBladeCharacter::Move);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Canceled, this, &AHearBladeCharacter::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AHearBladeCharacter::Look);
 
 		// Looking
@@ -115,10 +122,34 @@ void AHearBladeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		CounterAction = NewObject<UInputAction>(this, TEXT("RhythmCounterAction"));
 		CounterAction->ValueType = EInputActionValueType::Boolean;
 		DefenseMapping = NewObject<UInputMappingContext>(this, TEXT("RhythmDefenseMapping"));
-		DefenseMapping->MapKey(BlockAction, RhythmKeys->BlockKeyboardMouse);
+		LightAttackAction = NewObject<UInputAction>(this, TEXT("LightAttackAction"));
+		HeavyAttackAction = NewObject<UInputAction>(this, TEXT("HeavyAttackAction"));
+		ResonanceAction = NewObject<UInputAction>(this, TEXT("ResonanceAction"));
+		LightAttackAction->ValueType = EInputActionValueType::Boolean;
+		HeavyAttackAction->ValueType = EInputActionValueType::Boolean;
+		ResonanceAction->ValueType = EInputActionValueType::Boolean;
+		MousePrimaryCombatAction=NewObject<UInputAction>(this,TEXT("MousePrimaryCombat"));
+		MouseSecondaryCombatAction=NewObject<UInputAction>(this,TEXT("MouseSecondaryCombat"));
+		MousePrimaryCombatAction->ValueType=EInputActionValueType::Boolean;
+		MouseSecondaryCombatAction->ValueType=EInputActionValueType::Boolean;
+		DefenseMapping->MapKey(MousePrimaryCombatAction,EKeys::LeftMouseButton);
+		DefenseMapping->MapKey(MouseSecondaryCombatAction,EKeys::RightMouseButton);
+		EnhancedInputComponent->BindAction(MousePrimaryCombatAction,ETriggerEvent::Started,this,&AHearBladeCharacter::MousePrimaryCombatPressed);
+		EnhancedInputComponent->BindAction(MouseSecondaryCombatAction,ETriggerEvent::Completed,this,&AHearBladeCharacter::MouseSecondaryCombatReleased);
+		EnhancedInputComponent->BindAction(MouseSecondaryCombatAction,ETriggerEvent::Canceled,this,&AHearBladeCharacter::MouseSecondaryCombatReleased);
+		EnhancedInputComponent->BindAction(MouseSecondaryCombatAction,ETriggerEvent::Started,this,&AHearBladeCharacter::MouseSecondaryCombatPressed);
+		DefenseMapping->MapKey(LightAttackAction, RhythmKeys->LightAttackGamepad);
+		DefenseMapping->MapKey(HeavyAttackAction, EKeys::F);
+		DefenseMapping->MapKey(HeavyAttackAction, RhythmKeys->HeavyAttackGamepad);
+		DefenseMapping->MapKey(ResonanceAction, RhythmKeys->ResonanceKey);
+		DefenseMapping->MapKey(ResonanceAction, RhythmKeys->ResonanceGamepad);
+		EnhancedInputComponent->BindAction(LightAttackAction, ETriggerEvent::Started, this, &AHearBladeCharacter::LightAttack);
+		EnhancedInputComponent->BindAction(HeavyAttackAction, ETriggerEvent::Started, this, &AHearBladeCharacter::HeavyAttack);
+		EnhancedInputComponent->BindAction(ResonanceAction, ETriggerEvent::Started, this, &AHearBladeCharacter::ActivateResonance);
 		DefenseMapping->MapKey(BlockAction, RhythmKeys->BlockGamepad);
-		DefenseMapping->MapKey(CounterAction, RhythmKeys->CounterPrimary);
-		DefenseMapping->MapKey(CounterAction, RhythmKeys->CounterSecondary);
+		if(!RhythmKeys->CounterPrimary.IsMouseButton()) DefenseMapping->MapKey(CounterAction, RhythmKeys->CounterPrimary);
+		if(RhythmKeys->CounterSecondary!=RhythmKeys->CounterPrimary && !RhythmKeys->CounterSecondary.IsMouseButton())
+			DefenseMapping->MapKey(CounterAction, RhythmKeys->CounterSecondary);
 		DefenseMapping->MapKey(CounterAction, RhythmKeys->CounterGamepad);
 		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Started, this, &AHearBladeCharacter::BlockStarted);
 		EnhancedInputComponent->BindAction(BlockAction, ETriggerEvent::Completed, this, &AHearBladeCharacter::BlockEnded);
@@ -160,7 +191,10 @@ void AHearBladeCharacter::Look(const FInputActionValue& Value)
 
 void AHearBladeCharacter::DoMove(float Right, float Forward)
 {
+	CurrentMoveInput=FVector2D(Right,Forward);
 	if (RhythmCombat && RhythmCombat->IsPerformingAction()) return;
+	const float AttackMoveScale = BeatAttack ? BeatAttack->GetMovementScale() : 1.f;
+	Right *= AttackMoveScale; Forward *= AttackMoveScale;
 	if (GetController() != nullptr)
 	{
 		// find out which way is forward
@@ -181,6 +215,7 @@ void AHearBladeCharacter::DoMove(float Right, float Forward)
 
 void AHearBladeCharacter::DoLook(float Yaw, float Pitch)
 {
+	if(RhythmCombat && RhythmCombat->IsPhaseCinematic()) return;
 	if (CombatCamera && CombatCamera->IsLockedOn())
 	{
 		CombatCamera->AddLookInput(Yaw, Pitch);
@@ -200,11 +235,60 @@ void AHearBladeCharacter::BeginPlay()
 	GetMesh()->SetAnimInstanceClass(UPlayerCombatAnimInstance::StaticClass());
 	if (auto* Animation = Cast<UPlayerCombatAnimInstance>(GetMesh()->GetAnimInstance()))
 		Animation->Locomotion = KnightLocomotionBlendSpace;
+	// Older placed/Blueprint instances serialized the previous (too fast) default.
+	if (FMath::IsNearlyEqual(FreeRunSpeed, 500.f)) FreeRunSpeed = 400.f;
+	MeasureLocomotionSpeeds();
+}
+
+void AHearBladeCharacter::MeasureLocomotionSpeeds()
+{
+	if (!KnightLocomotionBlendSpace) return;
+	float Sum[3] = {0.f, 0.f, 0.f}; int32 Count[3] = {0, 0, 0};
+	for (const FBlendSample& Sample : KnightLocomotionBlendSpace->GetBlendSamples())
+	{
+		const float Radius = FVector2D(Sample.SampleValue.X, Sample.SampleValue.Y).Size();
+		const UAnimSequence* Clip = Cast<UAnimSequence>(Sample.Animation);
+		if (Radius < .1f || !Clip || Clip->GetPlayLength() <= .05f) continue;
+		const FTransform A = Clip->ExtractRootTrackTransform(FAnimExtractContext(0.0), nullptr);
+		const FTransform B = Clip->ExtractRootTrackTransform(FAnimExtractContext(double(Clip->GetPlayLength())), nullptr);
+		const float Speed = FVector::Dist2D(A.GetLocation(), B.GetLocation()) / Clip->GetPlayLength();
+		if (Speed < 20.f) continue; // in-place clip: nothing to measure
+		const int32 Ring = Radius < .7f ? 0 : Radius < 1.15f ? 1 : 2;
+		Sum[Ring] += Speed; ++Count[Ring];
+	}
+	if (Count[0]) WalkAnimSpeed = Sum[0] / Count[0];
+	if (Count[1]) RunAnimSpeed = Sum[1] / Count[1];
+	if (Count[2]) FastAnimSpeed = Sum[2] / Count[2];
+	RunAnimSpeed = FMath::Max(RunAnimSpeed, WalkAnimSpeed + 50.f);
+	FastAnimSpeed = FMath::Max(FastAnimSpeed, RunAnimSpeed + 50.f);
+	UE_LOG(LogHearBlade, Display, TEXT("LocomotionSpeeds: walk=%.0f run=%.0f fast=%.0f (measured %d/%d/%d)"),
+		WalkAnimSpeed, RunAnimSpeed, FastAnimSpeed, Count[0], Count[1], Count[2]);
+}
+
+// Blend space rings: 0.4 = walk, 1.0 = run, 1.3 = fast run.
+float AHearBladeCharacter::LocomotionRadiusForSpeed(float Speed) const
+{
+	if (Speed <= WalkAnimSpeed) return .4f * Speed / FMath::Max(WalkAnimSpeed, 1.f);
+	if (Speed <= RunAnimSpeed) return .4f + .6f * (Speed - WalkAnimSpeed) / (RunAnimSpeed - WalkAnimSpeed);
+	return FMath::Min(1.3f, 1.f + .3f * (Speed - RunAnimSpeed) / (FastAnimSpeed - RunAnimSpeed));
+}
+
+float AHearBladeCharacter::LocomotionSpeedForRadius(float Radius) const
+{
+	if (Radius <= .4f) return WalkAnimSpeed * Radius / .4f;
+	if (Radius <= 1.f) return FMath::Lerp(WalkAnimSpeed, RunAnimSpeed, (Radius - .4f) / .6f);
+	return FMath::Lerp(RunAnimSpeed, FastAnimSpeed, (FMath::Min(Radius, 1.3f) - 1.f) / .3f);
 }
 
 void AHearBladeCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	if (RhythmCombat && RhythmCombat->Health <= 0.f)
+	{
+		if (auto* PC=Cast<APlayerController>(GetController()); PC && PC->WasInputKeyJustPressed(EKeys::Enter))
+			UGameplayStatics::OpenLevel(this,FName(*UGameplayStatics::GetCurrentLevelName(this,true)));
+		return;
+	}
 	CalibrateSwordGrip();
 	UpdateCombatFacing(DeltaSeconds);
 	UpdateSwordDirection(DeltaSeconds);
@@ -218,13 +302,14 @@ void AHearBladeCharacter::UpdateSwordDirection(float DeltaSeconds)
 	const FQuat CurrentRotation = EquippedSword->GetComponentQuat();
 	FQuat TargetRotation = CurrentRotation;
 	float InterpSpeed = SwordDirectionInterpSpeed;
-	if (RhythmCombat && RhythmCombat->IsInDefensePose() && GetMesh())
+	if (((RhythmCombat && RhythmCombat->IsInDefensePose()) || (BeatAttack && BeatAttack->IsPlayingAttackMotion())) && GetMesh())
 	{
 		// Defense animations author the wrist and blade pose together. Reapply the calibrated
 		// grip offset in hand space so block, hold and counter can actually raise the sword.
 		const FQuat HandRotation = GetMesh()->GetSocketTransform(TEXT("hand_r"), RTS_World).GetRotation();
 		TargetRotation = (HandRotation * SwordGripRotationOffset).GetNormalized();
 		InterpSpeed *= 1.65f;
+		if (BeatAttack && BeatAttack->IsPlayingAttackMotion()) { EquippedSword->SetWorldRotation(TargetRotation); return; }
 	}
 	else
 	{
@@ -242,6 +327,8 @@ void AHearBladeCharacter::UpdateSwordDirection(float DeltaSeconds)
 
 void AHearBladeCharacter::UpdateCombatFacing(float DeltaSeconds)
 {
+	if(BeatAttack && BeatAttack->IsPlayingAttackMotion()) return; // Ordinary attack lead-in owns its facing.
+	if(RhythmCombat && RhythmCombat->IsPhaseCinematic()) return;
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	AActor* TargetActor = CombatCamera ? CombatCamera->GetCombatTarget() : nullptr;
 	if (!Movement) return;
@@ -298,15 +385,24 @@ void AHearBladeCharacter::UpdateKnightLocomotion(float DeltaSeconds)
 	if (!GetMesh() || !KnightLocomotionBlendSpace) return;
 
 	const bool bCombatLocked = CombatCamera && CombatCamera->IsLockedOn();
+	const AActor* Target=CombatCamera?CombatCamera->GetCombatTarget():nullptr;
+	const bool bBusy=(RhythmCombat && RhythmCombat->IsPerformingAction()) || (BeatAttack && BeatAttack->IsPlayingAttackMotion());
+	const FVector ToTarget=Target?Target->GetActorLocation()-GetActorLocation():FVector::ZeroVector;
+	const bool bForwardIntent=GetLastMovementInputVector().SizeSquared()>.04f &&
+		FVector::DotProduct(GetLastMovementInputVector().GetSafeNormal2D(),ToTarget.GetSafeNormal2D())>.85f;
+	// Separate enter/exit distances prevent gait flicker around the boundary.
+	bPursuitGait=bCombatLocked && Target && !bBusy && bForwardIntent && ToTarget.Size2D()>(bPursuitGait?300.f:450.f);
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
-		Movement->MaxWalkSpeed = bCombatLocked ? LockedCombatWalkSpeed : FreeRunSpeed;
+		Movement->MaxWalkSpeed = bPursuitGait ? FreeRunSpeed*1.3f : bCombatLocked ? FMath::Max(280.f,LockedCombatWalkSpeed) : FreeRunSpeed;
 
-	// The outer Blend Space ring represents the free run speed. Locked combat
-	// movement is physically slower and is also clamped to the inner walk ring.
-	const float MaxMoveSpeed = FMath::Max(FreeRunSpeed, 1.0f);
+	// Actual local velocity selects eight walk/run directions; the 1.3 outer
+	// ring supplies forward pursuit. Never clamp lock-on to walking poses.
+	// Map speed onto the ring whose authored stride matches it, instead of
+	// speed/FreeRunSpeed (which played a run cycle at walking speed and made
+	// the feet skate / float).
 	const FVector LocalVelocity = GetActorTransform().InverseTransformVectorNoScale(GetVelocity());
-	FVector2D TargetInput(LocalVelocity.X / MaxMoveSpeed, LocalVelocity.Y / MaxMoveSpeed);
-	TargetInput = TargetInput.GetClampedToMaxSize(bCombatLocked ? LockedWalkBlendRadius : 1.0f);
+	const float Speed2D = FVector2D(LocalVelocity.X, LocalVelocity.Y).Size();
+	FVector2D TargetInput = FVector2D(LocalVelocity.X, LocalVelocity.Y).GetSafeNormal() * LocomotionRadiusForSpeed(Speed2D);
 	if (GetVelocity().SizeSquared2D() < 9.0f) TargetInput = FVector2D::ZeroVector;
 	SmoothedLocomotionInput = FMath::Vector2DInterpTo(
 		SmoothedLocomotionInput, TargetInput, DeltaSeconds, 9.0f);
@@ -315,6 +411,10 @@ void AHearBladeCharacter::UpdateKnightLocomotion(float DeltaSeconds)
 	{
 		Instance->Locomotion = KnightLocomotionBlendSpace;
 		Instance->LocomotionPosition = FVector(SmoothedLocomotionInput.X, SmoothedLocomotionInput.Y, 0.0f);
+		// While the blend position catches up, scale the cycle so the stride
+		// covers exactly the ground the capsule covers.
+		const float PoseSpeed = LocomotionSpeedForRadius(SmoothedLocomotionInput.Size());
+		Instance->SpeedMatchPlayRate = (Speed2D > 30.f && PoseSpeed > 30.f) ? FMath::Clamp(Speed2D / PoseSpeed, .75f, 1.3f) : 1.f;
 	}
 }
 
@@ -343,16 +443,56 @@ void AHearBladeCharacter::Counter()
 	if (RhythmCombat) RhythmCombat->TryCounter();
 }
 
+void AHearBladeCharacter::LightAttack() { if (BeatAttack) BeatAttack->TryAttack(EPlayerAttackInput::Light); }
+void AHearBladeCharacter::MousePrimaryCombatPressed()
+{
+	const bool Defense=RhythmCombat && RhythmCombat->IsMouseDefenseWindow();
+	UE_LOG(LogTemp,Display,TEXT("MouseCombat: LMB -> %s"),Defense?TEXT("COUNTER"):TEXT("LIGHT"));
+	if(Defense) Counter(); else LightAttack();
+}
+void AHearBladeCharacter::MouseSecondaryCombatReleased()
+{
+	// Release follows the role chosen at press; a changing threat window must
+	// never turn a light-attack release into a block-end montage.
+	if(bMouseSecondaryOwnsBlock && RhythmCombat) RhythmCombat->EndBlock();
+	bMouseSecondaryOwnsBlock=false;
+}
+void AHearBladeCharacter::MouseSecondaryCombatPressed()
+{
+	const bool Defense=RhythmCombat && RhythmCombat->IsMouseDefenseWindow();
+	UE_LOG(LogTemp,Display,TEXT("MouseCombat: RMB -> %s"),Defense?TEXT("BLOCK"):TEXT("HEAVY"));
+	bMouseSecondaryOwnsBlock=false;
+	if(Defense) bMouseSecondaryOwnsBlock=RhythmCombat->TryBlockStart(); else HeavyAttack();
+}
+void AHearBladeCharacter::HeavyAttack() { if (BeatAttack) BeatAttack->TryAttack(EPlayerAttackInput::Heavy); }
+void AHearBladeCharacter::ActivateResonance() { if (BeatAttack) BeatAttack->TryActivateResonance(); }
+
+FVector AHearBladeCharacter::GetWorldMoveIntent() const
+{
+	FVector2D Input=CurrentMoveInput;
+	if(auto* PC=Cast<APlayerController>(GetController()))
+		if(auto* Enhanced=Cast<UEnhancedPlayerInput>(PC->PlayerInput);Enhanced&&MoveAction)
+			Input=Enhanced->GetActionValue(MoveAction).Get<FVector2D>();
+	const FRotator Yaw(0.f,GetController()?GetController()->GetControlRotation().Yaw:GetActorRotation().Yaw,0.f);
+	return (FRotationMatrix(Yaw).GetUnitAxis(EAxis::X)*Input.Y+FRotationMatrix(Yaw).GetUnitAxis(EAxis::Y)*Input.X).GetClampedToMaxSize(1.f);
+}
+
 void AHearBladeCharacter::DoDodge()
 {
 	if (!RhythmCombat) return;
-	FVector Direction = GetLastMovementInputVector();
-	if (Direction.IsNearlyZero()) Direction = GetActorForwardVector();
+	FVector2D Input=CurrentMoveInput;
+	if(auto* PC=Cast<APlayerController>(GetController()))
+		if(auto* Enhanced=Cast<UEnhancedPlayerInput>(PC->PlayerInput);Enhanced&&MoveAction)
+			Input=Enhanced->GetActionValue(MoveAction).Get<FVector2D>();
+	const FRotator Yaw(0.f,GetController()?GetController()->GetControlRotation().Yaw:GetActorRotation().Yaw,0.f);
+	FVector Direction=(FRotationMatrix(Yaw).GetUnitAxis(EAxis::X)*Input.Y+FRotationMatrix(Yaw).GetUnitAxis(EAxis::Y)*Input.X).GetSafeNormal2D();
+	if(Direction.IsNearlyZero()) Direction=GetActorForwardVector();
 	RhythmCombat->TryDodge(Direction);
 }
 
 void AHearBladeCharacter::DoJumpStart()
 {
+	if(RhythmCombat && RhythmCombat->IsPhaseCinematic()) return;
 	// signal the character to jump
 	Jump();
 }

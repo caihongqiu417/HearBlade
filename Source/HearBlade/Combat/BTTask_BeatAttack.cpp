@@ -12,6 +12,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 #include "NiagaraSystem.h"
+#include "Misc/CommandLine.h"
 
 namespace
 {
@@ -141,6 +142,9 @@ EBTNodeResult::Type UBTTask_BeatAttack::ExecuteTask(UBehaviorTreeComponent& Owne
 
 void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
+#if !UE_BUILD_SHIPPING
+	if(FParse::Param(FCommandLine::Get(),TEXT("ComboPoseAudit"))) return;
+#endif
 	UBeatSyncedComboComponent* Combo = GetComboComponent(OwnerComp, BossActorKey.SelectedKeyName);
 	if (!Combo)
 	{
@@ -149,6 +153,17 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 	}
 	UWorld* World = Combo->GetWorld();
 	const UBeatClockSubsystem* Clock = World->GetSubsystem<UBeatClockSubsystem>();
+	if (Combo->IsPlayerResonanceActive()) return;
+	if (Combo->IsGroundBurstRecovery())
+	{
+		SetBossLocomotion(Combo->GetOwner(), 0.f, FVector::ZeroVector, AnimationReferenceSpeed, DeltaSeconds);
+		return;
+	}
+	if (Combo->IsPhaseTransitionBlocking())
+	{
+		SetBossLocomotion(Combo->GetOwner(), 0.f, FVector::ZeroVector, AnimationReferenceSpeed, DeltaSeconds);
+		return;
+	}
 	if (!bAttackStarted)
 	{
 		// A previous BT branch may have been aborted while its montage was already playing.
@@ -205,9 +220,10 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		TArray<UAttackDataAsset*> Candidates;
 		for (UAttackDataAsset* Candidate : AttackPool)
 		{
-			if (IsValid(Candidate)) Candidates.Add(Candidate);
+			if (IsValid(Candidate) && Candidate->MinimumBossPhase <= Combo->BossPhase &&
+				!Candidate->ImpactMarkers.ContainsByPredicate([](const auto& Marker){return Marker.DamageShape==EBossAttackDamageShape::GroundBurst;})) Candidates.AddUnique(Candidate);
 		}
-		if (Candidates.IsEmpty() && IsValid(AttackData)) Candidates.Add(AttackData);
+		if (Candidates.IsEmpty() && IsValid(AttackData) && AttackData->MinimumBossPhase<=Combo->BossPhase) Candidates.Add(AttackData);
 		if (Candidates.IsEmpty())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("BTTask_BeatAttack: AttackPool is empty"));
@@ -215,6 +231,32 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 			return;
 		}
 		UAttackDataAsset* Selected = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+		if (Candidates.Num()>1) Candidates.RemoveAll([this](const auto* Item){return Item==LastSelectedAttack.Get();});
+		Selected = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+		Combo->ConfigureNextBlink(Blink);
+		// Matching an upcoming local musical accent raises selection priority.
+		// Phase and safe-area rotation below still take precedence.
+		float BestMusicPriority=0.f;
+		for(auto* Candidate:Candidates)
+		{
+			float Priority=0.f;Combo->SelectMusicEmphasisBeat(Candidate,Priority);
+			if(Priority>BestMusicPriority){BestMusicPriority=Priority;Selected=Candidate;}
+		}
+		if (Combo->IsAreaAttackDue())
+		{
+			if (UAttackDataAsset* Area = PhaseTwoAreaAttack.LoadSynchronous())
+			{
+				const FAttackImpactMarker* Burst = Area->ImpactMarkers.FindByPredicate([](const FAttackImpactMarker& M) { return M.DamageShape == EBossAttackDamageShape::GroundBurst; });
+				if(Burst)
+				{
+					const int32 Index=static_cast<int32>(Burst-Area->ImpactMarkers.GetData());
+					const float LockTime=Index>0?Area->ImpactMarkers[Index-1].AnimationTimeSeconds:Area->ClipStartSeconds;
+					const double WarningDuration=Area->GetElapsedAtAnimationTime(Burst->AnimationTimeSeconds)-Area->GetElapsedAtAnimationTime(LockTime);
+					if(Combo->HasSafeAreaExit(Boss->GetActorLocation(),Burst->GroundBurst.RadiusCm,Player,WarningDuration)) Selected=Area;
+					else if(Combo->HasSafeAreaExit(Boss->GetActorLocation(),FMath::Min(360.f,Burst->GroundBurst.RadiusCm),Player,WarningDuration)) Selected=Area;
+				}
+			}
+		}
 		Combo->SetAttackTarget(const_cast<APawn*>(Player));
 		Combo->ConfigureNextBlink(Blink);
 		if (!Combo->QueueAttack(Selected))
@@ -225,6 +267,7 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 			return;
 		}
 		bAttackStarted = true;
+		LastSelectedAttack = Selected;
 		UE_LOG(LogTemp, Display, TEXT("BTTask_BeatAttack: PlayerDistance=%.0f Attack=%s Queued=true BlinkImpactAudio=%.3f"),
 			CurrentDistance, *GetNameSafe(Selected), Combo->GetScheduledFirstImpactAudioSeconds());
 		return;

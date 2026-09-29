@@ -11,6 +11,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "HearBladeCharacter.h"
+#include "Components/CapsuleComponent.h"
 
 UBossCombatCameraComponent::UBossCombatCameraComponent()
 {
@@ -98,6 +99,7 @@ void UBossCombatCameraComponent::ClearCombatTarget()
 
 void UBossCombatCameraComponent::ToggleLockOn()
 {
+	if(bPhasePresentation) return;
 	if (Target.IsValid())
 	{
 		ClearCombatTarget();
@@ -149,6 +151,37 @@ void UBossCombatCameraComponent::TriggerPerfectDodgeFeedback(float FOVExpansionD
 		.032f, .040f, bStrongBeat ? .19f : .16f);
 	UE_LOG(LogTemp, Display, TEXT("PerfectDodgeCamera: side=%.0f strong=%d scale=%.2f lateral=%.1f yaw=%.2f"),
 		SideSign, bStrongBeat ? 1 : 0, FinalStrength, LateralShiftCm * FinalStrength, YawKickDegrees * FinalStrength);
+}
+
+void UBossCombatCameraComponent::TriggerKickAccent(float FOVKickDegrees, float RollDegrees, float PitchDipDegrees,
+	float ShakeDegrees, FVector ContactWorld, float HoldSeconds)
+{
+	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
+	UBossCameraModifier* CameraModifier = Modifier.Get();
+	if (!Player || !CameraModifier) return;
+	float SideSign = 1.f;
+	if (const UCameraComponent* Camera = Player->GetFollowCamera())
+	{
+		const FVector ToContact = ContactWorld - Player->GetActorLocation();
+		SideSign = FVector::DotProduct(ToContact.GetSafeNormal2D(), Camera->GetRightVector().GetSafeNormal2D()) >= 0.f ? 1.f : -1.f;
+	}
+	CameraModifier->TriggerPerfectDodge(FMath::Clamp(FOVKickDegrees, 0.f, 6.f), FMath::Clamp(ShakeDegrees, 0.f, .25f),
+		0.f, 6.f, 0.f, FMath::Clamp(PitchDipDegrees, 0.f, .6f), SideSign, .25f,
+		.03f, FMath::Clamp(HoldSeconds, .04f, .22f), .32f);
+	CameraModifier->RollKick = FMath::Clamp(RollDegrees, 0.f, 4.f);
+}
+
+void UBossCombatCameraComponent::TriggerUppercutAccent(float Strength)
+{
+	UBossCameraModifier* CameraModifier=Modifier.Get();
+	if(!CameraModifier || !GetOwner()) return;
+	const float Power=FMath::Clamp(Strength,0.f,1.5f);
+	// The Boss is usually within arm's reach here. Keep this accent independent
+	// of the distance suppression used for incoming Boss attacks; the bounded
+	// lens/pitch values still keep the target readable.
+	CameraModifier->TriggerPerfectDodge(2.1f+1.1f*Power,.035f+.035f*Power,
+		0.f,4.f,0.f,.32f+.28f*Power,1.f,.22f,.028f,.055f,.25f);
+	UE_LOG(LogTemp,Display,TEXT("UppercutCamera: fov=%.2f pitch=%.2f"),2.1f+1.1f*Power,.32f+.28f*Power);
 }
 
 void UBossCombatCameraComponent::TriggerFailureFeedback(bool bMiss)
@@ -271,9 +304,77 @@ void UBossCombatCameraComponent::HandleCinematicEnded()
 	UE_LOG(LogTemp, Verbose, TEXT("BeatCinematicCamera: recovery"));
 }
 
+void UBossCombatCameraComponent::TriggerLaunchShot(AActor* Subject, float Seconds)
+{
+	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
+	if (!Subject || !Player || !GetWorld() || bPhasePresentation) return;
+	// Frame from the side the camera is already on, so the move is a swing, not a flip.
+	FVector Axis = Subject->GetActorLocation() - Player->GetActorLocation(); Axis.Z = 0.f;
+	if (!Axis.Normalize()) Axis = Player->GetActorForwardVector();
+	const FVector Side(-Axis.Y, Axis.X, 0.f);
+	const FVector Mid = (Player->GetActorLocation() + Subject->GetActorLocation()) * .5f;
+	const FVector CameraLoc = Player->GetFollowCamera() ? Player->GetFollowCamera()->GetComponentLocation() : Mid - Axis * 300.f;
+	ShotSide = FVector::DotProduct(CameraLoc - Mid, Side) >= 0.f ? 1.f : -1.f;
+	// If that side is walled off, take the other one.
+	FCollisionQueryParams Q(SCENE_QUERY_STAT(LaunchShot), false, Player); Q.AddIgnoredActor(Subject);
+	if (GetWorld()->LineTraceTestByChannel(Mid + FVector(0, 0, 60), Mid + Side * ShotSide * 380.f + FVector(0, 0, 60), ECC_Camera, Q))
+		ShotSide = -ShotSide;
+	ShotSubject = Subject; ShotStartWorld = GetWorld()->GetTimeSeconds(); ShotSeconds = FMath::Max(.6f, Seconds); bShotInit = false;
+	UE_LOG(LogTemp, Display, TEXT("LaunchShot: side=%.0f seconds=%.2f"), ShotSide, ShotSeconds);
+}
+
+void UBossCombatCameraComponent::TickLaunchShot(float DeltaTime)
+{
+	UBossCameraModifier* M = Modifier.Get();
+	if (!M) return;
+	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
+	AActor* Subject = ShotSubject.Get();
+	const float Age = GetWorld() ? float(GetWorld()->GetTimeSeconds() - ShotStartWorld) : 1.e9f;
+	if (!Subject || !Player || bPhasePresentation || Age > ShotSeconds)
+	{
+		M->ShotWeight = 0.f; ShotSubject.Reset(); bShotInit = false; return;
+	}
+	constexpr float In = .2f, Out = .45f;
+	float W = Age < In ? FMath::SmoothStep(0.f, 1.f, Age / In)
+		: Age > ShotSeconds - Out ? 1.f - FMath::SmoothStep(0.f, 1.f, (Age - (ShotSeconds - Out)) / Out) : 1.f;
+	W *= .94f;
+	// Frame from the GROUND up: actor locations are capsule centres (the boss's is
+	// far higher than the player's), so framing on them aimed the shot at the sky.
+	auto Ground = [](const AActor* A)
+	{
+		const UCapsuleComponent* Cap = A->FindComponentByClass<UCapsuleComponent>();
+		const float Half = Cap ? Cap->GetScaledCapsuleHalfHeight() : 90.f;
+		return TPair<FVector, float>(A->GetActorLocation() - FVector(0, 0, Half), Half);
+	};
+	const TPair<FVector, float> PG = Ground(Player), BG = Ground(Subject);
+	FVector Axis = BG.Key - PG.Key; Axis.Z = 0.f;
+	const float Sep = Axis.Size();
+	Axis = Sep > 1.f ? Axis / Sep : Player->GetActorForwardVector();
+	const FVector Side(-Axis.Y * ShotSide, Axis.X * ShotSide, 0.f);
+	const FVector MidGround = (PG.Key + BG.Key) * .5f;
+	const float T = FMath::Clamp(Age / ShotSeconds, 0.f, 1.f);
+	// Both bodies' chests, averaged; the launched boss only nudges it up a little.
+	const float ChestZ = (PG.Key.Z + PG.Value * 1.3f + BG.Key.Z + BG.Value * 1.2f) * .5f;
+	const float Lift = 25.f * FMath::Sin(FMath::Clamp(Age / .9f, 0.f, 1.f) * PI);
+	const float Dist = FMath::Clamp(Sep * 1.2f + 480.f, 560.f, 1000.f) * FMath::Lerp(1.f, .93f, T); // wide enough for both
+	const FVector Look(MidGround.X, MidGround.Y, ChestZ + Lift);
+	// Camera at chest height, a touch above: a level side view, slightly looking down.
+	FVector Desired = FVector(MidGround.X, MidGround.Y, ChestZ + 45.f) + Side * Dist - Axis * 30.f;
+	FCollisionQueryParams Q(SCENE_QUERY_STAT(LaunchShotTick), false, Player); Q.AddIgnoredActor(Subject);
+	FHitResult Hit;
+	if (GetWorld()->LineTraceSingleByChannel(Hit, Look, Desired, ECC_Camera, Q)) Desired = Hit.Location + Hit.ImpactNormal * 25.f;
+	FRotator Rot = (Look - Desired).Rotation(); Rot.Roll = -3.f * ShotSide; // slight Dutch angle
+	if (!bShotInit) { ShotSmoothedLoc = Desired; ShotSmoothedRot = Rot; bShotInit = true; }
+	ShotSmoothedLoc = FMath::VInterpTo(ShotSmoothedLoc, Desired, DeltaTime, 12.f);
+	ShotSmoothedRot = FMath::RInterpTo(ShotSmoothedRot, Rot, DeltaTime, 12.f);
+	M->ShotLocation = ShotSmoothedLoc; M->ShotRotation = ShotSmoothedRot; M->ShotFOV = 60.f; M->ShotWeight = W;
+}
+
 void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* Tick)
 {
 	Super::TickComponent(DeltaTime, Type, Tick);
+	TickLaunchShot(DeltaTime);
+	if(bPhasePresentation) return;
 	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
 	APlayerController* PC = Player ? Cast<APlayerController>(Player->GetController()) : nullptr;
 	if (!PC || !PC->IsLocalController()) return;
@@ -314,6 +415,9 @@ void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
 	if (!Boom || !Camera) return;
 	if (AActor* Locked = Target.Get())
 	{
+		FVector AreaCenter; float AreaRadius=0.f, AreaProgress=0.f;
+		const auto* AreaCombo=Locked->FindComponentByClass<UBeatSyncedComboComponent>();
+		const bool bAreaWarning=AreaCombo && AreaCombo->GetGroundBurstPreview(AreaCenter,AreaRadius,AreaProgress);
 		const float Near = 1.f - FMath::Clamp((Distance - 250.f) / 650.f, 0.f, 1.f);
 		Boom->TargetOffset = FMath::VInterpTo(Boom->TargetOffset,
 			FVector(0.f, 0.f, C->CombatPivotHeight), DeltaTime, C->DistanceSpeed);
@@ -323,6 +427,7 @@ void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
 		const FVector Chest = Locked->GetActorLocation() + FVector(0,0,125);
 		FVector Focus = FMath::Lerp(Eye, Chest, FMath::Lerp(C->BossFocusWeight * .75f, C->BossFocusWeight, 1.f - Near));
 		if (bWarning) Focus = FMath::Lerp(Focus, WarningLanding + FVector(0,0,70), C->WarningLandingWeight);
+		if (bAreaWarning) Focus = FMath::Lerp(Focus,AreaCenter+FVector(0,0,60),.45f);
 		const bool bClashFocus = GetWorld()->GetTimeSeconds() < CinematicFocusEndWorldSeconds;
 		if (bClashFocus) Focus = FMath::Lerp(Focus, CinematicFocusLocation, .72f);
 		// Use the unobstructed spring arm endpoint for lock-on aiming. The real
@@ -339,19 +444,34 @@ void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
 			ManualYaw = FMath::FInterpTo(ManualYaw, 0.f, DeltaTime, 3.f);
 			ManualPitch = FMath::FInterpTo(ManualPitch, 0.f, DeltaTime, 3.f);
 		}
+		// Calmer lock-on: close to the boss every dodge / sidestep swung the aim hard.
+		// A yaw dead zone ignores small drifts (the boss stays framed anyway), the
+		// follow is softer, and the turn rate is capped so it never whips around.
+		const bool bLooking = GetWorld()->GetTimeSeconds() - LastLookInputTime <= .6f;
+		if (!bLooking)
+		{
+			const float DeadZone = FMath::Lerp(6.f, 14.f, Near); // wider when close
+			const float Err = FRotator::NormalizeAxis(Aim.Yaw - CurrentRotation.Yaw);
+			Aim.Yaw = CurrentRotation.Yaw + FMath::Sign(Err) * FMath::Max(0.f, FMath::Abs(Err) - DeadZone);
+		}
 		Aim.Yaw += ManualYaw;
 		Aim.Pitch += ManualPitch;
-		PC->SetControlRotation(FMath::RInterpTo(PC->GetControlRotation(), Aim, DeltaTime, C->RotationSpeed));
+		FRotator Next = FMath::RInterpTo(CurrentRotation, Aim, DeltaTime, FMath::Min(C->RotationSpeed, 3.5f));
+		const float MaxTurn = 150.f * DeltaTime;
+		Next.Yaw = CurrentRotation.Yaw + FMath::Clamp(FRotator::NormalizeAxis(Next.Yaw - CurrentRotation.Yaw), -MaxTurn, MaxTurn);
+		PC->SetControlRotation(Next);
 		// Bring both actors slightly closer without changing the established
 		// framing, lock-on aim, or FOV behavior. Keep the configured distance
 		// limits authoritative even when the data asset overrides C++ defaults.
 		float DesiredArm = FMath::Clamp(FMath::Max(C->CombatArmLengthAtCloseRange,
 			400.f + Distance * .12f), C->FreeArmLength, C->MaxCombatArmLength) * .92f;
 		if (bClashFocus) DesiredArm *= .72f;
+		if (bAreaWarning) DesiredArm=FMath::Max(DesiredArm,FMath::Min(850.f,AreaRadius*1.65f));
 		Boom->TargetArmLength = FMath::FInterpTo(Boom->TargetArmLength, DesiredArm, DeltaTime, C->DistanceSpeed);
-		const float DesiredFOV = FMath::Max(FMath::Lerp(C->FreeFOV, C->CloseRangeFOV, Near),
+		float DesiredFOV = FMath::Max(FMath::Lerp(C->FreeFOV, C->CloseRangeFOV, Near),
 			FMath::GetMappedRangeValueClamped(FVector2D(500.f, 1800.f),
 			FVector2D(C->FreeFOV, C->MaxCombatFOV), Distance));
+		if (bAreaWarning) DesiredFOV=FMath::Max(DesiredFOV,95.f);
 		Camera->SetFieldOfView(FMath::FInterpTo(Camera->FieldOfView, DesiredFOV, DeltaTime, 5.f));
 	}
 	else

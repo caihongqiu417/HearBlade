@@ -1,0 +1,32 @@
+Using bundled DotNet SDK version: 10.0 win-x64
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" HearBlade Win64 Development D:\Udev\HearBlade\HearBlade.uproject -WaitMutex -NoHotReloadFromIDE
+Log file: C:\Users\26349\AppData\Local\UnrealBuildTool\Log.txt
+Determining max actions to execute in parallel (16 physical cores, 32 logical cores)
+  Executing up to 16 processes, one per physical core
+Using 'git status' to determine working set for adaptive non-unity build (D:\Udev\HearBlade).
+UbaServer - Listening on 0.0.0.0:1345
+UHT compiled-in object format Default
+Building HearBlade...
+===== Toolchain Information =====
+Using ISPC compiler (D:\Epic Games\UE_5.8\Engine\Source\ThirdParty\Intel\ISPC\bin\Windows\ispc.exe)
+  Intel(r) Implicit SPMD Program Compiler (Intel(r) ISPC), 1.24.0 (build commit  @ 20250404, LLVM 18.1.2) 
+Using Visual Studio 14.44.35228 toolchain (C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+[Adaptive Build] Excluded from HearBlade unity file: AttackData.cpp, AttackReadabilityComponent.cpp, AttackTimingTests.cpp, BeatSyncedComboComponent.cpp, BossCombatCameraComponent.cpp, BossGroundBurst.cpp, BossPhaseTransition.cpp, BTTask_BeatAttack.cpp, ComboPoseAudit.cpp, PlayerRhythmCombatComponent.cpp, RhythmCaptureComponent.cpp, SoundstageBeatController.cpp, RhythmCombatHUD.cpp
+=================================
+Using Unreal Build Accelerator local executor to run 5 action(s)
+  CPU 16 physical cores, 32 logical cores
+  Memory 31.8 GB physical, 45.6 GB/111.8 GB committed
+  UBA Storage capacity 40 GB
+[1/5] Compile [x64] RhythmCaptureComponent.cpp
+[2/5] Compile [x64] SoundstageBeatController.cpp
+[3/5] Compile [x64] Module.HearBlade.cpp
+[4/5] Link [x64] HearBlade.exe
+  正在创建库 D:\Udev\HearBlade\Binaries\Win64\HearBlade.lib 和对象 D:\Udev\HearBlade\Binaries\Win64\HearBlade.exp
+[5/5] WriteMetadata HearBlade.target [NoUba]
+
+Total time in Unreal Build Accelerator local executor: 34.78 seconds
+Output binary: D:\Udev\HearBlade\Binaries\Win64\HearBlade.exe
+
+Result: Succeeded
+Total execution time: 36.97 seconds
+Trace written to file C:\Users\26349\AppData\Local\UnrealBuildTool\Trace.uba with size 9.3kb

@@ -130,6 +130,29 @@ bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
     TestFalse(TEXT("Turning finishes before the backward hit animation"), HitCombat->bHitTurnPending);
     TestTrue(TEXT("Character faces the blade source"),
         FMath::Abs(FMath::FindDeltaAngleDegrees(HitCharacter->GetActorRotation().Yaw, 180.0f)) < 1.0f);
+    HitCombat->StartPoiseBreak(FVector(100,0,85),FVector::ForwardVector,FVector(-100,0,0));
+    TestTrue(TEXT("Counter buffers immediately after a failed defense breaks poise"),HitCombat->TryCounter());
+    const double BufferedCounterTime=HitCombat->BufferedInputAudioSeconds;
+    HitCombat->BufferedInputWorldSeconds-=.29;
+    HitCombat->PoiseBreakStartWorldSeconds-=.29;
+    HitCombat->HitInputUnlockWorldSeconds-=.29;
+    HitCombat->ProcessBufferedInput();
+    TestTrue(TEXT("Counter resumes after 280 ms lock despite 260 ms normal buffer"),
+        HitCombat->bCountering && !HitCombat->bHitReacting && !HitCombat->bPoiseBroken);
+    TestEqual(TEXT("Recovered counter preserves original rhythm timestamp"),HitCombat->LastCounterInputAudioSeconds,BufferedCounterTime);
+    HitCombat->CounterStartWorldSeconds-=.13;
+    TestTrue(TEXT("Next guard works after the recovered counter"),HitCombat->TryBlockStart());
+    HitCombat->EndBlock();
+    TestFalse(TEXT("Recovered guard tap does not stick"),HitCombat->bBlocking);
+    HitCombat->TryBlockStart();
+    HitCombat->BlockStartWorldSeconds=World->GetTimeSeconds()-2.;
+    HitCombat->DefenseAnimationStartWorldSeconds=BIG_NUMBER;
+    HitCombat->EndBlock();
+    TestFalse(TEXT("Releasing looping guard never waits on the animation sentinel"),HitCombat->bBlockReleasePending);
+    HitCombat->Health=0.f;
+    TestFalse(TEXT("Defeated player cannot silently keep dodging"),HitCombat->TryDodge(FVector::ForwardVector));
+    TestFalse(TEXT("Defeated player cannot counter"),HitCombat->TryCounter());
+    TestFalse(TEXT("Defeated player cannot guard"),HitCombat->TryBlockStart());
     World->DestroyWorld(false);
     return true;
 }
@@ -177,6 +200,32 @@ bool FRhythmAnimationBlendTest::RunTest(const FString& Parameters)
     auto* Guard = LoadObject<UAnimSequence>(nullptr,
         TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/Defense01_Start.Defense01_Start"));
     auto* Roll = LoadObject<UAnimSequence>(nullptr, TEXT("/Game/SwordAnim/Animation/UE5/roll_front.roll_front"));
+	// Regression: an active clock-driven ordinary attack must not suppress the
+	// original guard/counter animation, even if its montage pointer is stale.
+	auto* Ordinary=LoadObject<UAnimSequence>(nullptr,TEXT("/Game/Combat/Player/Animations/combo01_1"));
+	UAnimMontage* Lead=Anim->BeginBeatAttack(Ordinary,.4f); Step(8);
+	const auto* LeadInstance=Anim->GetActiveInstanceForMontage(Lead);
+	const int32 LeadID=LeadInstance?LeadInstance->GetInstanceID():INDEX_NONE;
+	const float LeadPosition=Anim->Montage_GetPosition(Lead);
+	auto* NextOrdinary=LoadObject<UAnimSequence>(nullptr,TEXT("/Game/Combat/Player/Animations/combo01_2"));
+	UAnimMontage* Follow=Anim->BeginBeatAttack(NextOrdinary,.1f); Step(3);
+	const auto* MovingOut=Anim->GetMontageInstanceForID(LeadID);
+	const auto* MovingIn=Anim->GetActiveInstanceForMontage(Follow);
+	TestTrue(TEXT("Ordinary combo crossfade retains both poses"),MovingOut && MovingIn && MovingOut->GetWeight()>0.f && MovingIn->GetWeight()>0.f);
+	TestTrue(TEXT("Outgoing follow-through keeps moving during combo crossfade"),MovingOut && MovingOut->GetPosition()>LeadPosition+.02f);
+	Anim->BeginBeatAttack(Ordinary,.1f); Step(4);
+	Anim->PlayCombatAction(Guard,false,.4f); Step(5);
+	auto* GuardMontage=Anim->GetDefenseMontage();
+	TestNotNull(TEXT("Guard replaces ordinary attack montage"),GuardMontage);
+	TestTrue(TEXT("Guard montage time advances"),GuardMontage && Anim->Montage_GetPosition(GuardMontage)>.02f);
+	TestTrue(TEXT("Guard evaluates in the slot"),Anim->GetSlotMontageGlobalWeight(TEXT("DefaultSlot"))>.9f);
+	const FTransform GuardHand=Mesh->GetSocketTransform(TEXT("hand_r"),RTS_Component);
+	TestFalse(TEXT("Guard has a real changed bone pose"),IdleHand.Equals(GuardHand,.01f));
+	Anim->BeginBeatAttack(Ordinary,.1f); Step(4);
+	Anim->PlayCombatAction(Attack,false,.62f); Step(6);
+	auto* CounterMontage=Anim->GetDefenseMontage();
+	TestTrue(TEXT("Counter montage time advances after ordinary attack"),CounterMontage && Anim->Montage_GetPosition(CounterMontage)>.02f);
+	TestFalse(TEXT("Counter visibly differs from guard"),GuardHand.Equals(Mesh->GetSocketTransform(TEXT("hand_r"),RTS_Component),.01f));
     Anim->PlayCombatAction(Attack, false, .62f);
     UAnimMontage* First = Anim->GetCurrentActiveMontage();
     TestNotNull(TEXT("Attack uses a montage"), First);
@@ -219,7 +268,7 @@ bool FBossDirectionalHitBlendTest::RunTest(const FString& Parameters)
 	Character->AddInstanceComponent(BossCombat);
 	BossCombat->RegisterComponent();
 	BossCombat->ApplyBossDamage(20.0f);
-	TestEqual(TEXT("Boss damage path subtracts health"), BossCombat->BossHealth, 980.0f);
+	TestEqual(TEXT("Boss damage path subtracts health"), BossCombat->BossHealth, BossCombat->MaxBossHealth - 20.0f);
 	TestTrue(TEXT("An idle Boss visibly reacts to damage"), BossCombat->IsHitReacting());
     USkeletalMeshComponent* Mesh = Character->GetMesh();
     Mesh->SetSkeletalMesh(LoadObject<USkeletalMesh>(nullptr,
@@ -251,5 +300,36 @@ bool FBossDirectionalHitBlendTest::RunTest(const FString& Parameters)
         IdleChest.Equals(Mesh->GetSocketTransform(TEXT("spine_03"), RTS_Component), .01f));
     World->DestroyWorld(false);
     return true;
+}
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPlayerEightWayTest,
+    "HearBlade.Combat.PlayerEightWay", EAutomationTestFlags::EditorContext | EAutomationTestFlags::EngineFilter)
+bool FPlayerEightWayTest::RunTest(const FString& Parameters)
+{
+    auto* BS=LoadObject<UBlendSpace>(nullptr,TEXT("/Game/Combat/Player/BS_PlayerEightWay"));
+    if(!TestNotNull(TEXT("Eight-direction locomotion asset loads"),BS)) return false;
+    TestEqual(TEXT("Idle, eight walks, eight runs and eight pursuit samples"),BS->GetBlendSamples().Num(),25);
+    UWorld* World=UWorld::CreateWorld(EWorldType::Game,false);
+    auto* Character=World->SpawnActor<ACharacter>();auto* Mesh=Character->GetMesh();
+    Mesh->SetSkeletalMesh(LoadObject<USkeletalMesh>(nullptr,TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Meshes/SKM_DKM_Full")));
+    Mesh->SetAnimInstanceClass(UPlayerCombatAnimInstance::StaticClass());
+    auto* Anim=Cast<UPlayerCombatAnimInstance>(Mesh->GetAnimInstance());
+    auto Step=[&](){Mesh->TickAnimation(1.f/60.f,false);Mesh->RefreshBoneTransforms();};
+    for(int32 I=0;I<20;++I) Step();
+    const FTransform IdleFoot=Mesh->GetSocketTransform(TEXT("foot_l"),RTS_Component);
+    for(int32 Direction=0;Direction<8;++Direction)
+    {
+        const FVector Point(FMath::Cos(Direction*UE_PI/4.),FMath::Sin(Direction*UE_PI/4.),0);
+        const FBlendSample* Sample=BS->GetBlendSamples().FindByPredicate([&](const auto& S){return S.SampleValue.Equals(Point,.002);});
+        TestTrue(TEXT("Every run direction uses its own run clip"),Sample && Sample->Animation && Sample->Animation->GetName().StartsWith(TEXT("strafe_run_")));
+        Anim->LocomotionPosition=Point;
+        for(int32 I=0;I<30;++I) Step();
+        const FTransform Foot=Mesh->GetSocketTransform(TEXT("foot_l"),RTS_Component);
+        TestFalse(TEXT("Directional run produces an actual non-idle foot pose"),Foot.Equals(IdleFoot,.01f));
+        for(int32 I=0;I<8;++I) Step();
+        TestFalse(TEXT("Run cycle continues advancing"),Foot.Equals(Mesh->GetSocketTransform(TEXT("foot_l"),RTS_Component),.01f));
+    }
+    const auto* Pursuit=BS->GetBlendSamples().FindByPredicate([](const auto& S){return S.SampleValue.Equals(FVector(1.3,0,0),.002);});
+    TestTrue(TEXT("Pursuit uses the dedicated run_fast clip"),Pursuit && Pursuit->Animation && Pursuit->Animation->GetName()==TEXT("run_fast"));
+    World->DestroyWorld(false);return !HasAnyErrors();
 }
 #endif

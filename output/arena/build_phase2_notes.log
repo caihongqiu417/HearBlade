@@ -1,0 +1,40 @@
+Using bundled DotNet SDK version: 10.0 win-x64
+Running UnrealBuildTool: dotnet "..\..\Engine\Binaries\DotNET\UnrealBuildTool\UnrealBuildTool.dll" HearBladeEditor Win64 Development D:/Udev/HearBlade/HearBlade.uproject -WaitMutex -NoHotReloadFromIDE
+Log file: C:\Users\26349\AppData\Local\UnrealBuildTool\Log.txt
+Determining max actions to execute in parallel (16 physical cores, 32 logical cores)
+  Executing up to 16 processes, one per physical core
+Using 'git status' to determine working set for adaptive non-unity build (D:\Udev\HearBlade).
+UbaServer - Listening on 0.0.0.0:1345
+Invalidating makefile for HearBladeEditor (source file added)
+UHT compiled-in object format Default
+Building HearBladeEditor...
+===== Toolchain Information =====
+Using ISPC compiler (D:\Epic Games\UE_5.8\Engine\Source\ThirdParty\Intel\ISPC\bin\Windows\ispc.exe)
+  Intel(r) Implicit SPMD Program Compiler (Intel(r) ISPC), 1.24.0 (build commit  @ 20250404, LLVM 18.1.2) 
+Using Visual Studio 14.44.35228 toolchain (C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207) and Windows 10.0.22621.0 SDK (C:\Program Files (x86)\Windows Kits\10).
+[Adaptive Build] Excluded from HearBladeBeatEditor unity file: BeatComboEditorWidget.cpp, BossBlendSpaceTools.cpp, HearBladeBeatEditorModule.cpp
+[Adaptive Build] Excluded from HearBlade unity file: HearBladeCharacter.cpp, BeatClockSubsystem.cpp, AttackData.cpp, AttackReadabilityComponent.cpp, AttackTimingTests.cpp, BeatSyncedComboComponent.cpp, BossAscensionComponent.cpp, BossCombatCameraComponent.cpp, BossGroundBurst.cpp, BossMusicEmphasis.cpp, BossPhaseTransition.cpp, BTTask_BeatAttack.cpp, ComboPoseAudit.cpp, PlayerAttackSet.cpp, PlayerPhaseCinematic.cpp, PlayerRhythmCombatComponent.cpp, RhythmCaptureComponent.cpp, SoundstageBeatController.cpp, RhythmCombatHUD.cpp
+=================================
+Using Unreal Build Accelerator local executor to run 6 action(s)
+  CPU 16 physical cores, 32 logical cores
+  Memory 31.8 GB physical, 30.54 GB/111.8 GB committed
+  UBA Storage capacity 40 GB
+[1/6] Compile [x64] PlayerAttackSet.cpp
+[2/6] Compile [x64] RhythmCombatHUD.cpp
+[3/6] Compile [x64] Module.HearBlade.cpp
+[4/6] Link [x64] UnrealEditor-HearBlade.lib
+  正在创建库 D:/Udev/HearBlade/Intermediate/Build/Win64/x64/UnrealEditor/Development/HearBlade/UnrealEditor-HearBlade.lib 和对象 D:/Udev/HearBlade/Intermediate/Build/Win64/x64/UnrealEditor/Development/HearBlade/UnrealEditor-HearBlade.exp
+[5/6] Link [x64] UnrealEditor-HearBlade.dll
+Module.HearBlade.cpp.obj : error LNK2019: 无法解析的外部符号 "public: __cdecl UPlayerBeatAttackComponent::UPlayerBeatAttackComponent(void)" (??0UPlayerBeatAttackComponent@@QEAA@XZ)，函数 "void __cdecl InternalConstructor<class UPlayerBeatAttackComponent>(class FObjectInitializer const &)" (??$InternalConstructor@VUPlayerBeatAttackComponent@@@@YAXAEBVFObjectInitializer@@@Z) 中引用了该符号
+Module.HearBlade.cpp.obj : error LNK2019: 无法解析的外部符号 "public: bool __cdecl UPlayerBeatAttackComponent::TryAttack(enum EPlayerAttackInput)" (?TryAttack@UPlayerBeatAttackComponent@@QEAA_NW4EPlayerAttackInput@@@Z)，函数 "public: static void __cdecl UPlayerBeatAttackComponent::execTryAttack(class UObject *,struct FFrame &,void * const)" (?execTryAttack@UPlayerBeatAttackComponent@@SAXPEAVUObject@@AEAUFFrame@@QEAX@Z) 中引用了该符号
+Module.HearBlade.cpp.obj : error LNK2019: 无法解析的外部符号 "public: bool __cdecl UPlayerBeatAttackComponent::TryActivateResonance(void)" (?TryActivateResonance@UPlayerBeatAttackComponent@@QEAA_NXZ)，函数 "public: static void __cdecl UPlayerBeatAttackComponent::execTryActivateResonance(class UObject *,struct FFrame &,void * const)" (?execTryActivateResonance@UPlayerBeatAttackComponent@@SAXPEAVUObject@@AEAUFFrame@@QEAX@Z) 中引用了该符号
+Module.HearBlade.cpp.obj : error LNK2019: 无法解析的外部符号 "public: float __cdecl UPlayerBeatAttackComponent::GetRemainingBeats(void)const " (?GetRemainingBeats@UPlayerBeatAttackComponent@@QEBAMXZ)，函数 "public: static void __cdecl UPlayerBeatAttackComponent::execGetRemainingBeats(class UObject *,struct FFrame &,void * const)" (?execGetRemainingBeats@UPlayerBeatAttackComponent@@SAXPEAVUObject@@AEAUFFrame@@QEAX@Z) 中引用了该符号
+Module.HearBlade.cpp.obj : error LNK2001: 无法解析的外部符号 "public: virtual void __cdecl UPlayerBeatAttackComponent::BeginPlay(void)" (?BeginPlay@UPlayerBeatAttackComponent@@UEAAXXZ)
+Module.HearBlade.cpp.obj : error LNK2001: 无法解析的外部符号 "public: virtual void __cdecl UPlayerBeatAttackComponent::EndPlay(enum EEndPlayReason::Type)" (?EndPlay@UPlayerBeatAttackComponent@@UEAAXW4Type@EEndPlayReason@@@Z)
+Module.HearBlade.cpp.obj : error LNK2001: 无法解析的外部符号 "public: virtual void __cdecl UPlayerBeatAttackComponent::TickComponent(float,enum ELevelTick,struct FActorComponentTickFunction *)" (?TickComponent@UPlayerBeatAttackComponent@@UEAAXMW4ELevelTick@@PEAUFActorComponentTickFunction@@@Z)
+D:\Udev\HearBlade\Binaries\Win64\UnrealEditor-HearBlade.dll : fatal error LNK1120: 7 个无法解析的外部命令
+Total time in Unreal Build Accelerator local executor: 12.75 seconds
+
+Result: Failed (OtherCompilationError)
+Total execution time: 16.59 seconds
+Trace written to file C:\Users\26349\AppData\Local\UnrealBuildTool\Trace.uba with size 9.9kb
