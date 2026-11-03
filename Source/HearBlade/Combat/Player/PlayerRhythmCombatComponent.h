@@ -134,6 +134,7 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	UPROPERTY(BlueprintAssignable, Category = "节奏反馈")
 	FOnRhythmSuccessFeedback OnRhythmSuccessFeedback;
 
+	// 伤害与生命值
 	// 扣除生命并限制数值范围
 	UFUNCTION(BlueprintCallable, Category = "生命")
 	void ApplyCombatDamage(float Damage);
@@ -165,6 +166,7 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category = "节奏闪避")
 	void ResetCombatState();
 
+	// 闪避与格挡操作
 	// 检查当前状态，决定立即闪避还是保留输入等待解锁
 	UFUNCTION(BlueprintCallable, Category = "节奏闪避")
 	bool TryDodge(FVector WorldDirection);
@@ -174,6 +176,8 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category = "节奏防御") bool TryBlockStart();
 	// 检查反击条件，必要时缓存按键而不立即播放动作
 	UFUNCTION(BlueprintCallable, Category = "节奏防御") void EndBlock();
+
+	// 反击操作
 	UFUNCTION(BlueprintCallable, Category = "节奏防御") bool TryCounter();
 	// 普通攻击不修改防御按键历史或反击状态
 	bool PrepareForOrdinaryAttack();
@@ -193,7 +197,6 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	}
 
 	// 短按不显示持续格挡外壳，持续按住后显示，并跟随持续格挡状态更新
-
 
 	UFUNCTION(BlueprintPure, Category = "节奏防御") bool IsSustainedHoldActive() const
 	{
@@ -227,6 +230,7 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 		return MaxPoise > 0.0f ? Poise / MaxPoise : 0.0f;
 	}
 
+	// 接触结果与防御结算
 	// 实际刀刃检测接触玩家胶囊时调用
 	bool ResolveBossContact(double ContactAudioSeconds, double TargetBeat, float Damage,
 	                        float IdealDodgeLeadSeconds, bool bStrongBeat, FVector BladeWorldLocation,
@@ -489,6 +493,8 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	// 保存待执行的防御类型、原始时间和闪避方向
 	void BufferInput(EBufferedRhythmAction Action, double InputAudioSeconds,
 	                 FVector Direction = FVector::ZeroVector);
+
+	// 防御输入缓存处理
 	// 等待动作解锁后重试缓存输入，过期或失效时清除
 	void ProcessBufferedInput();
 	// 取出最接近理想时刻的一次按键，避免同一输入重复参与判定
@@ -498,6 +504,8 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	// 减少韧性，耗尽时进入破防
 	void ApplyPoiseDamage(float Amount, FVector ImpactLocation, FVector AttackDirection,
 	                      FVector AttackerWorldLocation = FVector::ZeroVector);
+
+	// 破韧与受击恢复
 	// 清理冲突动作，启动破防硬直和输入锁定
 	void StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection,
 	                     FVector AttackerWorldLocation = FVector::ZeroVector);

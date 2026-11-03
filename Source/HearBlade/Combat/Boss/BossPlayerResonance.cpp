@@ -7,6 +7,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TimerManager.h"
 
+// 接收玩家命中
+
 // 统一接收玩家命中，处理生命、韧性、挑飞和受击反馈
 void UBeatSyncedComboComponent::ReceivePlayerStrike(float Damage, float PoiseDamage, AActor* Source,
                                                     bool bHeavy, FVector ImpactLocation, bool bUppercut)
@@ -17,6 +19,8 @@ void UBeatSyncedComboComponent::ReceivePlayerStrike(float Damage, float PoiseDam
 	if (bPlayerResonance && bHeavy && BossHealth > 0.f && (bQueued || bPlaying))
 		StartBossHitReaction(Source, .45f, true);
 }
+
+// 查询进攻破绽
 
 // 生成当前可供玩家进攻的时间窗口，并排除持续格挡的中间阶段
 void UBeatSyncedComboComponent::GetOpenings(TArray<FBossOpening>& Out) const
@@ -118,6 +122,8 @@ bool UBeatSyncedComboComponent::GetOpeningAt(double AudioSeconds, FBossOpening& 
 	Out = FBossOpening();
 	return false;
 }
+
+// 挑飞表现
 
 // 上挑触发真实硬直，但抬升表现只作用于网格，保持胶囊在地面以支持追击
 void UBeatSyncedComboComponent::StartUppercutFeedback(AActor* Source)
@@ -289,6 +295,8 @@ void UBeatSyncedComboComponent::PlayPlayerHitFeedback(AActor* Source, float Stre
 	}
 }
 
+// 配合玩家共鸣
+
 // 进入玩家共鸣配合流程，记录拍点与目标
 void UBeatSyncedComboComponent::BeginPlayerResonance(double StartBeat, AActor* Player)
 {
@@ -386,6 +394,8 @@ void UBeatSyncedComboComponent::EndPlayerResonance()
 	bPlayerResonance = false;
 	UE_LOG(LogTemp, Display, TEXT("PlayerResonance: boss restored"));
 }
+
+// 受击抖动
 
 // 更新受击抖动，并在停顿结束后恢复网格速度和位置
 void UBeatSyncedComboComponent::TickHitShake()

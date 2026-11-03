@@ -84,7 +84,6 @@ struct FUpcomingImpactCue
 
 // 玩家可以追击的时间段，Gap 表示连招两击之间的空隙，Tail 表示连招结束或硬直期间的破绽
 
-
 enum class EBossOpeningKind : uint8
 {
 	None,
@@ -116,11 +115,12 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	void GetOpenings(TArray<FBossOpening>& Out) const;
 	// 查找指定音乐时刻是否落在可追击的破绽内
 	bool GetOpeningAt(double AudioSeconds, FBossOpening& Out) const;
+
+	// 接收玩家攻击
 	// 统一接收玩家命中，处理生命、韧性、挑飞和受击反馈
 	void ReceivePlayerStrike(float Damage, float PoiseDamage, AActor* Source, bool bHeavy,
 	                         FVector ImpactLocation, bool bUppercut = false);
 	// 普通命中的表现包括护甲闪光、短距离后退和动画停顿，强度由节奏评级和招式决定
-
 
 	void PlayPlayerHitFeedback(AActor* Source, float Strength, float FreezeSeconds);
 	// 命中停顿期间沿受击方向抖动身体，随后逐渐恢复
@@ -140,6 +140,8 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FVector> UppercutMeshBases;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FRotator> UppercutMeshRots;
 	double UppercutStartWorldSeconds = -1000.;
+
+	// 玩家共鸣配合
 	// 进入玩家共鸣配合流程，记录拍点与目标
 	void BeginPlayerResonance(double StartBeat, AActor* Player);
 	// 结束共鸣配合并恢复 Boss 正常战斗状态
@@ -276,7 +278,6 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	float MaxBossHealth = 2700.f;
 	// 范围攻击允许在爆发附近的闪避窗口内躲过，不要求玩家必须跑出整个危险圈
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "范围攻击") bool bGroundBurstDodgeThrough = true;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "范围攻击",
 	          meta = (ClampMin = "0", ClampMax = "0.15"))
@@ -376,6 +377,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category = "节拍连招")
 	bool QueueCombo();
 
+	// 攻击请求
 	// 行为树或蓝图在决定攻击时调用；使用传入的独立动作数据，并对齐下一可用拍
 	UFUNCTION(BlueprintCallable, Category = "节拍连招")
 	bool QueueAttack(UAttackDataAsset* InAttackData);
@@ -395,6 +397,8 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 
 	// 返回下一次尚未结算的刀刃命中时间，供提示和测试使用
 	bool GetNextImpactDodgeTiming(double& OutImpactAudioSeconds, float& OutIdealLeadSeconds) const;
+
+	// 界面与防御系统查询
 	void GetUpcomingImpactCues(TArray<FUpcomingImpactCue>& OutCues, int32 MaxCount = 4,
 	                           bool bIncludeRecent = false) const;
 
@@ -571,8 +575,12 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	void ResetStrongBeatPresentation();
 	// 更新并衰减护甲材质的拍点与受击效果
 	void UpdateBeatOverlay(const UBeatClockSubsystem* Clock);
+
+	// 身体材质与节拍提示
 	// 记录一次材质闪光的强度和时间
 	void TriggerBeatOverlay(bool bStrong, double AudioNow);
+
+	// 武器轨迹与伤害
 	// 在命中窗口内检查刀刃路径，先记录提前接触，再按命中时刻结算
 	void UpdateDamageSweep(double AudioNow);
 	// 窗口结束仍未接触时进行躲避或教程判定，不按真实接触扣血

@@ -30,6 +30,8 @@ UPerfectDodgeFeedbackComponent::UPerfectDodgeFeedbackComponent()
 		Config = ConfigAsset.Object;
 }
 
+// 反馈事件与残影资源
+
 // 绑定防御结果事件并预先创建可复用残影
 void UPerfectDodgeFeedbackComponent::BeginPlay()
 {
@@ -103,6 +105,8 @@ void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 	DestroyHoldArmorVisual();
 	Super::EndPlay(EndPlayReason);
 }
+
+// 按防御结果选择效果
 
 // 按防御方式和评级选择声音、残影与镜头反馈
 void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback)
@@ -282,6 +286,8 @@ void UPerfectDodgeFeedbackComponent::PlayPerfectFeedback(const FPerfectDodgeFeed
 	       ActiveStrength);
 }
 
+// 短暂画面冲击
+
 // 保存屏幕效果原值并启动短暂冲击帧
 void UPerfectDodgeFeedbackComponent::StartImpactFrame()
 {
@@ -328,6 +334,8 @@ void UPerfectDodgeFeedbackComponent::RestoreImpactFrame()
 	}
 	bImpactFrameActive = false;
 }
+
+// 光环与人物残影
 
 // 按配置和延迟生成扩散光环
 void UPerfectDodgeFeedbackComponent::SpawnRing(const FPerfectDodgeFeedbackData& Feedback, float DelaySeconds)
@@ -452,6 +460,8 @@ void UPerfectDodgeFeedbackComponent::TickComponent(float DeltaTime, ELevelTick T
 		EffectStartWorldSeconds = -1000.0;
 	}
 }
+
+// 持续格挡护甲表现
 
 // 为身体和披风准备持续格挡外壳
 void UPerfectDodgeFeedbackComponent::CreateHoldArmorVisual()

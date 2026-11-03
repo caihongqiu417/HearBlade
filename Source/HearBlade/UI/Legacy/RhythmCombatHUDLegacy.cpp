@@ -194,6 +194,8 @@ void ARhythmCombatHUD::DrawLine(float X1, float Y1, float X2, float Y2, FLinearC
 	Super::DrawLine(X1, Y1, X2, Y2, Color, Thickness);
 }
 
+// 旧版画布绘制入口
+
 // 优先更新蓝图界面，需要旧版显示时再绘制画布内容
 void ARhythmCombatHUD::DrawHUD()
 {
@@ -247,6 +249,8 @@ void ARhythmCombatHUD::DrawHUD()
 	DrawTutorial(Scale, Now);
 	Canvas->Canvas->AlphaModulate = SavedCanvasAlpha;
 }
+
+// 命中表现与玩家拍点
 
 // 绘制命中点的闪光、速度线与文字
 void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
@@ -565,6 +569,8 @@ void ARhythmCombatHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+// 音乐频谱与敌人血条
+
 // 读取频谱并绘制音乐波形
 void ARhythmCombatHUD::DrawAudioVisualizer(float Scale)
 {
@@ -780,6 +786,8 @@ void ARhythmCombatHUD::DrawBossHealth(float Scale)
 			         3.f * Scale);
 	}
 }
+
+// 节拍轨道与攻击提示
 
 // 根据输入偏差绘制判定框反馈
 void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State, float JudgeX, float MidY,
@@ -1589,6 +1597,8 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 	}
 }
 
+// 玩家状态与评级侧栏
+
 // 绘制玩家生命、共鸣和攻击状态
 void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State, float Scale, double Now)
 {
@@ -2066,6 +2076,8 @@ FString ARhythmCombatHUD::GetJudgmentText(ERhythmDodgeJudgment Grade)
 	}
 }
 
+// 刀谱资源与绘制
+
 // 加载刀形轨道所需资源，资源不齐时使用原轨道
 bool ARhythmCombatHUD::LoadBladeScoreArt()
 {
@@ -2341,6 +2353,8 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 	}
 	BladeAttackTextAnchor = FVector2D(JudgeX, MidY + 62.f * Scale);
 }
+
+// 教程界面
 
 // 绘制教程说明、按键图标、进度和跳过提示
 void ARhythmCombatHUD::DrawTutorial(float Scale, double Now)

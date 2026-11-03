@@ -142,6 +142,8 @@ AActor* UPlayerBeatAttackComponent::FindTarget() const
 	return Best;
 }
 
+// 攻击输入与两类缓存
+
 // 接收攻击输入，决定立即出招还是等待连招时机
 bool UPlayerBeatAttackComponent::TryAttack(EPlayerAttackInput Input)
 {
@@ -151,6 +153,7 @@ bool UPlayerBeatAttackComponent::TryAttack(EPlayerAttackInput Input)
 	if (Input == EPlayerAttackInput::Heavy && !bHeavyAttacksEnabled)
 		return false; // 当前配置禁用重攻击时，忽略该输入
 	// 统一读取音乐时间，后续缓存和节奏评级都使用这次按键的原始时间
+	// 记录按键原始时间，等待执行时不重写它，避免评级变成评价等待时间
 	const double Now = Clock()->GetAudioNowSeconds();
 	if (IsAttacking())
 	{
@@ -191,6 +194,8 @@ bool UPlayerBeatAttackComponent::TryAttack(EPlayerAttackInput Input)
 	}
 	return QueuePending();
 }
+
+// 接招与动画时间计算
 
 // 返回连招允许迟按的时间宽限
 double UPlayerBeatAttackComponent::ChainLateSeconds() const
@@ -252,6 +257,8 @@ float UPlayerBeatAttackComponent::WindupPosition(double Now, double SampleNow) c
 	return float(FMath::Lerp(Impact, double(ActiveClipEnd), 1. - (1. - X) * (1. - X)));
 }
 
+// 选招与拍点安排
+
 // 安排一击：先沿轻重分支选择动作，再确定命中音乐时间，最后准备动画片段与连招窗口
 // 命中时间由节拍安排，靠近目标的距离和方向由位移逻辑处理
 bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double InputAudio, bool bChained,
@@ -271,9 +278,11 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 	    (bChained || PlayerAttackTiming::CanQueue(InputAudio, LastChainAudio, false))
 	        ? AttackSet->Find(ChainNode)
 	        : nullptr;
+	// 没有可接续的上一招时，从轻击 L 或重击 H 起手
 	FName Next = Input == EPlayerAttackInput::Light ? TEXT("L") : TEXT("H");
 	if (Previous)
 	{
+		// 从攻击配置读取下一招名称，分支本身不决定按键是否及时
 		const FName Branch = Input == EPlayerAttackInput::Light ? Previous->NextLight : Previous->NextHeavy;
 		const auto* Candidate = AttackSet->Find(Branch);
 		if (Candidate && (!Candidate->bResonanceOnly || IsResonanceActive()))
@@ -362,6 +371,7 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 	                    : Node->ClipEnd;
 	const bool bSeamless = bContinuesPose || (Previous && Previous->Animation == Node->Animation &&
 	                                          FMath::IsNearlyEqual(PreviousClipEnd, ActiveClipStart, .02f));
+	// 动画实例创建蒙太奇，后续播放位置仍由本组件按音乐时间设置
 	AttackMontage = Anim->BeginBeatAttack(Node->Animation, ActiveClipStart, bSeamless ? .03f : .07f);
 	if (!AttackMontage)
 		return false;
@@ -502,6 +512,8 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 	return true;
 }
 
+// 攻击状态查询
+
 // 返回攻击期间允许的移动比例
 float UPlayerBeatAttackComponent::GetMovementScale() const
 {
@@ -545,6 +557,8 @@ FString UPlayerBeatAttackComponent::GetComboPrompt() const
 				: TEXT("  NEXT BEAT: ")) +
 	       Choices;
 }
+
+// 防御打断与攻击清理
 
 // 检查防御能否打断当前攻击，允许时结束攻击动作
 bool UPlayerBeatAttackComponent::CancelForDefense(bool bDodge)
@@ -612,6 +626,8 @@ void UPlayerBeatAttackComponent::Reset()
 	EndResonance();
 	SetResonanceState(EPlayerResonanceState::Filling);
 }
+
+// 动画推进与连招接续
 
 // 按音乐时间推进动作、接触检测与连招接续
 void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
@@ -705,6 +721,7 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 				// 即使被墙挡住，也记下已处理的动画位置，下一帧不补走这段位移
 				LastRootMotionPosition = Position;
 			}
+			// 先更新动画姿态和武器位置，再执行下面的轨迹检测
 			Anim->Montage_SetPosition(AttackMontage, Position);
 			C->GetMesh()->TickAnimation(0.f, false);
 			// 先让骨骼更新到当前动画位置，再同步武器，后面的检测使用这一帧刀刃位置
@@ -807,6 +824,8 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 	}
 }
 
+// 破绽命中奖励
+
 // 记录破绽中的有效命中，并检查是否达到填满条件
 void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening, bool bGap)
 {
@@ -837,6 +856,8 @@ void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening,
 		UE_LOG(LogTemp, Display, TEXT("PlayerAttack: FILL gap=%d hits=%d"), bGap ? 1 : 0, OpeningHits);
 	}
 }
+
+// 武器与腿部轨迹检测
 
 // 取得双腿检测端点，供踢击接触检测使用
 void UPlayerBeatAttackComponent::SampleLegs(FVector OutA[2], FVector OutB[2]) const
@@ -918,6 +939,7 @@ void UPlayerBeatAttackComponent::SweepBlade(double Now)
 					    AttackSerial, *CurrentAttack.ToString(), Closest, Radius, *Base.ToCompactString(),
 					    *Tip.ToCompactString(), *Center.ToCompactString());
 				}
+				// 目标在刀刃轨迹附近时，还要检查两者之间是否隔着墙
 				const bool Blocked = GetWorld()->LineTraceSingleByChannel(
 				    Wall, GetOwner()->GetActorLocation(), Center, ECC_Visibility, Query);
 				if (Closest <= Radius + 16.f && !Blocked)
@@ -954,6 +976,7 @@ void UPlayerBeatAttackComponent::SweepBlade(double Now)
 			const float Damage = Node->Damage * OpenMul;
 			// 第三次重击触发挑飞表现，其余重击仍走普通受击处理
 			const bool bLauncher = Node->Input == EPlayerAttackInput::Heavy && Node->Id == FName(TEXT("HHH"));
+			// 把生命伤害、韧性损耗和命中位置交给 Boss 处理
 			Boss->ReceivePlayerStrike(Damage, Node->PoiseDamage * (bGap ? 1.5f : 1.f), GetOwner(),
 			                          Node->Input == EPlayerAttackInput::Heavy || Node->bFinisher,
 			                          Hit.ImpactPoint, bLauncher);
@@ -980,6 +1003,8 @@ void UPlayerBeatAttackComponent::SweepBlade(double Now)
 	LastBladeTip = Tip;
 	SampleLegs(LastLegA, LastLegB);
 }
+
+// 命中奖励与表现
 
 // 记录攻击收益，更新共鸣与命中反馈状态
 void UPlayerBeatAttackComponent::ReceiveReward(EPlayerAttackGrade Grade, float Amount, bool bHit)
@@ -1182,6 +1207,8 @@ void UPlayerBeatAttackComponent::TickScreenPunch()
 	PP.VignetteIntensity = BaseVignette + Env * .12f * PunchStrength;
 }
 
+// 共鸣状态
+
 // 切换共鸣状态并通知监听者
 void UPlayerBeatAttackComponent::SetResonanceState(EPlayerResonanceState State)
 {
@@ -1237,6 +1264,8 @@ void UPlayerBeatAttackComponent::EndResonance()
 		Combat->Resonance = 0.f;
 	SetResonanceState(WasActive ? EPlayerResonanceState::Filling : EPlayerResonanceState::Ready);
 }
+
+// 每帧更新与缓存重试
 
 // 逐帧推进：把当前音乐时间换算为动画位置，再处理根位移、接触与攻击结束
 // StartAudio 和 ImpactAudio 确定攻击的时间范围；动画位置用于提取本帧位移

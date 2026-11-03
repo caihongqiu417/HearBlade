@@ -43,6 +43,8 @@ void UBeatClockSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+// 音乐时钟启停
+
 // ============================================================
 // 启动和停止
 // ============================================================
@@ -117,6 +119,8 @@ void UBeatClockSubsystem::StopClock()
 	PlaybackRateRestoreRawAudioSeconds = -1.0;
 }
 
+// 同步音频组件
+
 // 登记音乐层并立即应用当前速度，重复登记会忽略
 void UBeatClockSubsystem::RegisterSynchronizedMusicComponent(UAudioComponent* Component)
 {
@@ -143,6 +147,8 @@ void UBeatClockSubsystem::UnregisterSynchronizedMusicComponent(UAudioComponent* 
 		}
 	}
 }
+
+// 音乐速度与短暂慢放
 
 // 设置目标音乐速度及渐变速度
 void UBeatClockSubsystem::SetMusicalPlaybackRate(float TargetRate, float BlendSeconds)
@@ -192,6 +198,8 @@ bool UBeatClockSubsystem::IsRunning() const
 {
 	return bRunning;
 }
+
+// 音乐时间与拍数换算
 
 double UBeatClockSubsystem::GetAudioNowSeconds() const
 {
@@ -272,6 +280,8 @@ int32 UBeatClockSubsystem::GetCurrentBeatInBar() const
 	// 返回从零开始的小节内拍号，结果为二时对应小节中的第三拍
 	return BeatIndex % Settings.BeatsPerBar;
 }
+
+// 时钟推进与拍点通知
 
 // ============================================================
 // 每帧检查拍子

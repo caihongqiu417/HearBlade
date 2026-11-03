@@ -18,11 +18,13 @@ class HEARBLADE_API UPlayerCombatAnimInstance : public UAnimInstance
 	}
 
 	UPlayerCombatAnimInstance();
+
 	UPROPERTY(Transient) TObjectPtr<class UBlendSpace> Locomotion;
 	UPROPERTY(Transient) TObjectPtr<class UBlendSpace> DirectionalHit;
+
+	// 移动动画参数
 	FVector LocomotionPosition = FVector::ZeroVector;
 	// 节拍姿态只改变动画显示，不移动胶囊或修改角色移动速度
-
 
 	float LocomotionPlayRate = 1.0f;
 	// 角色每帧传入实际速度与动画参考速度的比例
@@ -33,6 +35,8 @@ class HEARBLADE_API UPlayerCombatAnimInstance : public UAnimInstance
 	// 播放闪避或防御动作，设置循环和衔接时间
 	void PlayCombatAction(class UAnimSequence* Sequence, bool bLooping, float Duration,
 	                      float ChainGrace = .10f);
+
+	// 攻击蒙太奇控制
 	// 创建并播放攻击蒙太奇，让攻击组件接管动画位置
 	class UAnimMontage* BeginBeatAttack(class UAnimSequence* Sequence, float StartPosition,
 	                                    float BlendInSeconds = .10f);
@@ -40,6 +44,8 @@ class HEARBLADE_API UPlayerCombatAnimInstance : public UAnimInstance
 	void EndBeatAttack(class UAnimMontage* Montage, float BlendOutSeconds = .08f);
 	// 提前淡出防御或闪避动作，回到行走姿态
 	void ReleaseCombatAction(float BlendOutSeconds);
+
+	// 方向性受击
 	// 记录受击方向和时间，启动方向姿态混合
 	void StartDirectionalHit(FVector2D ReactionDirection, float Duration);
 	// 结束受击姿态，回到当前基础动作

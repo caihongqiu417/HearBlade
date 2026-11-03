@@ -14,6 +14,8 @@ class HEARBLADE_API URhythmCombatWidget : public UUserWidget
 {
 	GENERATED_BODY()
   public:
+
+	// 处理器连接
 	/** 替换控制器绑定，并立即接收当前显示快照 */
 	UFUNCTION(BlueprintCallable, Category = "HUD")
 	void SetWidgetController(URhythmWidgetController* InController);
@@ -23,6 +25,7 @@ class HEARBLADE_API URhythmCombatWidget : public UUserWidget
 	/** 根据当前显示快照刷新约定名称的控件，由蓝图更新事件调用 */
 	UFUNCTION(BlueprintCallable, Category = "HUD") void RefreshViewFromModel();
 
+    // 蓝图样式配置
     // 原版贴图保存在蓝图默认值中，可直接替换图案和裁切范围
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="界面样式")
     TMap<ERhythmDodgeJudgment, FSlateBrush> JudgmentWords;

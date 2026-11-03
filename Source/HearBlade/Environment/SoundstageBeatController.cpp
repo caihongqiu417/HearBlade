@@ -1,4 +1,4 @@
-// 根据节拍更新已导入的舞台物体，不生成或修改网格几何
+// 按音乐拍数更新场景装饰，物件通过 Actor 标签选择运动方式
 #include "Environment/SoundstageBeatController.h"
 #include "Combat/Debug/RhythmCaptureComponent.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
@@ -21,6 +21,8 @@ ASoundstageBeatController::ASoundstageBeatController()
 	PrimaryActorTick.bCanEverTick = true;
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("StageRoot"));
 }
+
+// 登记场景物件与天空材质
 
 // 查找场景装饰，记录初始变换和材质
 void ASoundstageBeatController::BeginPlay()
@@ -126,13 +128,17 @@ void ASoundstageBeatController::BeginPlay()
 #endif
 }
 
-// 按音乐节拍更新舞台物件、灯光与材质
+// 音乐驱动的场景运动
+
+// 按音乐拍数更新物件变换和天空材质
 void ASoundstageBeatController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+	// 运行中的音乐时钟提供拍数，单纯打开关卡不会启动这套运动
 	const auto* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	const bool bRunning = Clock && Clock->IsRunning();
 	const double Beat = bRunning ? Clock->GetCurrentBeat() : 0.0;
+	// 拍数的小数部分表示这一拍的进度，例如 12.25 对应四分之一拍
 	const float Phase = static_cast<float>(Beat - FMath::FloorToDouble(Beat));
 	// 直接按当前拍内位置计算起伏，跳播或掉帧后仍跟随音乐
 	const float D = FMath::Min(Phase, 1.f - Phase);
@@ -141,8 +147,10 @@ void ASoundstageBeatController::Tick(float DeltaSeconds)
 	                                  ? .45f * FMath::Exp(-float(Beat - AscensionAccentBeat) * 3.f)
 	                                  : 0.f;
 	const float Accent = (bRunning && Clock->GetCurrentBeatInBar() == 0 ? 1.35f : 1.f) + AscensionAccent;
+	// 平滑拍点强度，让物件弹起和回落连贯，小节第一拍会更强
 	Envelope = FMath::FInterpTo(Envelope, Pulse * Accent, DeltaSeconds, 24.f);
 	const float Amount = FMath::Clamp(MotionIntensity, 0.f, 2.f) * (bReducedMotion ? .2f : 1.f);
+	// 天空按四小节缓慢变化，与物件每拍弹动分开计算
 	const float SkyBreath =
 	    bRunning
 	        ? .5f + .5f * FMath::Sin(static_cast<float>(Beat * 2.0 * PI / (Clock->GetBeatsPerBar() * 4.0)))
@@ -163,6 +171,7 @@ void ASoundstageBeatController::Tick(float DeltaSeconds)
 		FTransform Transform = Prop.RestTransform;
 		FVector Position = Transform.GetLocation();
 		FVector Scale = Transform.GetScale3D();
+		// 标签决定运动方式，下面分别处理上浮、缩放和摆动
 		if (Prop.Mode == TEXT("BeatCrown"))
 		{
 			Position.Z += Envelope * CrownBounceCm * Amount;
@@ -180,6 +189,7 @@ void ASoundstageBeatController::Tick(float DeltaSeconds)
 			// 模型轴心位于圆环中心，整体放大时各部分向外展开
 			Scale *= 1.f + Envelope * .025f * Amount;
 		}
+		// 摆锤按音乐拍数计算角度，两拍完成一次来回
 		else if (Prop.Mode == TEXT("BeatPendulum"))
 		{
 			const float Swing =
@@ -209,9 +219,12 @@ void ASoundstageBeatController::Tick(float DeltaSeconds)
 		}
 		Transform.SetLocation(Position);
 		Transform.SetScale3D(Scale);
+		// 将本帧结果应用到物件，移动效果由代码直接计算
 		Prop.Actor->SetActorTransform(Transform, false, nullptr, ETeleportType::TeleportPhysics);
 	}
 }
+
+// 退出时恢复初始变换
 
 // 退出时恢复场景装饰的原始状态
 void ASoundstageBeatController::EndPlay(const EEndPlayReason::Type Reason)

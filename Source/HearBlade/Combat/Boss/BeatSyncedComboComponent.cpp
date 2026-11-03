@@ -146,6 +146,8 @@ void UBeatSyncedComboComponent::ApplyBossDamage(float Damage)
 	ApplyBossDamageFrom(Damage, AttackTarget.Get());
 }
 
+// 生命伤害与受击表现
+
 // 扣除生命并更新受击表现，死亡时停止当前连招
 void UBeatSyncedComboComponent::ApplyBossDamageFrom(float Damage, const AActor* DamageSource,
                                                     bool bForceHeavyBlood, float ExplicitPoise,
@@ -210,6 +212,8 @@ void UBeatSyncedComboComponent::SpawnBossBlood(const AActor* DamageSource, bool 
 	UE_LOG(LogTemp, Display, TEXT("BossBloodVFX: heavy=%d effect=%s location=%s"), bHeavy ? 1 : 0,
 	       *GetNameSafe(Effect), *Location.ToString());
 }
+
+// 韧性与硬直
 
 // 减少韧性，达到破防条件时打断攻击并进入硬直
 void UBeatSyncedComboComponent::ApplyBossPoiseDamage(float Amount, const AActor* DamageSource)
@@ -308,6 +312,8 @@ void UBeatSyncedComboComponent::EndBossHitReaction()
 			Animation->EndDirectionalHit();
 	}
 }
+
+// 初始化与资源连接
 
 // 绑定伤害事件，检查身体和动画配置，准备战斗使用的组件
 void UBeatSyncedComboComponent::BeginPlay()
@@ -510,6 +516,7 @@ void UBeatSyncedComboComponent::BeginPlay()
 		    nullptr, TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/MATERIALS/M_BossBeatOverlay.M_BossBeatOverlay"));
 	if (BeatOverlayMaterial)
 	{
+		// 为这名 Boss 创建独立材质参数，避免修改其他角色共用的材质资源
 		BeatOverlayInstance = UMaterialInstanceDynamic::Create(BeatOverlayMaterial, GetOwner());
 		BeatOverlayInstance->SetScalarParameterValue(TEXT("StrongPulse"), 0.f);
 		BeatOverlayInstance->SetScalarParameterValue(TEXT("WeakPulse"), 0.f);
@@ -582,6 +589,8 @@ float UBeatSyncedComboComponent::GetWalkClipLengthSeconds() const
 	           ? DirectionalWalkAnimations[0]->GetPlayLength()
 			   : 0.f;
 }
+
+// 火焰与攻击提示
 
 // 根据音乐拍点调整角色火焰强度
 void UBeatSyncedComboComponent::UpdateBeatFirePulse(const UBeatClockSubsystem* Clock)
@@ -698,6 +707,8 @@ void UBeatSyncedComboComponent::UpdateStrongBeatPresentation(const UBeatClockSub
 		Light->SetIntensity(LightIntensity);
 }
 
+// 身体材质闪光
+
 // 记录一次材质闪光的强度和时间
 void UBeatSyncedComboComponent::TriggerBeatOverlay(bool bStrong, double AudioNow)
 {
@@ -757,6 +768,8 @@ void UBeatSyncedComboComponent::ResetStrongBeatPresentation()
 	if (bWasCharging)
 		UE_LOG(LogTemp, Display, TEXT("BossStrongBeat: restored sword glow, light and warning fire"));
 }
+
+// 攻击请求与配置选择
 
 // 接收攻击资源，确定首击拍点并建立本次连招的运行数据
 bool UBeatSyncedComboComponent::QueueAttack(UAttackDataAsset* InAttackData)
@@ -943,6 +956,8 @@ void UBeatSyncedComboComponent::EndCinematicAccent(bool bImmediate)
 	OnCinematicAccentEnded.Broadcast();
 }
 
+// 命中标记查询
+
 const FAttackImpactMarker& UBeatSyncedComboComponent::GetImpactMarker(int32 Index) const
 {
 	if (RuntimeImpactMarkers.IsValidIndex(Index))
@@ -950,6 +965,8 @@ const FAttackImpactMarker& UBeatSyncedComboComponent::GetImpactMarker(int32 Inde
 	check(AttackData && AttackData->ImpactMarkers.IsValidIndex(Index));
 	return AttackData->ImpactMarkers[Index];
 }
+
+// 瞬移配置与目标锁定
 
 // 保存下一次攻击的瞬移配置，等待 QueueAttack 安排时间
 void UBeatSyncedComboComponent::ConfigureNextBlink(const FBeatBlinkSettings& Settings)
@@ -1023,6 +1040,8 @@ void UBeatSyncedComboComponent::ClearWarping()
 	ActiveWarpWindowIndex = INDEX_NONE;
 	bStrikeCommitted = false;
 }
+
+// 攻击位置调整
 
 // 更新本次攻击要移动到的位置和朝向
 void UBeatSyncedComboComponent::UpdateWarpTarget(float AnimationPosition)
@@ -1117,6 +1136,8 @@ bool UBeatSyncedComboComponent::GetNextImpactDodgeTiming(double& OutImpactAudioS
 	return true;
 }
 
+// 提供即将到来的攻击提示
+
 // 提供提示：向外提供后续命中时刻与应对信息，界面只使用这些信息画轨道，不反向决定命中
 void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>& OutCues, int32 MaxCount,
                                                       bool bIncludeRecent) const
@@ -1166,6 +1187,8 @@ void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>
 		    (FMath::Abs(TargetBeat - RoundedBeat) < .05 && RoundedBeat % BeatsPerBar == 0);
 	}
 }
+
+// 安排连招起手与命中拍点
 
 // 保存待执行的连击，等到目标拍点再开始播放
 bool UBeatSyncedComboComponent::QueueCombo()
@@ -1310,6 +1333,8 @@ bool UBeatSyncedComboComponent::QueueCombo()
 	return true;
 }
 
+// 取消攻击与状态清理
+
 // 取消排队或正在播放的连招，清理窗口、移动对齐和临时表现
 void UBeatSyncedComboComponent::CancelCombo()
 {
@@ -1377,6 +1402,8 @@ UMeshComponent* UBeatSyncedComboComponent::FindBladeMesh() const
 	}
 	return nullptr;
 }
+
+// 刀刃轨迹与防御判定
 
 // 有效接触：在攻击允许的窗口内检查刀刃与目标，再交给玩家的应对结算
 // 动画推进后检查实际接触；接触成立时再结算玩家的防御结果
@@ -1446,6 +1473,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	    AttackData->ImpactMarkers.IsValidIndex(WindowIndex) ? GetImpactMarker(WindowIndex) : Defaults;
 	const double MarkerElapsed =
 	    AttackData->GetElapsedAtAnimationTime(GetImpactTime(WindowIndex)) - ClipStartElapsed;
+	// 把动画片段中的命中位置换算为这次攻击的音乐时刻
 	const double MarkerAudioTime = ScheduledStartAudioSeconds + MarkerElapsed;
 	if (WindowMarker.DamageShape == EBossAttackDamageShape::GroundBurst)
 		return;
@@ -1633,6 +1661,7 @@ void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex
 	        AttackTarget->FindComponentByClass<UPlayerRhythmCombatComponent>())
 	{
 		// 走出刀刃范围不会受伤，只有最近按过闪避才继续计算节奏评级
+		// 没有发生刀刃接触时，仅对近期闪避输入继续评判时机
 		const bool bRecentDodge =
 		    FMath::Abs(MarkerAudioTime - PlayerState->GetLastDodgeInputAudioSeconds()) <= .55;
 		if (!bRecentDodge && !bPracticeNote)
@@ -1658,6 +1687,7 @@ void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex
 		if (AttackDirection.IsNearlyZero())
 			AttackDirection =
 			    (AttackTarget->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal();
+		// 把未接触结果交给玩家防御组件，这里不补造一次命中伤害
 		bHandledByDodge = PlayerState->ResolveBossAvoidance(
 		    MarkerAudioTime, TargetBeat, Marker.IdealDodgeLeadSeconds, bStrong, FeedbackLocation,
 		    AttackDirection, Marker.RequiredResponse, Marker.HoldMarker, Marker.HoldGroup);
@@ -1666,6 +1696,8 @@ void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex
 	UE_LOG(LogTemp, Display, TEXT("BossDamageSweep: impact=%d noContact=1 threatened=1 dodgeHandled=%d"),
 	       ImpactIndex + 1, bHandledByDodge ? 1 : 0);
 }
+
+// 播放动画
 
 // 启动攻击蒙太奇并恢复到音乐时间对应的动画位置
 bool UBeatSyncedComboComponent::StartPlayback(double AudioNowSeconds)
@@ -1757,6 +1789,8 @@ bool UBeatSyncedComboComponent::StartPlayback(double AudioNowSeconds)
 	       *GetNameSafe(GetOwner()), AudioNowSeconds);
 	return true;
 }
+
+// 每帧推进与命中处理
 
 // 按音乐时间推进瞬移、动画、命中窗口和收尾，并处理阶段演出
 void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickType,

@@ -102,6 +102,8 @@ UPlayerCombatAnimInstance::UPlayerCombatAnimInstance()
 	SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
 }
 
+// 方向受击动画
+
 // 记录受击方向和时间，启动方向姿态混合
 void UPlayerCombatAnimInstance::StartDirectionalHit(FVector2D ReactionDirection, float Duration)
 {
@@ -125,6 +127,8 @@ void UPlayerCombatAnimInstance::EndDirectionalHit()
 	HitReactionEndWorldSeconds = -1.0;
 }
 
+// 攻击蒙太奇控制
+
 // 创建并播放攻击蒙太奇，让攻击组件接管动画位置
 UAnimMontage* UPlayerCombatAnimInstance::BeginBeatAttack(UAnimSequence* Sequence, float StartPosition,
                                                          float BlendInSeconds)
@@ -144,6 +148,7 @@ UAnimMontage* UPlayerCombatAnimInstance::BeginBeatAttack(UAnimSequence* Sequence
 	{
 		BeatAttackMontage->bEnableAutoBlendOut = false;
 		// 关闭自动推进，由战斗组件按音乐时间设置动画位置
+		// 播放速率设为零后，由 TickAttack 每帧设置位置，不代表攻击永久停住
 		Montage_SetPlayRate(BeatAttackMontage, 0.f);
 	}
 	return BeatAttackMontage;
@@ -167,6 +172,8 @@ void UPlayerCombatAnimInstance::ReleaseCombatAction(float BlendOutSeconds)
 	ReleaseAtWorldSeconds = -1.0;
 }
 
+// 原生动画图
+
 // 创建行走、战斗动作槽与受击混合的原生动画图
 FAnimInstanceProxy* UPlayerCombatAnimInstance::CreateAnimInstanceProxy()
 {
@@ -178,6 +185,8 @@ void UPlayerCombatAnimInstance::DestroyAnimInstanceProxy(FAnimInstanceProxy* Pro
 {
 	delete Proxy;
 }
+
+// 防御动画
 
 // 播放闪避或防御动作，设置循环和衔接时间
 void UPlayerCombatAnimInstance::PlayCombatAction(UAnimSequence* Sequence, bool bLooping, float Duration,
@@ -202,6 +211,8 @@ void UPlayerCombatAnimInstance::PlayCombatAction(UAnimSequence* Sequence, bool b
 	       *Sequence->GetName(), *Next->GetName(), Rate);
 	ReleaseAtWorldSeconds = bLooping ? -1.0 : GetWorld()->GetTimeSeconds() + ActualDuration + ChainGrace;
 }
+
+// 每帧动画状态
 
 // 更新本帧移动参数和战斗姿态混合状态
 void UPlayerCombatAnimInstance::NativeUpdateAnimation(float DeltaSeconds)

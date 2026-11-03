@@ -27,6 +27,8 @@ float UBeatSyncedComboComponent::GetGroundBurstRemainingBeats() const
 			   : -1.f;
 }
 
+// 地面攻击后的反击机会
+
 // 收招反击需同时满足时间间隔、距离、朝向与无遮挡条件
 bool UBeatSyncedComboComponent::TryRecoveryStrike(AActor* Player)
 {
@@ -73,6 +75,8 @@ bool UBeatSyncedComboComponent::TryRecoveryStrike(AActor* Player)
 	       OffsetToBoss.Size2D(), CounterDamage * .5f);
 	return true;
 }
+
+// 安全区域检查
 
 // 检查目标能否在预警时间内离开范围，并考虑角色体积和路径碰撞
 bool UBeatSyncedComboComponent::HasSafeAreaExit(const FVector& Center, float Radius, const AActor* Target,
@@ -179,6 +183,8 @@ bool UBeatSyncedComboComponent::GetGroundBurstPreview(FVector& Center, float& Ra
 		             0.f, 1.f);
 	return true;
 }
+
+// 地面预警更新
 
 // 按攻击时间更新危险圈预警和爆发状态
 void UBeatSyncedComboComponent::UpdateGroundBurst(double AudioNow)
@@ -322,6 +328,8 @@ void UBeatSyncedComboComponent::UpdateGroundBurst(double AudioNow)
 		GroundBurstPreviousAudio = AudioNow;
 	}
 }
+
+// 范围命中结算
 
 // 结算范围内玩家的伤害或踩拍闪避，并处理攻击后的破绽
 void UBeatSyncedComboComponent::ResolveGroundBurst(int32 ImpactIndex, double AudioNow)

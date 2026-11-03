@@ -123,6 +123,8 @@ void UCombatTutorialComponent::SetCursorMode(bool bOn)
 		PC->SetInputMode(FInputModeGameOnly());
 }
 
+// 连接战斗事件
+
 // 查找玩家和敌人，绑定练习需要的结果事件
 void UCombatTutorialComponent::Bind()
 {
@@ -176,6 +178,8 @@ void UCombatTutorialComponent::SetBossHold(bool bHold)
 	UE_LOG(LogTemp, Display, TEXT("Tutorial: boss %s"), bHold ? TEXT("sparring") : TEXT("released"));
 }
 
+// 教程开始与结束
+
 // 进入指定教程步骤，重置计数与提示
 void UCombatTutorialComponent::Begin(ECombatTutorialStep NewStep)
 {
@@ -218,6 +222,8 @@ void UCombatTutorialComponent::Finish(bool bRestartFight)
 		UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)));
 	}
 }
+
+// 操作计数与教程图标
 
 // 根据攻击输入字母推进连招练习
 void UCombatTutorialComponent::CountCombo(TCHAR Letter)
@@ -279,6 +285,8 @@ ERhythmResponseType UCombatTutorialComponent::PracticeResponse() const
 	}
 }
 
+// 根据实际结果推进教程
+
 // 只把符合当前练习要求的防御结果计入进度
 void UCombatTutorialComponent::HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback)
 {
@@ -311,6 +319,8 @@ void UCombatTutorialComponent::HandleBossPhase(int32 Phase)
 {
 	// 第二阶段改用短提示，不再插入格挡教学
 }
+
+// 输入设备与陪练更新
 
 // 检测输入设备变化，更新教程按键提示
 void UCombatTutorialComponent::TickDevice()
@@ -582,6 +592,8 @@ void UCombatTutorialComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	}
 	TickCallouts(WorldNow);
 }
+
+// 教程退出清理
 
 // 解除教程事件并恢复临时修改的输入状态
 void UCombatTutorialComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

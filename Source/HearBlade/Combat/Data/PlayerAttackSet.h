@@ -31,25 +31,37 @@ USTRUCT(BlueprintType)
 
 struct FPlayerAttackNode
 {
+
 	GENERATED_BODY()
+
+	// 招式身份与动画
 	// 节点身份与使用的动画资源
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName Id;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) EPlayerAttackInput Input = EPlayerAttackInput::Light;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) TObjectPtr<class UAnimSequence> Animation;
+
+	// 源动画中的时间位置
 	// 以下片段位置均为源动画秒数；与音乐时间及 DurationBeats 的拍数分开
+	// 源动画片段起点，单位为秒，实际起手可能由连续动作衔接调整
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ClipStart = 0.f;
+	// 源动画中的命中姿态位置，攻击组件把这个姿态对齐目标音乐拍点
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ImpactTime = .2f;
+	// 源动画中开始快速挥击的位置，用于计算起手预留时间
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StrikeStart = .1f;
+	// 当前用于配置合法性检查，实际接招时刻由攻击组件安排
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float LinkTime = .35f;
-	// 挥击段的目标播放时长，单位为秒
+	// 当前只检查该值是否有效，实际挥击时长由攻击组件计算
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float StrikeSeconds = .12f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float ClipEnd = .4f;
 	// 节点标称拍数，目前用于长重击迟到宽限等判断
 	// 普通连招实际间隔由 StartAttack 固定为一拍，共鸣期间为半拍
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float DurationBeats = .5f;
+
+	// 命中数值与招式标记
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float Damage = 16.f;
 	// 对敌人韧性造成的损耗，与生命伤害分开结算
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float PoiseDamage = 12.f;
+	// 保留的前进距离配置，当前攻击位移使用动画提取的根位移
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) float AdvanceCm = 40.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool bFinisher = false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool bResonanceOnly = false;
@@ -57,8 +69,12 @@ struct FPlayerAttackNode
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool bKick = false;
 	// 数据中的挑飞标记；当前命中逻辑还按 HHH 节点名称判断挑飞
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) bool bUppercut = false;
+
+	// 轻重击后继分支
 	// 轻、重输入对应的后继节点标识；空标识表示没有该分支
+	// 轻击接续节点的 Id，例如 L 的下一次轻击可指向 LL
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName NextLight;
+	// 重击接续节点的 Id，例如 L 的下一次重击可指向 LH
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName NextHeavy;
 };
 

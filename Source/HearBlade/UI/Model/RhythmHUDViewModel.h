@@ -37,6 +37,7 @@ USTRUCT(BlueprintType)
 
 struct FRhythmHUDViewModel
 {
+
 	GENERATED_BODY()
 	// 玩家状态与生命、共鸣显示
 	UPROPERTY(BlueprintReadOnly) bool bHasPlayer = false;
@@ -53,6 +54,8 @@ struct FRhythmHUDViewModel
 	UPROPERTY(BlueprintReadOnly) FLinearColor JudgmentColor = FLinearColor::White;
 	UPROPERTY(BlueprintReadOnly) float JudgmentOpacity = 0.f;
 	UPROPERTY(BlueprintReadOnly) TArray<FText> JudgmentHistory;
+
+    // 评级卡片排列
     UPROPERTY(BlueprintReadOnly) TArray<FRhythmJudgmentView> JudgmentCards;
     UPROPERTY(BlueprintReadOnly) FRhythmJudgmentView OutgoingCard;
     UPROPERTY(BlueprintReadOnly) bool bHasOutgoingCard = false;
@@ -93,6 +96,8 @@ struct FRhythmHUDViewModel
 	UPROPERTY(BlueprintReadOnly) FText ImpactText;
 	UPROPERTY(BlueprintReadOnly) float ImpactOpacity = 0.f;
 	UPROPERTY(BlueprintReadOnly) float ImpactScale = 1.f;
+
+    // 短暂命中特效
     UPROPERTY(BlueprintReadOnly) float ImpactAge = 1.f;
     UPROPERTY(BlueprintReadOnly) bool bImpactHeavy = false;
     UPROPERTY(BlueprintReadOnly) FVector2D TipPosition = FVector2D::ZeroVector;

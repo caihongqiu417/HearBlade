@@ -32,6 +32,7 @@ void UAttackReadabilityComponent::BeginPlay()
 	    LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_BossDrumKick.SW_BossDrumKick"));
 	CounterCueSound = LoadObject<USoundBase>(
 	    nullptr, TEXT("/Game/Audio/SFX/HitRush/SW_HitRush_Counter.SW_HitRush_Counter"));
+	// 创建攻击提示图案，关闭碰撞，提示本身不参与伤害检测
 	Symbol = NewObject<UStaticMeshComponent>(GetOwner());
 	Symbol->SetStaticMesh(LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Plane.Plane")));
 	Symbol->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -44,6 +45,7 @@ void UAttackReadabilityComponent::BeginPlay()
 		SymbolMaterial = UMaterialInstanceDynamic::Create(Mat, this);
 		Symbol->SetMaterial(0, SymbolMaterial);
 	}
+	// 地面范围和闪避路径各用一份贴花，可以独立更新颜色和范围
 	GroundWarning = NewObject<UDecalComponent>(GetOwner());
 	GroundWarning->RegisterComponent();
 	DodgePathWarning = NewObject<UDecalComponent>(GetOwner());
@@ -66,6 +68,7 @@ void UAttackReadabilityComponent::BeginPlay()
 		    Mesh->ComponentHasTag(TEXT("DamageBlade")))
 		{
 			Blade = Mesh;
+			// 保存武器原覆盖材质，提示结束时能够恢复
 			OriginalBladeOverlay = Mesh->GetOverlayMaterial();
 			break;
 		}
@@ -110,6 +113,7 @@ void UAttackReadabilityComponent::BeginPlay()
 				DodgeBladeGhost->RegisterComponent();
 				DodgeBladeGhost->SetVisibility(false);
 			}
+		// 武器附近的补光只用于提示，创建时保持关闭
 		BladeCueLight = NewObject<UPointLightComponent>(GetOwner());
 		BladeCueLight->SetCastShadows(false);
 		BladeCueLight->SetIntensity(0.f);

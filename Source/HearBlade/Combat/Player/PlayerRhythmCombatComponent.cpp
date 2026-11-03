@@ -424,6 +424,8 @@ void UPlayerRhythmCombatComponent::BeginPlay()
 	}
 }
 
+// 生命与伤害
+
 // 扣除生命并限制数值范围
 void UPlayerRhythmCombatComponent::ApplyCombatDamage(float Damage)
 {
@@ -485,6 +487,8 @@ void UPlayerRhythmCombatComponent::AwardRhythmicEscape(float Amount, float Error
 	UE_LOG(LogTemp, Display, TEXT("GroundBurst: rhythmic escape reward=%.1f errorMs=%.1f"), Amount,
 	       ErrorSeconds * 1000.f);
 }
+
+// 防御评级与连击
 
 // 保存评级结果，更新连击与共鸣，并通知反馈组件
 void UPlayerRhythmCombatComponent::SubmitDodgeJudgment(ERhythmDodgeJudgment Grade, float SignedErrorMs,
@@ -553,6 +557,8 @@ void UPlayerRhythmCombatComponent::ResetCombatState()
 	BlockInputHistory.Reset();
 	CounterInputHistory.Reset();
 }
+
+// 闪避请求与动作
 
 // 检查当前状态，决定立即闪避还是保留输入等待解锁
 bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
@@ -666,6 +672,8 @@ void UPlayerRhythmCombatComponent::PlayDefenseAnimation(UAnimSequence* Animation
 		Instance->PlayCombatAction(Animation, bLooping, DefenseAnimationDurationSeconds);
 }
 
+// 格挡开始与结束
+
 // 检查格挡条件，锁定期间先缓存按下操作
 bool UPlayerRhythmCombatComponent::TryBlockStart()
 {
@@ -768,6 +776,8 @@ void UPlayerRhythmCombatComponent::EndBlock()
 	}
 }
 
+// 攻击与防御切换
+
 // 结束允许被攻击替换的防御姿态，为普通攻击腾出动作控制
 bool UPlayerRhythmCombatComponent::PrepareForOrdinaryAttack()
 {
@@ -835,6 +845,8 @@ FString UPlayerRhythmCombatComponent::GetMouseDefensePrompt() const
 	}
 	return FString();
 }
+
+// 反击输入
 
 // 检查反击条件，必要时缓存按键而不立即播放动作
 bool UPlayerRhythmCombatComponent::TryCounter()
@@ -918,6 +930,8 @@ double UPlayerRhythmCombatComponent::GetCurrentInputAudioSeconds() const
 	return GetWorld()->GetTimeSeconds();
 }
 
+// 防御输入缓存
+
 // 保存待执行的防御类型、原始时间和闪避方向
 void UPlayerRhythmCombatComponent::BufferInput(EBufferedRhythmAction Action, double InputAudioSeconds,
                                                FVector Direction)
@@ -961,6 +975,8 @@ bool UPlayerRhythmCombatComponent::BufferWhilePoiseLocked(EBufferedRhythmAction 
 	BufferInput(Action, InputAudioSeconds, Direction);
 	return true;
 }
+
+// 韧性与受击恢复
 
 // 减少韧性，耗尽时进入破防
 void UPlayerRhythmCombatComponent::ApplyPoiseDamage(float Amount, FVector ImpactLocation,
@@ -1098,6 +1114,8 @@ void UPlayerRhythmCombatComponent::FinishHitReaction()
 		        Cast<UPlayerCombatAnimInstance>(Character->GetMesh()->GetAnimInstance()))
 			Animation->EndDirectionalHit();
 }
+
+// 消费缓存与时机评级
 
 // 等待动作解锁后重试缓存输入，过期或失效时清除
 void UPlayerRhythmCombatComponent::ProcessBufferedInput()
@@ -1246,6 +1264,8 @@ bool UPlayerRhythmCombatComponent::IsInvulnerable() const
 	}
 	return Elapsed >= InvulnerabilityStartSeconds && Elapsed <= InvulnerabilityEndSeconds;
 }
+
+// 实际接触与防御结果
 
 // 真实刀刃接触时，进入防御与伤害结算
 bool UPlayerRhythmCombatComponent::ResolveBossContact(double ContactAudioSeconds, double TargetBeat,
@@ -1461,6 +1481,8 @@ bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, do
 	       TargetBeat);
 	return bDefended;
 }
+
+// 防御反馈与事件通知
 
 // 按实际防御结果播放声音与反馈，不替换已开始的新动作
 void UPlayerRhythmCombatComponent::PlayResponseFeedback(ERhythmResponseType Response,

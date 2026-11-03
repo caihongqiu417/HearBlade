@@ -29,6 +29,8 @@ UWorld* URhythmWidgetController::GetWorld() const
 	return Player.IsValid() ? Player->GetWorld() : nullptr;
 }
 
+// 界面处理器生命周期
+
 // 重置旧状态并绑定当前玩家
 void URhythmWidgetController::Initialize(APlayerController* InPlayer)
 {
@@ -52,6 +54,8 @@ void URhythmWidgetController::Shutdown()
 	NextBossSearch = 0.;
 	ViewModel = FRhythmHUDViewModel();
 }
+
+// 玩家与敌人引用更新
 
 // 更新角色与敌人引用，角色变化时清空旧显示状态
 void URhythmWidgetController::Rebind()
@@ -104,6 +108,8 @@ void URhythmWidgetController::SetTutorialSkipScreenRect(FVector2D Minimum, FVect
 		    Maximum.X > Minimum.X && Maximum.Y > Minimum.Y ? FBox2D(Minimum, Maximum) : FBox2D(ForceInit);
 }
 
+// 汇总本帧显示数据
+
 // 更新界面数据，再通知控件刷新
 void URhythmWidgetController::Update(float Delta)
 {
@@ -126,6 +132,8 @@ void URhythmWidgetController::Update(float Delta)
 	OnViewModelChanged.Broadcast(ViewModel);
 }
 
+// 玩家状态与命中反馈
+
 // 更新玩家生命、共鸣状态和攻击反馈的显示数据
 void URhythmWidgetController::UpdatePlayerPanel(float Delta)
 {
@@ -138,6 +146,7 @@ void URhythmWidgetController::UpdatePlayerPanel(float Delta)
 	M.bDead = State->Health <= 0.f;
 	M.Opacity = FMath::FInterpConstantTo(M.Opacity, State->IsPhaseCinematic() ? 0.f : 1.f, Delta,
 	                                     State->IsPhaseCinematic() ? 3.5f : 2.f);
+	// 界面使用归一化比例，角色组件仍保存和结算真实生命值
 	M.HealthFraction = FMath::Clamp(State->GetHealthFraction(), 0.f, 1.f);
 	M.ResonanceFraction = FMath::Clamp(State->GetResonanceFraction(), 0.f, 1.f);
 	M.HealthText = FText::FromString(FString::Printf(TEXT("HP %d / %d"), FMath::RoundToInt(State->Health),
@@ -185,6 +194,8 @@ void URhythmWidgetController::UpdatePlayerPanel(float Delta)
 		}
 	}
 }
+
+// 评级卡片与连击
 
 // 将最近一次判定整理成文字，并在判定时间变化时保存历史，避免每帧重复加入
 void URhythmWidgetController::UpdateJudgments()
@@ -242,6 +253,7 @@ void URhythmWidgetController::UpdateJudgments()
 			History.SetNum(4);
 	}
 	M.JudgmentHistory = History;
+    // 卡片移动与淡出使用游戏时间，只影响显示，不参与战斗评级
     const float Age = float(Now - LastJudgment);
     M.CardMove = 1.f - FMath::Pow(1.f - FMath::Clamp(Age / .14f, 0.f, 1.f), 3.f);
     if (Age >= .14f) M.bHasOutgoingCard = false;
@@ -251,6 +263,8 @@ void URhythmWidgetController::UpdateJudgments()
     M.FailureText = FText::FromString(Grade == ERhythmDodgeJudgment::HoldBreak ? TEXT("HOLD BREAK") :
         Grade == ERhythmDodgeJudgment::Miss ? TEXT("MISS") : State->LastJudgmentErrorMs < 0.f ? TEXT("TOO EARLY") : TEXT("TOO LATE"));
 }
+
+// 敌人状态
 
 // 整理敌人血条和阶段提示，延迟血条只用于表现，不参与敌人生命计算
 void URhythmWidgetController::UpdateBossPanel(float Delta)
@@ -278,6 +292,8 @@ void URhythmWidgetController::UpdateBossPanel(float Delta)
 			M.BossHint = FText::FromString(TEXT("PHASE II"));
 	}
 }
+
+// 节拍轨道与音乐频谱
 
 // 把音乐时间换算为轨道上的比例，同时准备反击提示、主角节拍和频谱
 void URhythmWidgetController::UpdateRhythmTrack(float Delta)
@@ -399,6 +415,8 @@ void URhythmWidgetController::UpdateRhythmTrack(float Delta)
 		}
 	}
 }
+
+// 教程与锁定提示
 
 // 整理教程卡片与短时提示，教程是否完成仍由教程组件决定
 void URhythmWidgetController::UpdateTutorial()

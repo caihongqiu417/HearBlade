@@ -28,11 +28,15 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	GENERATED_BODY()
   public:
 	UPlayerBeatAttackComponent();
+
 	// 攻击配置
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Attack")
 	TObjectPtr<UPlayerAttackSet> AttackSet;
+
 	// 控制普通重击是否可用，右键在防御窗口内仍用于格挡
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Attack") bool bHeavyAttacksEnabled = true;
+
+	// 提供给界面的攻击状态
 	// 当前攻击与评级，供界面读取
 	UPROPERTY(BlueprintReadOnly) EPlayerResonanceState ResonanceState = EPlayerResonanceState::Filling;
 	UPROPERTY(BlueprintReadOnly) EPlayerAttackGrade LastGrade = EPlayerAttackGrade::Bad;
@@ -42,6 +46,8 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	UPROPERTY(BlueprintReadOnly) double LastJudgedWorldSeconds = -1000.;
 	UPROPERTY(BlueprintReadOnly) float LastResonanceGain = 0.f;
 	UPROPERTY(BlueprintReadOnly) double LastHitWorldSeconds = -1000.;
+
+	// 命中表现数据
 	// 供界面读取的命中表现，使用游戏时间控制显示时长
 	FVector ImpactFxWorld = FVector::ZeroVector;
 	double ImpactFxWorldTime = -1000.;
@@ -60,12 +66,17 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	// 剑尖命中爆发的位置与显示时间
 	FVector TipBurstWorld = FVector::ZeroVector;
 	double TipBurstWorldTime = -1000.;
+
+	// 对外事件
 	// 攻击事件与外部操作
 	UPROPERTY(BlueprintAssignable) FPlayerAttackJudged OnAttackJudged;
 	UPROPERTY(BlueprintAssignable) FPlayerAttackHit OnAttackHit;
 	UPROPERTY(BlueprintAssignable) FPlayerResonanceChanged OnResonanceChanged;
-	// 检查共鸣条件，通过后等待指定拍点启动
+
+	// 攻击与共鸣操作
+	// 接收轻重击输入，可立即出招时起手，否则按当前状态记录缓存
 	UFUNCTION(BlueprintCallable) bool TryAttack(EPlayerAttackInput Input);
+	// 共鸣条件满足后，等待指定拍点启动
 	UFUNCTION(BlueprintCallable) bool TryActivateResonance();
 
 	UFUNCTION(BlueprintPure) bool IsAttacking() const
@@ -84,8 +95,8 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	}
 
 	// 返回当前共鸣剩余拍数
-	// 返回攻击期间允许的移动比例
 	UFUNCTION(BlueprintPure) float GetRemainingBeats() const;
+	// 返回攻击期间允许的移动比例
 	float GetMovementScale() const;
 	// 根据当前连招节点生成下一步按键提示
 	FString GetComboPrompt() const;
@@ -99,6 +110,8 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	void NotifyInterrupted();
 	// 记录攻击收益，更新共鸣与命中反馈状态
 	void ReceiveReward(EPlayerAttackGrade Grade, float Amount, bool bHit);
+
+	// 组件生命周期
 	// 缓存战斗组件，加载音效并校验攻击配置
 	virtual void BeginPlay() override;
 	// 退出关卡时清空攻击与共鸣状态
@@ -110,7 +123,10 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	// 关联组件与动作资源
 	TWeakObjectPtr<class UPlayerRhythmCombatComponent> Combat;
 	TWeakObjectPtr<class UBeatSyncedComboComponent> ResonanceBoss;
+
 	UPROPERTY(Transient) TObjectPtr<class UAnimMontage> AttackMontage;
+
+	// 音效资源
 	UPROPERTY(Transient) TObjectPtr<class USoundBase> HitSound;
 	UPROPERTY(EditDefaultsOnly, Category = "Attack|Audio") TObjectPtr<class USoundBase> LightSwingSound;
 	UPROPERTY(EditDefaultsOnly, Category = "Attack|Audio") TObjectPtr<class USoundBase> HeavySwingSound;
@@ -126,11 +142,15 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	UPROPERTY(Transient) TObjectPtr<class USoundBase> OffBeatHitSound;
 	// 加载各连段的命中音效，排除缺失资源
 	void LoadHitRushSounds();
+
 	UPROPERTY(Transient) TObjectPtr<class USoundBase> GoodHitSound;
 	UPROPERTY(Transient) TObjectPtr<class USoundBase> SnareSound;
 	UPROPERTY(Transient) TObjectPtr<class USoundBase> FinisherSound;
 	UPROPERTY(Transient) TObjectPtr<class USoundBase> FinisherPerfectSound;
 	UPROPERTY(Transient) TObjectPtr<class UNiagaraSystem> PerfectBurstEffect;
+
+	// 攻击时间安排
+	// 命中停顿与镜头反馈
 	// 命中停顿使用音乐时间，恢复时追上原定收招结束时刻，不推迟下一击
 	double HitStopStartAudio = -1000.;
 	float HitStopSeconds = 0.f;
@@ -145,8 +165,12 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	UPROPERTY(Transient) TObjectPtr<class UParticleSystem> TrailEffect;
 	UPROPERTY(Transient) TObjectPtr<class UParticleSystemComponent> Trail;
 	TWeakObjectPtr<AActor> AttackTarget;
+
+	// 本次命中的目标记录
 	// 每次出招清空，只记录这一击已结算过的目标
 	TSet<TWeakObjectPtr<AActor>> HitActors;
+
+	// 连招输入缓存
 	// 连招缓存保留本轮第一次按键，后续按键只计数，不覆盖方向选择
 	EPlayerAttackInput BufferedInput = EPlayerAttackInput::Light;
 	bool bHasBufferedInput = false;
@@ -170,6 +194,8 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	int32 PressCountSinceCommit = 0;
 	// 当前攻击的起手、命中、结束和上一帧时间，均使用音乐秒数
 	double StartAudio = 0., ImpactAudio = 0., EndAudio = 0., LastAudio = 0.;
+
+	// 共鸣起止拍数
 	// 共鸣等待与生效的拍号，不是秒数
 	double ArmedBeat = 0., ActiveStartBeat = 0.;
 	double LastChainAudio = -1000.;
@@ -183,6 +209,8 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	FName ChainNode;
 	// 每次成功起手递增，回调返回后可据此判断是否仍在处理同一击
 	uint64 AttackSerial = 0;
+
+	// 动画位移与武器轨迹
 	// 已经提取根位移的动画位置，避免同一段位移重复应用
 	float LastRootMotionPosition = 0.f;
 	FVector RootProbeStart = FVector::ZeroVector;
@@ -199,6 +227,8 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	void SetResonanceState(EPlayerResonanceState State);
 	// 结束共鸣并通知配合的 Boss 恢复状态
 	void EndResonance();
+
+	// 内部出招与接续
 	// bChained 表示消费已有连招缓存，保留原分支
 	// TargetImpactAudio 是下一击的目标音乐时刻，负数表示按普通起手规则安排
 	bool StartAttack(EPlayerAttackInput Input, double InputAudio, bool bChained = false,
@@ -228,6 +258,8 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	AActor* FindTarget() const;
 	// 取得当前世界的节拍时钟
 	class UBeatClockSubsystem* Clock() const;
+
+	// 运行验证入口
 	// 按命令行参数驱动攻击验证流程
 	void TickRuntimeProbe();
 	// 按预设顺序输入指令，记录实际攻击状态

@@ -80,6 +80,7 @@ class HEARBLADE_API UBeatClockSubsystem : public UTickableWorldSubsystem
 	// 启动和停止
 	// ========================================================
 
+	// 音乐时钟控制
 	// 开始计算拍子
 	UFUNCTION(BlueprintCallable, Category = "拍子时钟")
 	void StartClock(FBeatClockSettings InSettings);
@@ -117,6 +118,7 @@ class HEARBLADE_API UBeatClockSubsystem : public UTickableWorldSubsystem
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 	double GetBeatTimeSeconds(double BeatIndex) const;
 
+	// 时间与拍数查询
 	// 与 GetBeatTimeSeconds 使用相同的时间轴，供攻击预定器比较
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 	double GetAudioNowSeconds() const;
@@ -158,6 +160,7 @@ class HEARBLADE_API UBeatClockSubsystem : public UTickableWorldSubsystem
 
 	// 同时调整音乐时间和音源速度，按拍点播放的动作随之变速，输入和镜头仍按游戏时间更新
 
+	// 同步播放速度
 	void SetMusicalPlaybackRate(float TargetRate, float BlendSeconds = 0.06f);
 	// 设置临时慢放，并记录强制恢复的截止时间
 	void SetTemporaryMusicalPlaybackRate(float TargetRate, float BlendSeconds, float MaximumDurationSeconds);
@@ -174,6 +177,7 @@ class HEARBLADE_API UBeatClockSubsystem : public UTickableWorldSubsystem
 	// 拍子事件
 	// ========================================================
 
+	// 拍点事件
 	// 当进入新的一拍时发出拍子事件
 	UPROPERTY(BlueprintAssignable, Category = "拍子时钟")
 	FOnBeatClockBeat OnBeat;

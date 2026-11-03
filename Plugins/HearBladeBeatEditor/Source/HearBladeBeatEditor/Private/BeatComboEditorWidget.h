@@ -67,11 +67,13 @@ class SBeatComboEditorWidget : public SCompoundWidget
 		return PreviewRate;
 	}
 
+	// 预览拍点计算
 	// 预留动作前摇，再按小节要求与音乐重音选择首击拍点
 	int32 GetSelectedBeat() const;
 	// 取得音乐重音配置，供首击拍点预览使用
 	const UMusicEmphasisData* GetMusicEmphasis() const;
 
+	// 临时预览状态
 	double GetPreviewRequestSourceSeconds() const
 	{
 		return PreviewRequestSourceSeconds;
@@ -94,6 +96,8 @@ class SBeatComboEditorWidget : public SCompoundWidget
 	void DragHoldEndpoint(FName Group, bool bStartEndpoint, double SourceSeconds);
 
   private:
+
+	// 攻击资源选择
 	// 资源选择与预览操作
 	void SelectAsset(UAttackDataAsset* Asset);
 	// 将资源选择器的结果交给 SelectAsset
@@ -110,6 +114,8 @@ class SBeatComboEditorWidget : public SCompoundWidget
 	FReply AutoAlignSegments();
 	// 恢复整段同速的预览配置
 	FReply ResetSegments();
+
+	// 资源保存
 	FReply SaveAsset();
 	// 汇总当前资源、拍点与播放速度的预览信息
 	FText GetSummary() const;

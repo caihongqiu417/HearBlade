@@ -193,6 +193,8 @@ class SBeatComboTimeline : public SLeafWidget
 	FName DraggedHoldGroup;
 };
 
+// 时间轴绘制
+
 // 将音乐时间换成横向位置，绘制波形、拍点与攻击指令
 int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry,
                                   const FSlateRect& CullingRect, FSlateWindowElementList& Elements,
@@ -453,6 +455,8 @@ int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geome
 	return LayerId + 7;
 }
 
+// 时间轴鼠标操作
+
 // 把鼠标位置换成音乐时间，模拟在此时请求攻击
 void SBeatComboTimeline::Pick(const FGeometry& Geometry, const FPointerEvent& Event)
 {
@@ -523,6 +527,8 @@ FReply SBeatComboTimeline::OnMouseMove(const FGeometry& Geometry, const FPointer
 	return FReply::Handled();
 }
 
+// 编辑器面板布局
+
 // 创建资源选择、波形时间轴、调速控件和属性面板
 void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 {
@@ -538,6 +544,7 @@ void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 	DetailsView->OnFinishedChangingProperties().AddSP(this,
 	                                                  &SBeatComboEditorWidget::OnAssetPropertiesChanged);
 
+	// 数值控件直接修改预览变量，改变数值后重画时间轴
 	auto NumberRow = [this](const FString& Label, double* Field, double Min,
 	                        double Max) -> TSharedRef<SWidget>
 	{
@@ -822,6 +829,8 @@ void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 	LoadWav();
 }
 
+// 防御指令配置
+
 // 将选中的防御指令模板写入攻击标记
 FReply SBeatComboEditorWidget::ApplyResponseTemplate(int32 TemplateIndex)
 {
@@ -1075,6 +1084,8 @@ bool SBeatComboEditorWidget::IsImpactResponseValid(int32 ImpactIndex) const
 	}
 	return true;
 }
+
+// 持续格挡起止点编辑
 
 // 查找鼠标附近的持续格挡端点
 bool SBeatComboEditorWidget::TryBeginHoldEndpointDrag(double SourceSeconds, double ToleranceSeconds,
@@ -1381,6 +1392,8 @@ FReply SBeatComboEditorWidget::SelectHoldRangeEndpoint(int32 ImpactIndex)
 	return FReply::Handled();
 }
 
+// 预览音乐时间与拍点安排
+
 // 取得音乐重音配置，供首击拍点预览使用
 const UMusicEmphasisData* SBeatComboEditorWidget::GetMusicEmphasis() const
 {
@@ -1413,6 +1426,7 @@ int32 SBeatComboEditorWidget::GetSelectedBeat() const
 	                         : Data->ImpactMarkers.IsEmpty() ? Data->AuthoredImpactTime
 	                                                         : Data->ImpactMarkers[0].AnimationTimeSeconds;
 	// 先为当前动画前摇留足时间，再寻找能够赶上的拍点
+	// 先预留动画前摇，再向后找能赶上的拍点
 	const double EarliestImpact = PreviewRequestSourceSeconds + GetPreviewElapsedAtAnimationTime(FirstTime) -
 	                              GetPreviewElapsedAtAnimationTime(Data ? Data->ClipStartSeconds : 0.0) + 0.1;
 	int32 CandidateBeat =
@@ -1491,13 +1505,17 @@ double SBeatComboEditorWidget::GetPreviewElapsedAtAnimationTime(double Animation
 // 修改临时攻击请求时间并刷新预览，不写入攻击资源
 void SBeatComboEditorWidget::PickRequestAtSourceSeconds(double SourceSeconds)
 {
+	// 紫线表示手动模拟的发令时间，不从运行中的行为树读取
 	PreviewRequestSourceSeconds = SourceSeconds;
 	RefreshTimeline();
 }
 
+// 攻击资源选择
+
 // 读取攻击资源，绑定属性面板并重建预览控件
 void SBeatComboEditorWidget::SelectAsset(UAttackDataAsset* Asset)
 {
+	// 编辑器读取所选攻击资源，不需要先找到关卡中的 Boss
 	AttackData = Asset;
 	DetailsView->SetObject(Asset);
 	if (!Asset)
@@ -1544,6 +1562,8 @@ FString SBeatComboEditorWidget::GetAssetPath() const
 	return AttackData.IsValid() ? AttackData->GetPathName() : FString();
 }
 
+// 参考音频加载
+
 // 打开文件选择窗口，选择波形使用的 WAV
 FReply SBeatComboEditorWidget::BrowseWav()
 {
@@ -1572,6 +1592,8 @@ FReply SBeatComboEditorWidget::LoadWav()
 	RefreshTimeline();
 	return FReply::Handled();
 }
+
+// 播放速度与分段对齐
 
 // 尝试允许范围内的整体速度，选择各次命中拍点误差最小的结果
 FReply SBeatComboEditorWidget::AutoAlign()
@@ -1726,6 +1748,8 @@ FReply SBeatComboEditorWidget::ResetSegments()
 	return FReply::Handled();
 }
 
+// 配置校验与保存
+
 // 保存边界：把编辑结果写回攻击数据资产，再保存包，界面上的预览触发时间不会写成正式攻击数据
 // 预览只改变临时播放状态，正式数据通过资源包保存
 FReply SBeatComboEditorWidget::SaveAsset()
@@ -1764,6 +1788,7 @@ FReply SBeatComboEditorWidget::SaveAsset()
 	}
 	Data->Modify();
 	// 只有预览速度等临时参数在这里写回，属性面板和指令控件已直接修改内存中的资源
+	// 保存攻击播放配置，临时紫线位置不写入资源
 	Data->PlayRate = PreviewRate;
 	Data->SegmentPlayRates = bUseSegmentRates ? PreviewSegmentRates : TArray<float>();
 	Data->MusicSourceWavPath = WavPath;

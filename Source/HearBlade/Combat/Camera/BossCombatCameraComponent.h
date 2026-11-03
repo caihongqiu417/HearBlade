@@ -27,6 +27,8 @@ class HEARBLADE_API UBossCombatCameraComponent : public UActorComponent
 	bool bPhasePresentation = false;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Combat Camera")
 	TObjectPtr<UBossCameraConfig> Config;
+
+	// 目标锁定
 	// 切换锁定目标，并绑定新目标的战斗事件
 	// 取消目标锁定并解除敌人事件绑定
 	UFUNCTION(BlueprintCallable, Category = "Combat Camera") void SetCombatTarget(AActor* NewTarget);
@@ -46,6 +48,8 @@ class HEARBLADE_API UBossCombatCameraComponent : public UActorComponent
 
 	// 把视角输入交给当前自由观察或锁定镜头流程
 	void AddLookInput(float Yaw, float Pitch);
+
+	// 防御与命中反馈
 	// 根据闪避结果和攻击方向设置镜头冲击参数
 	void TriggerPerfectDodgeFeedback(float FOVExpansionDegrees, float ShakeDegrees, float Strength,
 	                                 FVector BladeWorldLocation, FVector AttackDirection, bool bStrongBeat,
@@ -83,6 +87,7 @@ class HEARBLADE_API UBossCombatCameraComponent : public UActorComponent
 	                           FActorComponentTickFunction* ThisTickFunction) override;
 
   private:
+
 	// 收到攻击预警后更新镜头关注位置
 	// 响应 Boss 瞬移，更新镜头反馈
 	UFUNCTION() void HandleWarning(FVector Landing, double TargetAudioSeconds);
@@ -92,6 +97,8 @@ class HEARBLADE_API UBossCombatCameraComponent : public UActorComponent
 	UFUNCTION() void HandleCancelled();
 	// 进入交锋慢放时调整镜头表现
 	UFUNCTION() void HandleConfirmedHit();
+
+	// 关键交锋镜头事件
 	// 在实际交锋位置触发镜头冲击
 	UFUNCTION() void HandleCinematicStarted(float Strength, bool bStrongBeat);
 	// 交锋演出结束后恢复镜头反馈状态

@@ -152,6 +152,7 @@ struct FAttackImpactMarker
 	// 源动画帧号用于查看，运行时仍以 AnimationTimeSeconds 为准
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|识别信息") int32 SourceFrame = -1;
 
+	// 动画命中标记
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据", meta = (ClampMin = "0.0"))
 	float AnimationTimeSeconds = 0.0f;
 
@@ -213,7 +214,6 @@ struct FAttackImpactMarker
 
 // 替换玩家需要执行的防御操作，命中时间和伤害仍使用原命中标记
 
-
 USTRUCT(BlueprintType)
 
 struct FAttackResponseInstruction
@@ -261,6 +261,7 @@ struct FAttackResponsePattern
 // 本类只保存数据，不播放动画，不检测伤害
 UCLASS(BlueprintType)
 
+// 敌人攻击资源
 class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 {
 	GENERATED_BODY()

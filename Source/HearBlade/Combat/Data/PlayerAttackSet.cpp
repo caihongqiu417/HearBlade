@@ -1,6 +1,8 @@
 #include "Combat/Data/PlayerAttackSet.h"
 #include "Animation/AnimSequence.h"
 
+// 攻击节点查询与校验
+
 // 按标识查找连招节点，不存在时返回空指针
 const FPlayerAttackNode* UPlayerAttackSet::Find(FName Id) const
 {
@@ -75,6 +77,8 @@ bool UPlayerAttackSet::Validate(FString& Error) const
 	return true;
 }
 
+// 输入时机评级
+
 // 根据输入与目标时刻的偏差，得到完美、良好或失误评价
 EPlayerAttackGrade PlayerAttackTiming::Judge(double ErrorSeconds)
 {
@@ -97,6 +101,8 @@ float PlayerAttackTiming::ClipPosition(double AudioNow, double ImpactAudio, floa
 	// 命中时刻由实际起始时间和配置的接触帧确定
 	return FMath::Clamp(ImpactTime + float(AudioNow - ImpactAudio) * PlayRate, ClipStart, ClipEnd);
 }
+
+// 音乐时间到动画位置
 
 // 分别调整准备段和收招段的进度，使命中点附近的播放速度连续
 float PlayerAttackTiming::ContinuousComboPosition(double AudioNow, double StartAudio, double ImpactAudio,
@@ -147,6 +153,8 @@ double PlayerAttackTiming::ScheduleImpact(double CandidateBeat, double PreviousI
 {
 	return FMath::Max(CandidateBeat, PreviousImpactBeat + Cadence);
 }
+
+// 接招与防御窗口
 
 // 只在允许的时间窗口内接收一次连招输入
 bool PlayerAttackTiming::CanQueue(double InputAudio, double ImpactAudio, bool AlreadyQueued)

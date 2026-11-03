@@ -20,6 +20,8 @@ UHearBladeInputComponent::UHearBladeInputComponent()
     PrimaryComponentTick.bCanEverTick = false;
 }
 
+// 创建动作与按键映射
+
 // 临时动作只创建一次，按键继续读取项目设置中的原配置
 void UHearBladeInputComponent::CreateCombatActions()
 {
@@ -68,6 +70,8 @@ void UHearBladeInputComponent::CreateCombatActions()
     DefenseMapping->MapKey(CounterAction, Keys->CounterGamepad);
     DefenseMapping->MapKey(RestartAction, EKeys::Enter);
 }
+
+// 绑定输入回调
 
 // 缓存角色和玩法组件，再为输入动作绑定处理函数
 // 输入组件只做操作分发，能否出招和如何评级仍由战斗组件判断
@@ -136,6 +140,8 @@ void UHearBladeInputComponent::Bind(UInputComponent* Input, UInputAction* Jump, 
     }
 }
 
+// 移动与镜头
+
 // 读取移动轴并交给角色
 void UHearBladeInputComponent::Move(const FInputActionValue& Value)
 {
@@ -160,6 +166,8 @@ void UHearBladeInputComponent::ToggleCombatLock()
 	if (CombatCamera)
 		CombatCamera->ToggleLockOn();
 }
+
+// 防御输入
 
 // 将闪避输入转交角色
 void UHearBladeInputComponent::Dodge()
@@ -187,6 +195,8 @@ void UHearBladeInputComponent::Counter()
 	if (RhythmCombat)
 		RhythmCombat->TryCounter();
 }
+
+// 攻击输入与鼠标分流
 
 // 将轻击输入交给攻击组件检查
 void UHearBladeInputComponent::LightAttack()
@@ -243,6 +253,7 @@ void UHearBladeInputComponent::ActivateResonance()
 		BeatAttack->TryActivateResonance();
 }
 
+// 持续按键与状态切换
 
 // 提前按住右键时，防御窗口出现后接续格挡
 void UHearBladeInputComponent::UpdateHeldActions()
@@ -260,6 +271,8 @@ void UHearBladeInputComponent::RestartPressed()
     if (HUD)
         if (auto* Controller = HUD->GetWidgetController()) Controller->RestartLevel();
 }
+
+// 解绑与按住状态清理
 
 // 移除绑定和输入映射，并清除持续按键状态
 void UHearBladeInputComponent::Unbind()

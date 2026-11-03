@@ -15,6 +15,8 @@ UPlayerLocomotionComponent::UPlayerLocomotionComponent()
     PrimaryComponentTick.bCanEverTick = false;
 }
 
+// 移动动画配置
+
 // 缓存角色、移动组件和行走资源，并读取动画参考速度
 void UPlayerLocomotionComponent::Initialize(UBlendSpace* Locomotion, UBlendSpace* Pursuit)
 {
@@ -26,6 +28,8 @@ void UPlayerLocomotionComponent::Initialize(UBlendSpace* Locomotion, UBlendSpace
     BeatAttack = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
     MeasureSpeeds();
 }
+
+// 动画参考速度
 
 // 从混合空间样本获取不同方向的动画移动速度
 void UPlayerLocomotionComponent::MeasureSpeeds()
@@ -112,6 +116,8 @@ void UPlayerLocomotionComponent::MeasureSpeeds()
 	       WalkAnimSpeed, RunAnimSpeed, FastAnimSpeed, Count[0], Count[1], Count[2]);
 }
 
+// 速度与采样坐标换算
+
 // 将实际移动速度换算为混合空间中的采样半径
 float UPlayerLocomotionComponent::RadiusForSpeed(float Speed) const
 {
@@ -139,6 +145,8 @@ float UPlayerLocomotionComponent::SpeedForRadius(float Radius) const
 	return FMath::Lerp(RunAnimSpeed, FastAnimSpeed,
 	                   (FMath::Min(Radius, FastRadius) - RunRadius) / (FastRadius - RunRadius));
 }
+
+// 实际速度与动画匹配
 
 // 结合移动方向和锁定状态，协调角色速度与八方向行走动画
 void UPlayerLocomotionComponent::Update(float DeltaSeconds, float LockedCombatWalkSpeed, float FreeRunSpeed)

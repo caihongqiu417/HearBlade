@@ -26,6 +26,8 @@ const UBossCameraConfig* UBossCombatCameraComponent::Settings() const
 	return Config ? Config.Get() : GetDefault<UBossCameraConfig>();
 }
 
+// 镜头与战斗事件连接
+
 // 获取玩家镜头并准备战斗镜头修饰器
 void UBossCombatCameraComponent::BeginPlay()
 {
@@ -76,6 +78,8 @@ void UBossCombatCameraComponent::BindCombo(UBeatSyncedComboComponent* Combo)
 		Combo->OnCinematicAccentEnded.AddUniqueDynamic(this, &ThisClass::HandleCinematicEnded);
 	}
 }
+
+// 目标锁定
 
 // 切换锁定目标，并绑定新目标的战斗事件
 void UBossCombatCameraComponent::SetCombatTarget(AActor* NewTarget)
@@ -134,6 +138,8 @@ void UBossCombatCameraComponent::AddLookInput(float Yaw, float Pitch)
 	ManualPitch = FMath::Clamp(ManualPitch + Pitch, -12.f, 12.f);
 	LastLookInputTime = GetWorld()->GetTimeSeconds();
 }
+
+// 闪避与反击反馈
 
 // 根据闪避结果和攻击方向设置镜头冲击参数
 void UBossCombatCameraComponent::TriggerPerfectDodgeFeedback(float FOVExpansionDegrees, float ShakeDegrees,
@@ -273,6 +279,8 @@ void UBossCombatCameraComponent::TriggerFailureFeedback(bool bMiss)
 	       Shake, ObstructionScale);
 }
 
+// 攻击预警与持续格挡反馈
+
 // 收到攻击预警后更新镜头关注位置
 void UBossCombatCameraComponent::HandleWarning(FVector Landing, double)
 {
@@ -351,6 +359,8 @@ void UBossCombatCameraComponent::HandleConfirmedHit()
 		           C->BlinkRecoverSeconds);
 	}
 }
+
+// 关键交锋镜头
 
 // 进入交锋慢放时调整镜头表现
 void UBossCombatCameraComponent::HandleCinematicStarted(float Strength, bool bStrongBeat)
@@ -480,6 +490,8 @@ void UBossCombatCameraComponent::TickLaunchShot(float DeltaTime)
 	M->ShotFOV = 60.f;
 	M->ShotWeight = W;
 }
+
+// 镜头每帧更新
 
 // 更新锁定方向与距离，再推进镜头反馈和特写
 void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
