@@ -4,7 +4,7 @@
 #include "Animation/AnimInstance.h"
 #include "BossLocomotionAnimInstance.generated.h"
 
-// The Anim Blueprint reads GroundSpeed to blend the Dragon Knight's idle/walk poses.
+// 供动画图混合待机与行走的地面速度
 UCLASS(Transient, Blueprintable)
 
 class HEARBLADE_API UBossLocomotionAnimInstance : public UAnimInstance
@@ -12,6 +12,7 @@ class HEARBLADE_API UBossLocomotionAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 
   public:
+	// 触发不打断整套攻击的轻微护甲受击姿态
 	void PlayArmorFlinch(FVector2D Direction, float Strength);
 	FRotator ArmorFlinchRotation = FRotator::ZeroRotator;
 	double ArmorFlinchStart = -1000.;
@@ -31,14 +32,14 @@ class HEARBLADE_API UBossLocomotionAnimInstance : public UAnimInstance
 	UPROPERTY(BlueprintReadOnly, Category = "Boss Locomotion")
 	bool bIsMoving = false;
 
-	// Continuous local-space input for the eight-way walk Blend Space.
+	// 八方向混合空间使用的角色局部移动方向
 	UPROPERTY(BlueprintReadOnly, Category = "Boss Locomotion")
 	float MoveForward = 0.0f;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Boss Locomotion")
 	float MoveRight = 0.0f;
 
-	// 0 forward, then clockwise in 45 degree steps through right, back and left.
+	// 正前方为零，向右每隔 45 度划分一个方向
 	UPROPERTY(BlueprintReadOnly, Category = "Boss Locomotion")
 	int32 MoveDirectionIndex = 0;
 
@@ -68,7 +69,9 @@ class HEARBLADE_API UBossLocomotionAnimInstance : public UAnimInstance
 		bDirectionBit2 = (MoveDirectionIndex & 4) != 0;
 	}
 
+	// 保存受击方向与时长，开始混合受击姿态
 	void StartDirectionalHit(const FVector2D& ReactionDirection, float Duration);
+	// 结束方向受击，让姿态回到基础动作
 	void EndDirectionalHit();
 
 	bool IsDirectionalHitActive() const
@@ -76,10 +79,13 @@ class HEARBLADE_API UBossLocomotionAnimInstance : public UAnimInstance
 		return bDirectionalHitActive;
 	}
 
+	// 更新行走与受击混合使用的参数
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
   protected:
+	// 创建原生动画图，连接行走、攻击与受击姿态
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
+	// 释放原生动画图代理
 	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override;
 
   private:

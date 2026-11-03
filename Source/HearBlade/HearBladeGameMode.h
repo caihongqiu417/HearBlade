@@ -7,9 +7,7 @@
 #include "GameFramework/GameModeBase.h"
 #include "HearBladeGameMode.generated.h"
 
-/**
- *  Simple GameMode for a third person game
- */
+// 配置第三人称游戏的默认规则
 UCLASS(abstract)
 
 class AHearBladeGameMode : public AGameModeBase
@@ -17,6 +15,6 @@ class AHearBladeGameMode : public AGameModeBase
 	GENERATED_BODY()
 
   public:
-	/** Constructor */
+	// 初始化游戏规则
 	AHearBladeGameMode();
 };

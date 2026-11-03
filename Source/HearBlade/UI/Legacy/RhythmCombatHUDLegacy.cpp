@@ -187,12 +187,14 @@ ARhythmCombatHUD::ARhythmCombatHUD()
 		ResponseVisuals = Visuals.Object;
 }
 
+// 绘制一条画布线段
 void ARhythmCombatHUD::DrawLine(float X1, float Y1, float X2, float Y2, FLinearColor Color, float Thickness)
 {
 	Color.A *= PhaseHUDOpacity;
 	Super::DrawLine(X1, Y1, X2, Y2, Color, Thickness);
 }
 
+// 优先更新蓝图界面，需要旧版显示时再绘制画布内容
 void ARhythmCombatHUD::DrawHUD()
 {
 	Super::DrawHUD();
@@ -229,7 +231,7 @@ void ARhythmCombatHUD::DrawHUD()
 		return;
 	const float SavedCanvasAlpha = Canvas->Canvas->AlphaModulate;
 	Canvas->Canvas->AlphaModulate *= PhaseHUDOpacity;
-	// Keep the comic HUD readable without letting it dominate the combat view.
+	// 限制漫画反馈范围，避免遮住主要战斗区域
 	const float Scale = FMath::Clamp(Canvas->SizeX / 1920.0f, 0.65f, 1.35f) * 0.84f;
 	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
 	DrawPlayerPanel(State, Scale, Now);
@@ -246,10 +248,11 @@ void ARhythmCombatHUD::DrawHUD()
 	Canvas->Canvas->AlphaModulate = SavedCanvasAlpha;
 }
 
+// 绘制命中点的闪光、速度线与文字
 void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 {
-	// Hi-Fi Rush / Dead as Disco style hit read: impact frame, burst lines from
-	// the contact point, and a popping onomatopoeia. Pure Canvas, no assets.
+	// 直接用画布绘制命中闪白、速度线和文字，不依赖额外贴图
+
 	const APawn* Pawn = PlayerOwner ? PlayerOwner->GetPawn() : nullptr;
 	const UPlayerBeatAttackComponent* A =
 	    Pawn ? Pawn->FindComponentByClass<UPlayerBeatAttackComponent>() : nullptr;
@@ -259,11 +262,11 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 	if (Age < 0.f || Age > .5f)
 		return;
 	const float P = A->ImpactFxPower;
-	// 1. Impact frame: one white frame, one dark frame, then gone.
+	// 命中只保留轻微短暂闪白，避免连续黑白切换
 	if (A->bImpactFxFrame)
 	{
-		// Toned down: a faint single white frame, no dark frame (the white/black pair
-		// on every big hit strobed the whole screen).
+
+
 		if (Age < .034f)
 			DrawRect(FLinearColor(1.f, .97f, .9f, FMath::Min(.1f, .07f * P)), 0, 0, Canvas->SizeX,
 			         Canvas->SizeY);
@@ -274,7 +277,7 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 	const FVector2D C(S.X, S.Y);
 	const FLinearColor Ink =
 	    A->bImpactFxHeavy ? FLinearColor(1.f, .96f, .93f) : FLinearColor(.75f, .95f, 1.f);
-	// 2. Burst lines, thrown outward and thinning (comic speed burst).
+	// 从命中点向外扩散并逐渐变细的速度线
 	if (Age < .16f)
 	{
 		const float T = Age / .16f, E = 1.f - FMath::Square(1.f - T);
@@ -293,10 +296,9 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 			         (A->bImpactFxHeavy ? 5.f : 3.f) * (1.f - .7f * T) * Scale);
 		}
 	}
-	// 2b. Blade-tip impact: a katana "cut flash" instead of a cartoon balloon.
-	//     Crimson/white only: faint glow, a long thin slash streak, an 8-arm
-	//     sharp star with a crimson offset, a thin shock ring and a few shards.
-	//     Small (~40 px) and short (0.18 s).
+	// 刀尖命中用短暂的斩线、星芒、圆环和碎片表现
+
+
 	const float TipAge = float(Now - A->TipBurstWorldTime);
 	if (TipAge >= 0.f && TipAge < .18f)
 	{
@@ -309,7 +311,7 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 			                            : FMath::Lerp(1.2f, .9f, (T - .03f) / .15f);
 			const float R = (36.f + 10.f * FMath::Min(P, 1.5f)) * Scale * Grow;
 			const float Hash = float(FMath::Frac(A->TipBurstWorldTime * 3.17));
-			// Diagonal cut; the launcher cuts straight up (screen up = -Y).
+			// 普通斩击沿斜向展开，挑飞沿屏幕上方展开
 			const float Rot = A->bImpactFxLaunch
 			                      ? -.5f * PI + (Hash - .5f) * .3f
 			                      : (Hash < .5f ? -1.f : 1.f) * (.3f + .5f * Hash) + (Hash < .5f ? 0.f : PI);
@@ -331,7 +333,7 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 				DrawSolidTriangle(Canvas, At + D * Len, At + N * Wid, At - D * Len, Col);
 				DrawSolidTriangle(Canvas, At + D * Len, At - N * Wid, At - D * Len, Col);
 			};
-			// arms: angle offset, length (fraction of R); the long pair follows the cut
+			// 星芒的角度与长度，主方向沿斩击延伸
 			static const float ArmAng[8] = {0.f, .9f, 1.82f, 2.64f, PI, 4.09f, 4.91f, 5.73f};
 			static const float ArmLen[8] = {1.f, .34f, .5f, .3f, .8f, .36f, .46f, .3f};
 			auto Star = [&](FVector2D At, float Rad, FLinearColor Col)
@@ -348,17 +350,17 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 					DrawSolidTriangle(Canvas, At, Waist, Tip1, Col);
 				}
 			};
-			// glow
+			// 底层辉光
 			Disc(TC, R * 1.1f, FLinearColor(1.f, .27f, .35f, .07f * Fade));
 			Disc(TC, R * .8f, FLinearColor(1.f, .27f, .35f, .09f * Fade));
 			Disc(TC, R * .58f, FLinearColor(1.f, .27f, .35f, .12f * Fade));
-			// slash streak (crimson under-edge, white blade of light)
+			// 红色底边与白色斩线
 			const float Streak = (70.f + 60.f * FMath::Min(1.f, T / .05f)) *
 			                     (A->bImpactFxLaunch ? 1.6f : 1.f) * Scale,
 			            Thin = FMath::Max(.6f, 5.f * (1.f - U)) * Scale;
 			Diamond(TC + FVector2D(2.f, 2.f) * Scale, Rot, Streak * 1.02f, Thin * 1.6f, Crimson);
 			Diamond(TC, Rot, Streak, Thin, White);
-			// shock ring
+			// 扩散圆环
 			{
 				const float RingR = (10.f + 62.f * Out) * Scale;
 				const float Th = FMath::Max(1.f, (5.f - 4.5f * U) * Scale);
@@ -372,10 +374,10 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 					Prev = Cur;
 				}
 			}
-			// star
+			// 命中星芒
 			Star(TC + FVector2D(3.f, 3.f) * Scale, R * 1.1f, Crimson);
 			Star(TC, R, White);
-			// shards
+			// 飞散碎片
 			for (int32 I = 0; I < 7; ++I)
 			{
 				const float Ang = Rot + .4f + I * 2.f * PI / 7.f + (((I * 37) % 5) - 2) * .12f;
@@ -387,7 +389,7 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 			}
 		}
 	}
-	// 2c. Launcher: rising speed lines over the target, thrown upward with it.
+	// 挑飞时在目标上方绘制向上运动的速度线
 	if (A->bImpactFxLaunch && Age < .5f)
 	{
 		const float U = Age / .5f, E = 1.f - FMath::Square(1.f - U);
@@ -400,7 +402,7 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 			         (I % 3 ? 2.f : 3.5f) * Scale);
 		}
 	}
-	// 3. Onomatopoeia: pops in oversized, settles, drifts up and fades.
+	// 命中文字先放大出现，再缩小、上移并淡出
 	if (!A->ImpactFxWord.IsEmpty() && Age < .45f && GEngine)
 	{
 		const float Pop = Age < .07f ? FMath::Lerp(2.1f, 1.f, 1.f - FMath::Square(1.f - Age / .07f))
@@ -431,6 +433,7 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 	}
 }
 
+// 按音乐拍点绘制玩家攻击节奏提示
 void ARhythmCombatHUD::DrawPlayerAttackPulse(const UPlayerRhythmCombatComponent* State, float Scale,
                                              double Now)
 {
@@ -446,14 +449,14 @@ void ARhythmCombatHUD::DrawPlayerAttackPulse(const UPlayerRhythmCombatComponent*
 	                                          : FVector2D(Canvas->SizeX * .5f, Canvas->SizeY * .72f);
 	if (!bBladeScoreDrawn)
 	{
-		// Dead-as-Disco style beat core in the command rail's language: beat bars
-		// slide in from BOTH sides along a thin rail and meet in a diamond "core" on
-		// the beat (same diamond / navy fill / gold+cyan ticks as the boss rail gate).
+		// 拍点标记从两侧向中心汇合，到拍时在中央相遇
+
+
 		const double SPB = Clock->GetSecondsPerBeat();
 		const float Span = 230.f * Scale, Inner = 30.f * Scale;
 		const float Impulse = FMath::Exp(-Phase * 9.f);
 		const FLinearColor Gold(1.f, .71f, .14f), Cyan(.55f, .88f, 1.f), Navy(.002f, .006f, .012f);
-		// Rail: dark underlay + faint cyan line, fading toward both ends.
+		// 轨道两端逐渐淡出
 		for (int32 Side = -1; Side <= 1; Side += 2)
 			for (int32 I = 0; I < 8; ++I)
 			{
@@ -465,13 +468,13 @@ void ARhythmCombatHUD::DrawPlayerAttackPulse(const UPlayerRhythmCombatComponent*
 				DrawRect(FLinearColor(.04f, .72f, .92f, .35f * Fade), Center.X + Side * (Side < 0 ? A1 : A0),
 				         Center.Y - .75f * Scale, A1 - A0, 1.5f * Scale);
 			}
-		// Converging bars: whole beats (gold on the downbeat) and faint half-beats.
+		// 整拍标记更亮，半拍标记更淡
 		const double BeatNow = Clock->GetCurrentBeat();
 		for (int32 K = 0; K <= 5; ++K)
 		{
 			const double SlotBeat = FMath::FloorToDouble(BeatNow * 2.) * .5 + K * .5;
 			const float Until = float((SlotBeat - BeatNow) * SPB);
-			const float U = Until / float(2. * SPB); // two beats of look-ahead
+			const float U = Until / float(2. * SPB); // 提前显示两拍
 			if (U <= 0.f || U > 1.f)
 				continue;
 			const bool bWhole = FMath::IsNearlyEqual(FMath::Frac(SlotBeat), 0., .01);
@@ -489,8 +492,8 @@ void ARhythmCombatHUD::DrawPlayerAttackPulse(const UPlayerRhythmCombatComponent*
 				DrawRect(FLinearColor(Col.R, Col.G, Col.B, Alpha), X - W * .5f, Center.Y - H * .5f, W, H);
 			}
 		}
-		// The core: navy diamond with a gold edge, crossed-blade glyph, pulsing on
-		// the beat; the last attack's grade tints it (gold Perfect, cyan Good, red Bad).
+		// 中心菱形随拍点跳动，颜色对应最近一次攻击评级
+
 		const float JudgeAge = float(Now - Attacks->LastJudgedWorldSeconds);
 		const bool bJudged = JudgeAge >= 0.f && JudgeAge < .3f;
 		const FLinearColor GradeCol = Attacks->LastGrade == EPlayerAttackGrade::Perfect ? Gold
@@ -522,7 +525,7 @@ void ARhythmCombatHUD::DrawPlayerAttackPulse(const UPlayerRhythmCombatComponent*
 		const FLinearColor Edge = bJudged ? GradeCol : (Strong ? Gold : FLinearColor(1.f, .91f, .62f));
 		Outline(R, FLinearColor(Edge.R, Edge.G, Edge.B, .9f + .1f * Impulse), 2.5f * Scale);
 		Outline(R * .72f, FLinearColor(.04f, .72f, .92f, .35f + .4f * Impulse), 1.2f * Scale);
-		// Crossed-blade glyph.
+		// 交叉刀刃图案
 		for (int32 Sgn = -1; Sgn <= 1; Sgn += 2)
 		{
 			const FVector2D Dir = FVector2D(.7071f * Sgn, -.7071f), N(-Dir.Y, Dir.X);
@@ -531,17 +534,18 @@ void ARhythmCombatHUD::DrawPlayerAttackPulse(const UPlayerRhythmCombatComponent*
 			DrawSolidQuad(Canvas, Center + Dir * L, Center + N * Wd, Center - Dir * L, Center - N * Wd,
 			              Blade);
 		}
-		// On-beat flash ring, and a grade burst that throws the diamond outward.
+		// 踩拍时绘制短暂扩散圈
 		if (Phase < .18f)
 			Outline(R + (Phase / .18f) * 16.f * Scale, FLinearColor(1.f, 1.f, 1.f, 1.f - Phase / .18f),
 			        2.f * Scale);
 		if (bJudged)
 			Outline(R + (1.f - GradeAmt) * 34.f * Scale,
 			        FLinearColor(GradeCol.R, GradeCol.G, GradeCol.B, GradeAmt), 3.f * Scale);
-	} // !bBladeScoreDrawn
-	// No text under the beat core: the diamond, its colour and the burst carry the read.
+	}
+	// 中心只显示形状和颜色，不附加文字
 }
 
+// 清理界面与音频分析，释放控制器引用
 void ARhythmCombatHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     if (TouchControls) TouchControls->RemoveFromParent();
@@ -561,6 +565,7 @@ void ARhythmCombatHUD::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	Super::EndPlay(EndPlayReason);
 }
 
+// 读取频谱并绘制音乐波形
 void ARhythmCombatHUD::DrawAudioVisualizer(float Scale)
 {
 	if (!Canvas || !GetWorld())
@@ -600,8 +605,8 @@ void ARhythmCombatHUD::DrawAudioVisualizer(float Scale)
 		const float Raw = Magnitudes.IsValidIndex(Index) ? Magnitudes[Index] : 0.0f;
 		const float AudioValue =
 		    FMath::Sqrt(FMath::Clamp(Raw / FMath::Max(SpectrumAutoPeak, 0.0001f), 0.0f, 1.0f));
-		// A quiet beat floor keeps the display musically alive during sparse
-		// passages while the FFT remains the main source of its silhouette.
+		// 频谱较弱时保留轻微拍点起伏，避免图形完全静止
+
 		const float BeatShape = 0.5f + 0.5f * FMath::Sin(Index * 1.71f + static_cast<float>(Beat) * 0.41f);
 		const float Target =
 		    FMath::Clamp(0.06f + AudioValue * 0.84f + BeatGlow * BeatShape * 0.16f, 0.0f, 1.0f);
@@ -616,8 +621,8 @@ void ARhythmCombatHUD::DrawAudioVisualizer(float Scale)
 		SpectrumMax = FMath::Max(SpectrumMax, Value);
 	}
 
-	// Horizontal mirrored waveform inspired by the supplied reference. It uses
-	// the live FFT but stays completely transparent over the game scene.
+	// 根据实时频谱绘制左右对称的波形，背景保持透明
+
 	const FVector2D WaveStart(20.0f * Scale, Canvas->SizeY * 0.53f);
 	const float WaveWidth = 230.0f * Scale;
 	constexpr int32 BarCount = 96;
@@ -681,6 +686,7 @@ void ARhythmCombatHUD::DrawAudioVisualizer(float Scale)
 	}
 }
 
+// 绘制 Boss 血量与延迟变化条
 void ARhythmCombatHUD::DrawBossHealth(float Scale)
 {
 	UBeatSyncedComboComponent* Boss = FindCueCombo();
@@ -705,7 +711,7 @@ void ARhythmCombatHUD::DrawBossHealth(float Scale)
 		    static_cast<float>(Clock->GetCurrentBeat() - FMath::FloorToDouble(Clock->GetCurrentBeat()));
 		const float BeatImpulse = FMath::Exp(-BeatPhase * 7.5f);
 		const bool bDownbeat = Clock->GetCurrentBeatInBar() == 0;
-		// Health stays restrained so its fill remains easy to read.
+		// 限制血条起伏，保持数值清楚
 		PulseScale += BeatImpulse * (bDownbeat ? .007f : .004f);
 	}
 	const float BaseW = FMath::Min(850.f * Scale, Canvas->SizeX * .60f);
@@ -713,8 +719,8 @@ void ARhythmCombatHUD::DrawBossHealth(float Scale)
 	const float X = (Canvas->SizeX - W) * .5f;
 	const float FrameH = W / 6.03f;
 	const float FrameY = Canvas->SizeY * .045f;
-	// Generated frame center is transparent. Fill and trail are drawn underneath
-	// so the gold outline remains crisp at every health value.
+	// 先画血量填充和延迟条，再叠加透明边框
+
 	const float RailX = X + W * .13f;
 	const float RailY = FrameY + FrameH * .452f;
 	const float RailW = W * .74f;
@@ -775,6 +781,7 @@ void ARhythmCombatHUD::DrawBossHealth(float Scale)
 	}
 }
 
+// 根据输入偏差绘制判定框反馈
 void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State, float JudgeX, float MidY,
                                       float Scale, float FadeIn, float AbsInputError)
 {
@@ -809,7 +816,7 @@ void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State,
 	const FLinearColor WhiteHot =
 	    FMath::Lerp(GateColor, FLinearColor(1.0f, .98f, .82f, FadeIn), PerfectAmount);
 
-	// Broad translucent energy silhouette behind the physical gate.
+	// 判定框后方的半透明光效
 	if (GoodAmount > KINDA_SMALL_NUMBER)
 	{
 		DrawDiamondFill(HalfSize * (1.52f + .34f * PerfectAmount),
@@ -820,8 +827,8 @@ void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State,
 		                   (2.0f + 3.0f * PerfectAmount) * Scale);
 	}
 
-	// Asymmetric black blade housing gives the gate the same cut-paper silhouette
-	// as the rest of the HUD instead of looking like a primitive shape.
+	// 绘制判定框两侧的刀形外壳
+
 	const float Wing = HalfSize * (.72f + .28f * PerfectAmount);
 	DrawSolidQuad(Canvas, GateCenter + FVector2D(-HalfSize * 1.62f - Wing, -4.f * Scale),
 	              GateCenter + FVector2D(-HalfSize * .72f, -HalfSize * .54f),
@@ -833,7 +840,7 @@ void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State,
 	              GateCenter + FVector2D(HalfSize * 1.60f + Wing, 4.f * Scale),
 	              GateCenter + FVector2D(HalfSize * .90f, HalfSize * .55f),
 	              FLinearColor(.002f, .006f, .012f, .94f * FadeIn));
-	// Colored blade insets run through those wings and flare out on Perfect.
+	// 完美判定时增强彩色刀形装饰
 	DrawSolidTriangle(
 	    Canvas, GateCenter + FVector2D(-HalfSize * (1.42f + .34f * PerfectAmount), 0),
 	    GateCenter + FVector2D(-HalfSize * .68f, -HalfSize * .28f),
@@ -845,13 +852,13 @@ void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State,
 	    GateCenter + FVector2D(HalfSize * .82f, -HalfSize * .18f),
 	    FLinearColor(GateColor.R, GateColor.G, GateColor.B, (.54f + .34f * PerfectAmount) * FadeIn));
 
-	// Heavy outer chassis, recessed face, and an offset cyan/gold registration edge.
+	// 绘制外框、内层与彩色边缘
 	DrawDiamondFill(HalfSize * 1.10f, FLinearColor(.001f, .004f, .009f, .96f * FadeIn));
 	DrawDiamondOutline(HalfSize * 1.10f, FLinearColor(.0f, .0f, .0f, FadeIn), 7.0f * Scale);
 	DrawDiamondOutline(HalfSize * 1.02f, GateColor, (2.3f + 2.2f * PerfectAmount) * Scale);
 
-	// Broken edge segments read like four short sword cuts and leave deliberate
-	// gaps at the corners for a sharper manga silhouette.
+	// 边缘分段绘制，保留四角缺口
+
 	const FVector2D Top = GateCenter + FVector2D(0, -HalfSize * .88f);
 	const FVector2D Right = GateCenter + FVector2D(HalfSize * .88f, 0);
 	const FVector2D Bottom = GateCenter + FVector2D(0, HalfSize * .88f);
@@ -870,8 +877,8 @@ void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State,
 	DrawBrokenEdge(Bottom, Left);
 	DrawBrokenEdge(Left, Top);
 
-	// Hollow center keeps the incoming command icon readable. A tiny core only
-	// appears during Perfect, so the gate feels charged rather than permanently bright.
+	// 中心留空显示指令，完美判定时才出现亮点
+
 	DrawDiamondFill(HalfSize * .48f, FLinearColor(.002f, .008f, .014f, .92f * FadeIn));
 	DrawDiamondOutline(
 	    HalfSize * .48f,
@@ -881,7 +888,7 @@ void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State,
 	{
 		DrawDiamondFill(HalfSize * (.16f + .12f * PerfectAmount),
 		                FLinearColor(1.0f, .98f, .84f, .72f * PerfectAmount * FadeIn));
-		// Unequal glint lengths keep the burst graphic and avoid a generic plus sign.
+		// 使用不同长度的闪光线
 		DrawRect(FLinearColor(1.0f, .98f, .84f, .82f * PerfectAmount * FadeIn),
 		         JudgeX - (1.2f + 2.2f * PerfectAmount) * Scale, MidY - HalfSize * 1.90f,
 		         (2.4f + 4.4f * PerfectAmount) * Scale, HalfSize * 3.80f);
@@ -891,6 +898,7 @@ void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State,
 	}
 }
 
+// 绘制二阶段指令轨道与持续格挡范围
 void ARhythmCombatHUD::DrawPhaseTwoTimingRail(const UPlayerRhythmCombatComponent* State,
                                               UBeatSyncedComboComponent* Boss, float Scale)
 {
@@ -902,7 +910,7 @@ void ARhythmCombatHUD::DrawPhaseTwoTimingRail(const UPlayerRhythmCombatComponent
 		PhaseTwoRailFirstBeat = Beat;
 	const float Familiarity = FMath::SmoothStep(8.f, 32.f, float(Beat - PhaseTwoRailFirstBeat));
 	const float BaseAlpha = FMath::Lerp(.92f, .72f, Familiarity);
-	// The same frame, dimensions and timing gate as phase one: learn one HUD.
+	// 两个阶段沿用相同的判定框尺寸和位置
 	const float W = 850.f * Scale, H = W * (724.f / 2172.f), X = (Canvas->SizeX - W) * .5f;
 	const float Top = Canvas->SizeY - H - 8.f * Scale + (1.f - PhaseHUDOpacity) * 12.f * Scale;
 	const float Y = Top + H * .493f, Gate = X + W * .25f, Right = X + W * .91f,
@@ -934,8 +942,8 @@ void ARhythmCombatHUD::DrawPhaseTwoTimingRail(const UPlayerRhythmCombatComponent
 	DrawRect(FLinearColor(.005f, .01f, .015f, .95f), Gate - 3.f * Scale, Y - 48.f * Scale, 6.f * Scale,
 	         96.f * Scale);
 	DrawRect(FLinearColor(1.f, .91f, .62f, 1.f), Gate - Scale, Y - 48.f * Scale, 2.f * Scale, 96.f * Scale);
-	// A continuous inked band carries hold duration; the gold cut marks the
-	// exact release beat even when the start has already passed the gate.
+	// 持续格挡绘成长条，金色端点表示松键时刻
+
 	for (int32 EndIndex = 0; EndIndex < Cues.Num(); ++EndIndex)
 	{
 		const FUpcomingImpactCue& End = Cues[EndIndex];
@@ -966,7 +974,7 @@ void ARhythmCombatHUD::DrawPhaseTwoTimingRail(const UPlayerRhythmCombatComponent
 		DrawRect(FLinearColor(.28f, .88f, 1.f, 1.f), X1 - 3.f * Scale, Y - 25.f * Scale, 6.f * Scale,
 		         50.f * Scale);
 	}
-	// Match the rail's cyan ink. Small cuts break the otherwise clean note edge.
+	// 沿轨道绘制青色边线
 	const FLinearColor BeatEdge(.05f, .69f, .80f, BaseAlpha);
 	const FLinearColor BeatFace(.006f, .09f, .13f, BaseAlpha);
 	auto DrawBeat = [&](float CX, float Radius, float Alpha, float Charge)
@@ -985,7 +993,7 @@ void ARhythmCombatHUD::DrawPhaseTwoTimingRail(const UPlayerRhythmCombatComponent
 		              FLinearColor(BeatFace.R, BeatFace.G, BeatFace.B, Alpha));
 		if (Charge > .001f)
 		{
-			// Keep the beat response inside the judge diamond, not on the rail.
+			// 拍点反馈只在判定框内显示
 			const float Halo = 12.f * Scale;
 			DrawSolidQuad(Canvas, Center + FVector2D(0, -Halo), Center + FVector2D(Halo, 0),
 			              Center + FVector2D(0, Halo), Center + FVector2D(-Halo, 0),
@@ -1022,6 +1030,7 @@ void ARhythmCombatHUD::DrawPhaseTwoTimingRail(const UPlayerRhythmCombatComponent
 	}
 }
 
+// 把反击提示投影到敌人附近
 void ARhythmCombatHUD::DrawCounterWorldCue(float Scale)
 {
 	UBeatSyncedComboComponent* Boss = FindCueCombo();
@@ -1043,8 +1052,8 @@ void ARhythmCombatHUD::DrawCounterWorldCue(float Scale)
 	const FLinearColor Ink(.004f, .008f, .015f, Alpha);
 	const FLinearColor Gold(.95f, .60f, .10f, Alpha);
 	const FLinearColor Steel(1.f, .94f, .70f, Alpha);
-	// Two tapered blades and short guards read as an actual clash, rather than
-	// two uniform HUD lines. The slight asymmetry keeps the comic ink hand-made.
+	// 用两条渐细刀形绘制交锋图案
+
 	auto DrawSword = [&](FVector2D Direction, float GuardOffset)
 	{
 		Direction.Normalize();
@@ -1074,6 +1083,7 @@ void ARhythmCombatHUD::DrawCounterWorldCue(float Scale)
 	              C + FVector2D(0, Spark * .7f), C + FVector2D(-Spark * .3f, 0), Steel);
 }
 
+// 在锁定目标头部附近绘制标记
 void ARhythmCombatHUD::DrawLockMarker()
 {
 	if (!Canvas || !PlayerOwner)
@@ -1113,8 +1123,8 @@ void ARhythmCombatHUD::DrawLockMarker()
 		return;
 	}
 
-	// The outer point touches the projected head anchor. Three nested triangles form
-	// a crisp comic-style black outline, white keyline and gold lock marker.
+	// 锁定标记对准目标头部，叠加黑、白、金色轮廓
+
 	const FVector2D OuterLeft = ScreenPosition + FVector2D(-16.0f, -28.0f) * PixelScale;
 	const FVector2D OuterRight = ScreenPosition + FVector2D(16.0f, -28.0f) * PixelScale;
 	DrawSolidTriangle(Canvas, OuterLeft, OuterRight, ScreenPosition,
@@ -1131,6 +1141,7 @@ void ARhythmCombatHUD::DrawLockMarker()
 	                  FLinearColor(1.0f, 0.57f, 0.035f, 1.0f));
 }
 
+// 查找当前用于指令提示的 Boss 连招组件
 UBeatSyncedComboComponent* ARhythmCombatHUD::FindCueCombo()
 {
 	if (CachedCueCombo.IsValid())
@@ -1152,6 +1163,7 @@ UBeatSyncedComboComponent* ARhythmCombatHUD::FindCueCombo()
 	return nullptr;
 }
 
+// 把即将发生的攻击转换为轨道上的指令位置
 void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* State, float Scale)
 {
 	bBladeScoreDrawn = false;
@@ -1161,8 +1173,8 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	if (!Clock || !Clock->IsRunning())
 		return;
-	// Both phases use one visual grammar: the rail gives timing while the boss
-	// gives the move. Keep the same note art and hold interval throughout.
+	// 两个阶段共用指令图形和持续格挡长条，轨道表示时机，角色动作表示招式
+
 	if (Combo)
 	{
 		DrawPhaseTwoTimingRail(State, Combo, Scale);
@@ -1171,8 +1183,8 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 	TArray<FUpcomingImpactCue> Cues;
 	if (Combo)
 		Combo->GetUpcomingImpactCues(Cues, 8);
-	// Blade Score replaces the phase-1 rail once its art is imported (always visible).
-	// Blade Score HUD is switched off (back to the original rail). Set true to try it again.
+	// 资源齐全时可以使用刀形轨道
+	// 当前关闭刀形轨道，保留普通轨道
 	static const bool bUseBladeScore = false;
 	if (bUseBladeScore && LoadBladeScoreArt())
 	{
@@ -1198,12 +1210,12 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 	    static_cast<float>(Clock->GetCurrentBeat() - FMath::FloorToDouble(Clock->GetCurrentBeat()));
 	const float BeatImpulse = FMath::Exp(-BeatPhase * 6.5f);
 	const bool bDownbeatNow = Clock->GetCurrentBeatInBar() == 0;
-	// The command rail is a rhythm instrument as well as a timer. Its art can
-	// breathe clearly while the judge line and authored command coordinates stay fixed.
+	// 装饰可以随拍点缩放，判定线和指令坐标保持固定
+
 	const float DecorationPulse = 1.0f + BeatImpulse * (bDownbeatNow ? .050f : .030f);
 
-	// Gameplay geometry is fixed. Only the illustrated decoration breathes, so
-	// the gate and every authored command keep their exact screen position.
+	// 只缩放装饰图形，不移动判定位置
+
 	const float TrackWidth = 1000.0f * Scale;
 	const float TrackHeight = TrackWidth * (724.0f / 2172.0f);
 	const float TrackLeft = Canvas->SizeX * .5f - TrackWidth * .5f;
@@ -1212,9 +1224,9 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 	const float TrackRight = TrackLeft + TrackWidth * .91f;
 	const float TravelWidth = TrackRight - JudgeX - 30.0f * Scale;
 	const float MidY = TrackTop + TrackHeight * .493f;
-	// A single fixed gate gives the new empty rail an unambiguous timing reference.
+	// 用固定判定线标出按键时刻
 
-	// Timing windows sit behind the original illustrated rail.
+	// 判定窗口绘制在轨道贴图下方
 	const float GoodPixels = State->GetGoodWindowSeconds() / LookAhead * TravelWidth;
 	const float PerfectPixels = State->GetPerfectWindowSeconds() / LookAhead * TravelWidth;
 	DrawRect(FLinearColor(.03f, .70f, .92f, .07f * FadeIn), JudgeX - GoodPixels, MidY - 10 * Scale,
@@ -1237,8 +1249,8 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 		DrawRect(FLinearColor(1.0f, .95f, .72f, 1.0f), JudgeX - Scale, MidY - 54 * Scale, 2 * Scale,
 		         108 * Scale);
 	}
-	// The timing anchor stays visible over the decorative texture. Judge the
-	// center of each icon against this line, not its expanding outline.
+	// 指令中心到达判定线才是按键时刻，扩散外框只用于表现
+
 	DrawRect(FLinearColor(.005f, .01f, .015f, .95f * FadeIn), JudgeX - 3 * Scale, MidY - 48 * Scale,
 	         6 * Scale, 96 * Scale);
 	DrawRect(FLinearColor(1.f, .91f, .62f, FadeIn), JudgeX - Scale, MidY - 48 * Scale, 2 * Scale, 96 * Scale);
@@ -1254,7 +1266,7 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 		         6.f * Scale, 86.f * Scale);
 	}
 
-	// Beat ticks show musical spacing but stay secondary to the actual attack markers.
+	// 拍点刻度帮助观察间隔，亮度低于攻击指令
 	const int32 FirstBeat = Clock->GetNextBeatIndex();
 	for (int32 Step = 0; Step < 4; ++Step)
 	{
@@ -1279,7 +1291,7 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 	TArray<FBladeCueVisual> VisibleCues;
 	for (const FUpcomingImpactCue& Cue : Cues)
 	{
-		// The slash reaches the gate at the same ideal input timestamp used by dodge resolution.
+		// 指令到达判定线的时间与闪避使用的理想按键时间一致
 		const float UntilIdealInput =
 		    static_cast<float>(Cue.ImpactAudioSeconds - Cue.IdealDodgeLeadSeconds - AudioNow);
 		if (UntilIdealInput < -.18f || UntilIdealInput > LookAhead + .1f)
@@ -1287,16 +1299,16 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 		VisibleCues.Add({&Cue, JudgeX + UntilIdealInput / LookAhead * TravelWidth, UntilIdealInput});
 	}
 
-	// The diamond is the exact input target. Its state comes from the same ideal
-	// input timestamp and Perfect window used by gameplay judgment, so the visual
-	// flash cannot drift away from the real timing window.
+	// 判定框亮起使用与战斗相同的理想按键时间和完美窗口
+
+
 	if (!VisibleCues.IsEmpty())
 	{
 		const float AbsInputError = FMath::Abs(VisibleCues[0].UntilIdealInput);
 		DrawTimingGate(State, JudgeX, MidY, Scale, FadeIn, AbsInputError);
 	}
-	// One short cue at half a beat. It is keyed by the exact impact audio timestamp,
-	// so DrawHUD cannot retrigger it on every frame.
+	// 按命中时间记录提示是否已经触发，避免每帧重复播放
+
 	if (!VisibleCues.IsEmpty() && ResponseVisuals)
 	{
 		const FUpcomingImpactCue& NextCue = *VisibleCues[0].Cue;
@@ -1309,14 +1321,13 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 			    NextCue.bStrongBeat && ResponseVisuals->StrongApproachSound
 			        ? ResponseVisuals->StrongApproachSound.Get()
 			        : (Visual.PromptSound ? Visual.PromptSound.Get() : ResponseVisuals->ApproachSound.Get());
-			(void)Sound; // approach "drum" half a beat before each note: off-beat and jarring, removed
+			(void)Sound; // 已关闭半拍前的额外鼓点
 			LastPromptedImpactAudioSeconds = NextCue.ImpactAudioSeconds;
 		}
 	}
-	// A hold is a readable lane rather than another one-shot icon. Before the start it is a
-	// quiet cyan channel; while the player is blocking it lights up and carries scan packets
-	// toward the release gate. If the start has already crossed the judge line, keep drawing
-	// from the judge line so the player never loses the remaining hold duration.
+	// 持续格挡显示为长条，开始标记经过判定线后，继续显示剩余长按时长
+
+
 	for (int32 EndIndex = 0; EndIndex < VisibleCues.Num(); ++EndIndex)
 	{
 		const FUpcomingImpactCue& EndCue = *VisibleCues[EndIndex].Cue;
@@ -1352,7 +1363,7 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 		    bHolding ? FLinearColor(.08f, .76f, .82f, (.76f + BeatImpulse * .14f) * FadeIn)
 			         : FLinearColor(.05f, .38f, .48f, .62f * FadeIn);
 
-		// Thin black housing and two luminous rails keep the lane legible over the world.
+		// 长条使用深色底与两条亮边，避免被场景盖住
 		DrawRect(FLinearColor(.005f, .012f, .022f, .82f * FadeIn), X0, LaneTop, LaneWidth,
 		         LaneHalfHeight * 2.0f);
 		DrawRect(FLinearColor(.02f, .22f, .30f, (bHolding ? .68f : .30f) * FadeIn), X0 + 3.0f * Scale,
@@ -1360,8 +1371,8 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 		DrawRect(EdgeColor, X0, LaneTop, LaneWidth, 2.0f * Scale);
 		DrawRect(EdgeColor, X0, MidY + LaneHalfHeight - 2.0f * Scale, LaneWidth, 2.0f * Scale);
 
-		// A continuous core confirms that the button is currently held. The moving packets use
-		// the audio beat phase, so their motion stays musical without creating another timer.
+		// 按住时点亮长条，流动效果直接使用音乐拍点
+
 		if (bHolding)
 		{
 			DrawRect(FLinearColor(.05f, .64f, .72f, .56f * HoldPulse * FadeIn), X0 + 4.0f * Scale,
@@ -1377,7 +1388,7 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 			}
 		}
 
-		// Start bracket and release gate. The release gate warms to gold during the final beat.
+		// 绘制按下和松开端点，最后一拍将松开端点变成金色
 		DrawRect(EdgeColor, X0 - 2.0f * Scale, LaneTop - 4.0f * Scale, 3.0f * Scale,
 		         LaneHalfHeight * 2.0f + 8.0f * Scale);
 		const float ReleaseApproach =
@@ -1394,11 +1405,11 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 		break;
 	}
 
-	// Present the combo as one connected blade phrase. Individual impacts are broad cuts in the
-	// same ribbon, rather than a row of small rhythm-game notes.
+	// 连续攻击沿同一条轨道显示
+
 	if (!VisibleCues.IsEmpty())
 	{
-		// The illustrated rail already connects the prompts; avoid a second overlaid ribbon.
+		// 轨道贴图已连接指令，不再叠加第二条装饰带
 
 		for (int32 Index = 0; Index < VisibleCues.Num(); ++Index)
 		{
@@ -1442,7 +1453,7 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 				Accent = FLinearColor(1.f, .69f, .07f, CueAlpha);
 			Accent *= Cue.IconColor;
 
-			// A real torn brush slash sprite replaces the old geometric marker.
+			// 使用笔刷斩线贴图显示攻击标记
 			UTexture2D* ResponseTexture = Cue.IconOverride;
 			if (!ResponseTexture && DefaultVisual)
 				ResponseTexture = DefaultVisual->Icon;
@@ -1466,7 +1477,7 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 			}
 			if (Cue.RequiredResponse == ERhythmResponseType::Dodge && !Cue.IconOverride)
 			{
-				// A leaning figure and two short motion strokes communicate a sidestep.
+				// 用侧身人物和移动线显示闪避
 				const float Unit = 1.35f * Scale * Pulse * Cue.IconScale;
 				const FVector2D Center(Visual.X, MidY);
 				auto Stroke = [&](FVector2D A, FVector2D B, FLinearColor Color, float Width)
@@ -1492,21 +1503,21 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 			else if (ResponseTexture)
 			{
 				const float DefaultScale = DefaultVisual ? DefaultVisual->IconScale : 1.0f;
-				// Hold continuation notes are subordinate to the continuous lane. Start and release
-				// remain clear anchors; intermediate checks become small pulses instead of shields.
+				// 持续格挡的中间命中只显示小脉冲，突出按下和松开端点
+
 				const float IconBaseSize =
 				    Cue.RequiredResponse == ERhythmResponseType::HoldBlock
 				        ? (Cue.HoldMarker == ERhythmHoldMarkerType::None ? 40.0f : 78.0f)
 				        : 96.0f;
 				const FVector2D IconSize(IconBaseSize * Scale * Pulse * Cue.IconScale * DefaultScale);
-				// A dark enlarged silhouette separates the symbol from fire, sky and other bright scenery.
+				// 图标后加深色轮廓，避免被明亮场景淹没
 				const FVector2D OutlineSize = IconSize * 1.13f;
 				FCanvasTileItem Outline(FVector2D(Visual.X, MidY) - OutlineSize * .5f,
 				                        ResponseTexture->GetResource(), OutlineSize,
 				                        FLinearColor(.005f, .009f, .014f, CueAlpha * .88f));
 				Outline.BlendMode = SE_BLEND_Translucent;
 				Canvas->DrawItem(Outline);
-				// Only the short judgment approach receives an extra highlight; cruising prompts remain calm.
+				// 接近判定线时才增强图标亮度
 				if (bGoodNow)
 				{
 					const FVector2D HighlightSize = IconSize * 1.18f;
@@ -1544,10 +1555,10 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 				DrawSolidQuad(Canvas, FVector2D(Visual.X - Size, MidY), FVector2D(Visual.X, MidY - Size),
 				              FVector2D(Visual.X + Size, MidY), FVector2D(Visual.X, MidY + Size),
 				              FLinearColor(.01f, .02f, .03f, CueAlpha * .9f));
-				// (no text label: the icon alone)
+				// 只显示图标
 			}
 
-			// (no key hint under the note)
+			// 音符下方不显示按键文字
 			if (Cue.bStrongBeat)
 			{
 				DrawRect(FLinearColor(1.f, .91f, .58f, .9f * CueAlpha), Visual.X - 12 * Scale, MidY - Scale,
@@ -1555,7 +1566,7 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 			}
 		}
 
-		// As the next cut approaches, energy brackets converge on the gate and culminate in a flash.
+		// 指令临近时向判定框聚拢，到拍时闪光
 		const float Approach = FMath::SmoothStep(
 		    0.0f, 1.0f, 1.0f - FMath::Clamp(VisibleCues[0].UntilIdealInput / .72f, 0.0f, 1.0f));
 		if (Approach > KINDA_SMALL_NUMBER)
@@ -1578,10 +1589,11 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 	}
 }
 
+// 绘制玩家生命、共鸣和攻击状态
 void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State, float Scale, double Now)
 {
-	// The texture contains generous transparent padding. A slightly negative
-	// origin places the visible health and resonance closer to the top-left.
+	// 贴图自带透明留白，用位置偏移让可见内容靠近屏幕左上角
+
 	const FVector2D Origin(-34.0f * Scale, -24.0f * Scale);
 	float FrameBeatScale = 1.0f;
 	float BeatHighlight = 0.0f;
@@ -1591,10 +1603,10 @@ void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State
 	{
 		const double Beat = Clock->GetCurrentBeat();
 		const float Phase = static_cast<float>(Beat - FMath::FloorToDouble(Beat));
-		// Only the frame breathes. Content remains stable and readable.
+		// 只有外框随节拍变化，文字和数值保持稳定
 		const float Wave = FMath::Cos(Phase * 2.0f * UE_PI);
 		bDownbeat = Clock->GetCurrentBeatInBar() == 0;
-		// Keep health movement subtle; only its surrounding frame breathes.
+		// 血量填充保持稳定，只让外框轻微起伏
 		FrameBeatScale = 1.0f + Wave * (bDownbeat ? 0.007f : 0.004f);
 		BeatHighlight = Wave * 0.5f + 0.5f;
 	}
@@ -1696,6 +1708,7 @@ void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State
 	}
 }
 
+// 绘制最近一次评级与时间偏差
 void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, float Scale, double Now)
 {
 	constexpr float QueueMoveSeconds = 0.14f;
@@ -1852,8 +1865,8 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 			}
 			const FVector2D WordSize =
 			    FVector2D(184.0f, 52.0f) * Scale * Punch * GradeWordScale * JudgmentBeatPulse;
-			// The source textures retain generous transparent margins for authoring. Crop those margins here so
-			// the actual lettering fills the judgment card and remains readable at gameplay resolution.
+			// 裁掉文字贴图的透明边缘，让实际文字填满判定卡片
+
 			FCanvasTileItem Word(Center - WordSize * .5f, WordTexture->GetResource(), WordSize,
 			                     FVector2D(.20f, .08f), FVector2D(.80f, .90f), FLinearColor(1, 1, 1, Alpha));
 			Word.BlendMode = SE_BLEND_Translucent;
@@ -1911,6 +1924,7 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 	}
 }
 
+// 绘制失误或漏判的短时提示
 void ARhythmCombatHUD::DrawFailureFeedback(float Scale, double Now)
 {
 	if (!Canvas || FailureFeedbackGrade == ERhythmDodgeJudgment::None)
@@ -1926,19 +1940,19 @@ void ARhythmCombatHUD::DrawFailureFeedback(float Scale, double Now)
 		return;
 	}
 
-	// A fast arrival and softer tail make the cue feel like a hit instead of a modal warning.
+	// 提示快速出现，再缓慢淡出
 	const float Attack = FMath::Clamp(Age / .045f, 0.0f, 1.0f);
 	const float Tail = 1.0f - FMath::Clamp((Age - .045f) / (Duration - .045f), 0.0f, 1.0f);
 	const float Alpha = Attack * FMath::Pow(Tail, .72f);
 	const float Punch = 1.0f + .04f * FMath::Sin(FMath::Min(Age / .10f, 1.0f) * UE_PI);
-	// Timing correction sits just above the command rail instead of covering the clash point.
-	// A true miss still appears nearer the action because it represents a broken sequence.
+	// 时机偏差提示放在轨道上方，避免挡住交锋位置
+	// 漏判提示靠近战斗区域
 	const FVector2D Center(Canvas->SizeX * .50f, Canvas->SizeY * (bMiss ? .405f : .70f));
 	const FLinearColor Accent =
 	    bMiss ? FLinearColor(.88f, .08f, .055f, Alpha * .78f) : FLinearColor(1.0f, .45f, .08f, Alpha * .86f);
 	const FLinearColor Dark(.035f, .006f, .01f, Alpha * .46f);
 
-	// Two broken brush brackets converge, but the middle remains transparent so the next cue stays readable.
+	// 两侧笔刷括号向内汇合，中央留空显示后续指令
 	const float HalfW = (bMiss ? 138.0f : 58.0f) * Scale * Punch;
 	const float HalfH = (bMiss ? 35.0f : 13.0f) * Scale * Punch;
 	const float Cut = (bMiss ? 28.0f : 43.0f) * Scale;
@@ -1984,6 +1998,7 @@ void ARhythmCombatHUD::DrawFailureFeedback(float Scale, double Now)
 	Canvas->DrawItem(Sub);
 }
 
+// 按评级选择文字贴图
 UTexture2D* ARhythmCombatHUD::GetJudgmentWordTexture(ERhythmDodgeJudgment Grade) const
 {
 	switch (Grade)
@@ -2003,6 +2018,7 @@ UTexture2D* ARhythmCombatHUD::GetJudgmentWordTexture(ERhythmDodgeJudgment Grade)
 	}
 }
 
+// 按评级选择显示颜色
 FLinearColor ARhythmCombatHUD::GetJudgmentColor(ERhythmDodgeJudgment Grade)
 {
 	switch (Grade)
@@ -2026,6 +2042,7 @@ FLinearColor ARhythmCombatHUD::GetJudgmentColor(ERhythmDodgeJudgment Grade)
 	}
 }
 
+// 按评级返回显示文字
 FString ARhythmCombatHUD::GetJudgmentText(ERhythmDodgeJudgment Grade)
 {
 	switch (Grade)
@@ -2049,13 +2066,14 @@ FString ARhythmCombatHUD::GetJudgmentText(ERhythmDodgeJudgment Grade)
 	}
 }
 
+// 加载刀形轨道所需资源，资源不齐时使用原轨道
 bool ARhythmCombatHUD::LoadBladeScoreArt()
 {
 	if (BladeArt.Contains(TEXT("T_BS2_Lane")))
 		return true;
 	if (!GetWorld() || GetWorld()->GetTimeSeconds() < NextBladeArtLoadWorld)
 		return false;
-	NextBladeArtLoadWorld = GetWorld()->GetTimeSeconds() + 3.0; // assets appear after the editor auto-import
+	NextBladeArtLoadWorld = GetWorld()->GetTimeSeconds() + 3.0; // 等待编辑器完成资源导入
 	static const TCHAR* Names[] = {
 	    TEXT("T_BS2_Lane"),        TEXT("T_BS2_Judge"),         TEXT("T_BS2_BossNote"),
 	    TEXT("T_BS2_AttackNote"),  TEXT("T_BS2_HoldBar"),       TEXT("T_BS2_Glyph_Dodge"),
@@ -2068,18 +2086,16 @@ bool ARhythmCombatHUD::LoadBladeScoreArt()
 		    nullptr, *FString::Printf(TEXT("/Game/UI/RhythmCombat/BladeScore/%s.%s"), Name, Name), nullptr,
 		    LOAD_NoWarn | LOAD_Quiet);
 		if (!Texture)
-			return false; // all or nothing: fall back to the old rail
+			return false; // 所需贴图不齐时退回原轨道
 		Loaded.Add(FName(Name), Texture);
 	}
 	BladeArt = MoveTemp(Loaded);
 	return true;
 }
 
-// One lane, one judge ring. Every note is a disc with one white glyph that says
-// what to press when it reaches the ring:
-//   RED   disc = boss attack  -> dodge / block / counter / hold (key shown above)
-//   GOLD  disc = your attack  -> any attack key; only shown in the boss's openings
-//                               (gap inside a boss combo = x2, after a combo = x1.2)
+// 红色音符表示敌人攻击的防御要求，金色音符表示破绽内的攻击机会
+
+
 void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
                                       UBeatSyncedComboComponent* Combo,
                                       const TArray<FUpcomingImpactCue>& Cues, float Scale)
@@ -2124,7 +2140,7 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 		Canvas->DrawItem(Key);
 	};
 
-	// ---- Geometry (same footprint as the old rail) ------------------------------
+	// 轨道布局
 	const float W = 1000.f * Scale;
 	const float Left = Canvas->SizeX * .5f - W * .5f;
 	const float OldRailH = W * (724.f / 2172.f);
@@ -2142,8 +2158,8 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 	auto Fade = [&](double Audio, float X)
 	{
 		const float Past =
-		    FMath::Clamp(1.f + float((Audio - Now) / .25), 0.f, 1.f);            // gone .25 s after the ring
-		const float Far = 1.f - FMath::SmoothStep(EndX - 80.f * Scale, EndX, X); // fade in at the far end
+		    FMath::Clamp(1.f + float((Audio - Now) / .25), 0.f, 1.f);            // 经过判定点后淡出
+		const float Far = 1.f - FMath::SmoothStep(EndX - 80.f * Scale, EndX, X); // 从轨道远端淡入
 		return Past * Far;
 	};
 	const FLinearColor Gold(1.f, .72f, .16f), Red(.93f, .2f, .3f);
@@ -2162,11 +2178,11 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 		return nullptr;
 	};
 
-	// ---- 1. Lane ------------------------------------------------------------------
+	// 绘制轨道
 	Tile(TEXT("T_BS2_Lane"), FVector2D((JudgeX - 40.f * Scale + EndX) * .5f, MidY),
 	     FVector2D(EndX - JudgeX + 40.f * Scale, 60.f * Scale), FLinearColor::White);
 
-	// ---- 2. Next boss note (drives the judge ring colour) ----------------------------
+	// 根据下一次敌人攻击设置判定圈颜色
 	const FUpcomingImpactCue* NextCue = nullptr;
 	float NextUntil = 1.e9f;
 	for (const FUpcomingImpactCue& Cue : Cues)
@@ -2181,8 +2197,8 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 		}
 	}
 
-	// ---- 3. Your attack notes: one gold disc per beat inside an opening ----------------
-	// Not drawn within ~0.4 beat of a boss note (that beat belongs to the boss).
+	// 破绽内每拍生成一个玩家攻击提示
+	// 靠近敌人命中拍点时不显示玩家攻击提示
 	const double FirstBeat = FMath::FloorToDouble(Clock->GetCurrentBeat()) - 1.;
 	for (int32 K = 0; K < 16; ++K)
 	{
@@ -2217,7 +2233,7 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 		const float Size = (bGap ? 50.f : 42.f) * Scale;
 		if (bHit)
 		{
-			// Struck: a bright burst in place of the note.
+			// 命中后在音符位置显示短暂爆发
 			const float Age = FMath::Max(0.f, float(Now - T));
 			Tile(TEXT("T_BS_Spark"), FVector2D(X, MidY), FVector2D(Size, Size) * (1.6f + 2.f * Age),
 			     FLinearColor(Gold.R, Gold.G, Gold.B, A), true);
@@ -2229,8 +2245,8 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 		     FLinearColor(1.f, 1.f, 1.f, A));
 	}
 
-	// ---- 4. Boss notes ----------------------------------------------------------------
-	for (int32 E = 0; E < Cues.Num(); ++E) // hold lanes: red bar from HOLD to RELEASE
+	// 绘制敌人指令
+	for (int32 E = 0; E < Cues.Num(); ++E) // 持续格挡从按下端连接到松开端
 	{
 		const FUpcomingImpactCue& End = Cues[E];
 		if (End.RequiredResponse != ERhythmResponseType::HoldBlock ||
@@ -2260,7 +2276,7 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 			continue;
 		if (Cue.RequiredResponse == ERhythmResponseType::HoldBlock &&
 		    Cue.HoldMarker == ERhythmHoldMarkerType::None)
-			continue; // inside a hold bar
+			continue; // 处于持续格挡区间
 		const float A = Fade(InputAt, X);
 		const float AbsUntil = FMath::Abs(float(InputAt - Now));
 		const float Pop =
@@ -2279,7 +2295,7 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 			       bRelease ? TEXT("RELEASE") : TEXT("HOLD RMB"), Red, A);
 		}
 	}
-	// Approach sound half a beat before the next note (keyed by its impact time).
+	// 按命中时间记录提前提示
 	if (NextCue && ResponseVisuals && NextUntil <= float(SPB * .5) && NextUntil > 0.f &&
 	    FMath::Abs(NextCue->ImpactAudioSeconds - LastPromptedImpactAudioSeconds) > .001)
 	{
@@ -2288,11 +2304,11 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 		    NextCue->bStrongBeat && ResponseVisuals->StrongApproachSound
 		        ? ResponseVisuals->StrongApproachSound.Get()
 		        : (Visual.PromptSound ? Visual.PromptSound.Get() : ResponseVisuals->ApproachSound.Get());
-		(void)Sound; // approach "drum" removed (see above)
+		(void)Sound; // 此处不播放额外鼓点
 		LastPromptedImpactAudioSeconds = NextCue->ImpactAudioSeconds;
 	}
 
-	// ---- 5. Judge ring: red when a boss note is about to arrive, gold in an opening --
+	// 敌人指令临近时判定圈变红，追击破绽期间变金
 	{
 		const bool bDefend = NextCue && NextUntil < float(SPB * .75);
 		const bool bAttack = !bDefend && OpeningAt(Now) != nullptr;
@@ -2326,6 +2342,7 @@ void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
 	BladeAttackTextAnchor = FVector2D(JudgeX, MidY + 62.f * Scale);
 }
 
+// 绘制教程说明、按键图标、进度和跳过提示
 void ARhythmCombatHUD::DrawTutorial(float Scale, double Now)
 {
 	APawn* Pawn = PlayerOwner ? PlayerOwner->GetPawn() : nullptr;
@@ -2366,7 +2383,7 @@ void ARhythmCombatHUD::DrawTutorial(float Scale, double Now)
 		Item.EnableShadow(FLinearColor(0.f, 0.f, 0.f, .9f));
 		Canvas->DrawItem(Item);
 	};
-	// Glyph row, right-aligned at X, returns its left edge.
+	// 图标从右向左排列，返回最左侧位置
 	auto Glyphs = [&](const TArray<FName>& Names, float RightX, float CenterY, float H)
 	{
 		float X = RightX;
@@ -2415,7 +2432,7 @@ void ARhythmCombatHUD::DrawTutorial(float Scale, double Now)
 		if (Flash > 0.f)
 			Tile(Tex(TEXT("T_TUT_Card")), FVector2D(L, Y0), FVector2D(W, H),
 			     FLinearColor(Gold.R, Gold.G, Gold.B, .5f * Flash), true);
-		// Input glyphs (right), title and body (left).
+		// 右侧放按键图标，左侧放标题和说明
 		const float GlyphLeft = Glyphs(T->Glyphs, L + W - 36.f * Scale, Y0 + 62.f * Scale, 72.f * Scale);
 		Text(FVector2D(L + 36.f * Scale, Y0 + 22.f * Scale), T->Title, GEngine->GetLargeFont(), 1.5f * Scale,
 		     Gold);
@@ -2424,7 +2441,7 @@ void ARhythmCombatHUD::DrawTutorial(float Scale, double Now)
 		for (int32 I = 0; I < Lines.Num() && I < 3; ++I)
 			Text(FVector2D(L + 36.f * Scale, Y0 + 78.f * Scale + I * 28.f * Scale), Lines[I],
 			     GEngine->GetMediumFont(), 1.05f * Scale, FLinearColor(.95f, .95f, .97f));
-		// Progress pips.
+		// 步骤完成进度
 		const float PipY = Y0 + H - 40.f * Scale;
 		for (int32 I = 0; I < T->Goal; ++I)
 		{
@@ -2441,7 +2458,7 @@ void ARhythmCombatHUD::DrawTutorial(float Scale, double Now)
 			Text(FVector2D(L + 60.f * Scale + T->Goal * 34.f * Scale, PipY - 2.f * Scale),
 			     TEXT("Wait until the icon reaches the diamond, then press."), GEngine->GetMediumFont(),
 			     .95f * Scale, Red);
-		// Skip: gamepad holds View; mouse holds ALT to show the cursor and clicks SKIP.
+		// 手柄长按跳过键，鼠标按住 Alt 后点击跳过
 		if (T->bGamepad)
 		{
 			T->SkipButton = FBox2D(ForceInit);
@@ -2477,7 +2494,7 @@ void ARhythmCombatHUD::DrawTutorial(float Scale, double Now)
 		return;
 	}
 	T->SkipButton = FBox2D(ForceInit);
-	// One-time tip during the real fight.
+	// 正式战斗中的一次性提示
 	const float CAge = float(Now - T->CalloutWorld);
 	if (CAge >= 0.f && CAge < 4.f && !T->Callout.IsEmpty())
 	{

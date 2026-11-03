@@ -1,4 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "BeatClockTestActor.h"
 #include "Components/AudioComponent.h"
@@ -19,7 +18,7 @@ ABeatClockTestActor::ABeatClockTestActor()
 	MusicComponent->bAutoActivate = false;
 	MusicComponent->bAllowSpatialization = false;
 	MusicComponent->bIsUISound = true;
-	// Never let combat SFX steal the music voice.
+	// 提高音乐优先级，避免战斗音效挤掉音乐音源
 	MusicComponent->bOverridePriority = true;
 	MusicComponent->Priority = 100.f;
 	CombatDrumComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("CombatDrumComponent"));
@@ -69,6 +68,7 @@ ABeatClockTestActor::ABeatClockTestActor()
 // 开始和结束
 // ============================================================
 
+// 启动关卡音乐和节拍时钟，绑定节拍与战斗结果事件
 void ABeatClockTestActor::BeginPlay()
 {
 	Super::BeginPlay();
@@ -108,10 +108,9 @@ void ABeatClockTestActor::BeginPlay()
 			SourceBeatPhase = SyncAttackData->ReferenceBeatPhaseSeconds;
 			StartTime = static_cast<float>(SyncAttackData->ReferenceMusicStartSeconds);
 		}
-		// Measured on Paramore_AintItFun_UE.wav: kick, snare and hi-hat onsets (and the
-		// emphasis map) put the song's beats 118-130 ms AFTER the authored 0.204 s phase.
-		// The whole game clock AND the drum stem / combo layers were a flam ahead of the
-		// song. Shift both onto the real beat.
+		// 补偿当前歌曲的节拍偏移，让游戏时钟和鼓点层对齐听到的音乐
+
+
 		static constexpr double SongBeatPhaseCorrection = .125;
 		MusicSettings.StartOffsetSeconds += SongBeatPhaseCorrection;
 		SourceBeatPhase += SongBeatPhaseCorrection;
@@ -161,6 +160,7 @@ void ABeatClockTestActor::BeginPlay()
 	}
 }
 
+// 解除事件并停止本对象管理的音乐层
 void ABeatClockTestActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	UBeatClockSubsystem* BeatClock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
@@ -188,13 +188,14 @@ void ABeatClockTestActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 // 拍子事件回调
 // ============================================================
 
+// 响应新拍点，更新鼓点和小节音乐层
 void ABeatClockTestActor::HandleBeat(int32 BeatIndex /* 全部拍子编号 */,
                                      int32 BeatInBar /* 当前小节内的拍子编号 */)
 {
 	UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	MaintainMusic();
-	// After a hitch, the clock can emit skipped beats together. Don't play old
-	// percussion on top of the current beat.
+	// 卡顿后补发的旧拍子不重播鼓点，避免多次声音挤在同一帧
+
 	const bool bStemIsPlaying = CombatDrumComponent && CombatDrumComponent->IsPlaying();
 	if (BeatInBar == 0 && Clock && BeatIndex == Clock->GetCurrentBeatIndex())
 		ApplyComboTierAtBar();
@@ -217,6 +218,7 @@ void ABeatClockTestActor::HandleBeat(int32 BeatIndex /* 全部拍子编号 */,
 	UE_LOG(LogTemp, Log, TEXT("[HearBlade 拍子时钟] 总拍子=%d，小节内拍子=%d"), BeatIndex, BeatInBar + 1);
 }
 
+// 音乐意外停止时，按节拍时钟对应的位置恢复播放
 void ABeatClockTestActor::MaintainMusic()
 {
 	UBeatClockSubsystem* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
@@ -250,6 +252,7 @@ void ABeatClockTestActor::MaintainMusic()
 	}
 }
 
+// 从同一音乐位置启动各层，并登记统一变速
 void ABeatClockTestActor::StartComboLayers(float SourceStartTime)
 {
 	const auto StartLayer = [SourceStartTime](UAudioComponent* Component, USoundBase* Sound)
@@ -268,6 +271,7 @@ void ABeatClockTestActor::StartComboLayers(float SourceStartTime)
 	       *GetNameSafe(ComboHighLoop));
 }
 
+// 按防御结果更新音乐层需要的反馈档位
 void ABeatClockTestActor::HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback)
 {
 	PendingComboTier = Feedback.bSuccess ? FMath::Clamp(Feedback.FeedbackTier, 0, 3) : 0;
@@ -279,6 +283,7 @@ void ABeatClockTestActor::HandleRhythmFeedback(const FRhythmSuccessFeedbackData&
 	}
 }
 
+// 根据玩家共鸣状态调整音乐层
 void ABeatClockTestActor::HandlePlayerResonance(EPlayerResonanceState State)
 {
 	bResonanceMusic = State == EPlayerResonanceState::Active;
@@ -290,6 +295,7 @@ void ABeatClockTestActor::HandlePlayerResonance(EPlayerResonanceState State)
 		                                                   : MusicMixVolume);
 }
 
+// 在小节边界应用音乐层档位，避免半途切换节奏
 void ABeatClockTestActor::ApplyComboTierAtBar()
 {
 	const int32 Desired = bResonanceMusic ? 3 : PendingComboTier;

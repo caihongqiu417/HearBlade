@@ -66,6 +66,7 @@ bool UPlayerAttackSet::Validate(FString& Error) const
 		SeenNodeIds.Add(Node.Id);
 	}
 
+	// 起手使用固定的轻重击根节点，分支都有效也不能缺少这两个入口
 	if (!Find(TEXT("L")) || !Find(TEXT("H")))
 	{
 		Error = TEXT("Missing L/H roots");

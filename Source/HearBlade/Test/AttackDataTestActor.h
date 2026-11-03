@@ -1,5 +1,4 @@
 // 提供攻击数据运行测试的场景对象
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -14,14 +13,14 @@ class HEARBLADE_API AAttackDataTestActor : public AActor
 	GENERATED_BODY()
 
   public:
-	// Sets default values for this actor's properties
+	// 初始化测试对象的默认设置
 	AAttackDataTestActor();
 
   protected:
-	// Called when the game starts or when spawned
+	// 测试对象进入关卡时调用
 	virtual void BeginPlay() override;
 
   public:
-	// Called every frame
+	// 测试对象每帧更新
 	virtual void Tick(float DeltaTime) override;
 };

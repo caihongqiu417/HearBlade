@@ -26,10 +26,10 @@ struct FTutorialCard
 	ECombatTutorialStep Step;
 	const TCHAR* Title;
 	const TCHAR* Body;
-	const TCHAR* Keyboard; // comma-separated T_TUT_K_* suffixes
-	const TCHAR* Pad;      // comma-separated T_TUT_P_* suffixes
-	int32 Goal;            // actions required (0 = timed)
-	float Seconds;         // minimum time on screen (timed steps advance after it)
+	const TCHAR* Keyboard; // 键盘图标资源后缀，用逗号分隔
+	const TCHAR* Pad;      // 手柄图标资源后缀，用逗号分隔
+	int32 Goal;            // 完成步骤所需次数，零表示按时间推进
+	float Seconds;         // 最短展示时间，计时步骤到时后推进
 	ECombatTutorialStep Next;
 };
 
@@ -86,6 +86,7 @@ UCombatTutorialComponent::UCombatTutorialComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
+// 读取教程完成记录
 bool UCombatTutorialComponent::IsDone() const
 {
 	// 完成状态保存在 GameInstance，重开关卡保留，退出游戏后重置
@@ -93,11 +94,13 @@ bool UCombatTutorialComponent::IsDone() const
 	return GI && GTutorialDoneFor.Get() == GI;
 }
 
+// 保存教程已完成状态
 void UCombatTutorialComponent::MarkDone() const
 {
 	GTutorialDoneFor = GetWorld() ? GetWorld()->GetGameInstance() : nullptr;
 }
 
+// 切换教程需要的鼠标光标和输入模式
 void UCombatTutorialComponent::SetCursorMode(bool bOn)
 {
 	bSkipHover = false;
@@ -120,6 +123,7 @@ void UCombatTutorialComponent::SetCursorMode(bool bOn)
 		PC->SetInputMode(FInputModeGameOnly());
 }
 
+// 查找玩家和敌人，绑定练习需要的结果事件
 void UCombatTutorialComponent::Bind()
 {
 	if (!Combat.IsValid())
@@ -147,6 +151,7 @@ void UCombatTutorialComponent::Bind()
 	bBound = true;
 }
 
+// 暂停或恢复敌人自主行动，让教程控制练习节奏
 void UCombatTutorialComponent::SetBossHold(bool bHold)
 {
 	if (bHold == bBossHeld)
@@ -161,7 +166,7 @@ void UCombatTutorialComponent::SetBossHold(bool bHold)
 	}
 	else
 	{
-		TickBossApproach(0.f, false); // hand locomotion back to the behaviour tree standing still
+		TickBossApproach(0.f, false); // 停止教程移动，让行为树重新接管
 		if (BT)
 			BT->ResumeLogic(TEXT("Tutorial"));
 	}
@@ -171,6 +176,7 @@ void UCombatTutorialComponent::SetBossHold(bool bHold)
 	UE_LOG(LogTemp, Display, TEXT("Tutorial: boss %s"), bHold ? TEXT("sparring") : TEXT("released"));
 }
 
+// 进入指定教程步骤，重置计数与提示
 void UCombatTutorialComponent::Begin(ECombatTutorialStep NewStep)
 {
 	const FTutorialCard* Card = CardFor(NewStep);
@@ -195,6 +201,7 @@ void UCombatTutorialComponent::Begin(ECombatTutorialStep NewStep)
 	UE_LOG(LogTemp, Display, TEXT("Tutorial: step %s"), *Title);
 }
 
+// 结束教程，恢复操作与敌人行动
 void UCombatTutorialComponent::Finish(bool bRestartFight)
 {
 	MarkDone();
@@ -212,6 +219,7 @@ void UCombatTutorialComponent::Finish(bool bRestartFight)
 	}
 }
 
+// 根据攻击输入字母推进连招练习
 void UCombatTutorialComponent::CountCombo(TCHAR Letter)
 {
 	// 只统计连续相同按键的连招，中断或混入其他按键后重新计数
@@ -237,6 +245,7 @@ void UCombatTutorialComponent::CountCombo(TCHAR Letter)
 		AdvanceAtWorld = GetWorld()->GetTimeSeconds() + 1.2;
 }
 
+// 按当前输入设备更新按键图标
 void UCombatTutorialComponent::RefreshGlyphs()
 {
 	Glyphs.Reset();
@@ -245,6 +254,7 @@ void UCombatTutorialComponent::RefreshGlyphs()
 		            Glyphs);
 }
 
+// 累加当前步骤的完成次数
 void UCombatTutorialComponent::Count(int32 Amount)
 {
 	if (Goal <= 0 || AdvanceAtWorld > 0.)
@@ -252,9 +262,10 @@ void UCombatTutorialComponent::Count(int32 Amount)
 	Progress = FMath::Min(Goal, Progress + Amount);
 	SuccessFlashWorld = GetWorld()->GetTimeSeconds();
 	if (Progress >= Goal)
-		AdvanceAtWorld = SuccessFlashWorld + .9; // let the "done" beat land
+		AdvanceAtWorld = SuccessFlashWorld + .9; // 保留完成提示的展示时间
 }
 
+// 返回当前练习要求的防御方式
 ERhythmResponseType UCombatTutorialComponent::PracticeResponse() const
 {
 	switch (Step)
@@ -268,6 +279,7 @@ ERhythmResponseType UCombatTutorialComponent::PracticeResponse() const
 	}
 }
 
+// 只把符合当前练习要求的防御结果计入进度
 void UCombatTutorialComponent::HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback)
 {
 	if (Feedback.bPlayerAttack || Step == ECombatTutorialStep::None)
@@ -285,6 +297,7 @@ void UCombatTutorialComponent::HandleRhythmFeedback(const FRhythmSuccessFeedback
 		Count();
 }
 
+// 收到玩家命中后更新攻击练习进度
 void UCombatTutorialComponent::HandleAttackHit(AActor*, float, EPlayerAttackGrade Grade)
 {
 	if (Step == ECombatTutorialStep::LightCombo)
@@ -293,11 +306,13 @@ void UCombatTutorialComponent::HandleAttackHit(AActor*, float, EPlayerAttackGrad
 		CountCombo(TEXT('H'));
 }
 
+// 收到阶段变化后更新对应教程提示
 void UCombatTutorialComponent::HandleBossPhase(int32 Phase)
 {
 	// 第二阶段改用短提示，不再插入格挡教学
 }
 
+// 检测输入设备变化，更新教程按键提示
 void UCombatTutorialComponent::TickDevice()
 {
 	const APawn* Pawn = Cast<APawn>(GetOwner());
@@ -344,6 +359,7 @@ void UCombatTutorialComponent::TickDevice()
 	}
 }
 
+// 练习期间控制 Boss 接近玩家，其他时候停止教程移动
 void UCombatTutorialComponent::TickBossApproach(float DeltaTime, bool bActive)
 {
 	AActor* BossActor = Boss.IsValid() ? Boss->GetOwner() : nullptr;
@@ -382,6 +398,7 @@ void UCombatTutorialComponent::TickBossApproach(float DeltaTime, bool bActive)
 	Anim->SetLocomotion(bWalk ? 220.f : 0.f, bWalk ? FVector::ForwardVector : FVector::ZeroVector, DeltaTime);
 }
 
+// 按拍点安排下一次练习攻击，避免连续指令挤在一起
 void UCombatTutorialComponent::TickPractice(double WorldNow)
 {
 	const bool bSparring = Step == ECombatTutorialStep::Dodge || Step == ECombatTutorialStep::Block ||
@@ -393,7 +410,7 @@ void UCombatTutorialComponent::TickPractice(double WorldNow)
 	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	if (!Clock || !Clock->IsRunning())
 		return;
-	if (bPracticePending) // the last note just resolved: breathe for a couple of beats
+	if (bPracticePending) // 上一条练习刚结束，等待几拍再开始
 	{
 		bPracticePending = false;
 		NextPracticeWorld =
@@ -407,13 +424,14 @@ void UCombatTutorialComponent::TickPractice(double WorldNow)
 	    WorldNow < NextPracticeWorld + 6.0)
 		return;
 	const double Target =
-	    FMath::CeilToDouble(Clock->GetCurrentBeat()) + 4.0; // 4 beats of warning on the rail
+	    FMath::CeilToDouble(Clock->GetCurrentBeat()) + 4.0; // 提前四拍显示练习指令
 	if (Boss->QueuePracticeAttack(PracticeResponse(), Target, GetOwner()))
 		bPracticePending = true;
 	else
 		NextPracticeWorld = WorldNow + .5;
 }
 
+// 更新正式战斗中的短时教学提示
 void UCombatTutorialComponent::TickCallouts(double WorldNow)
 {
 	if (Step != ECombatTutorialStep::None || !Boss.IsValid() || !IsDone())
@@ -444,6 +462,7 @@ void UCombatTutorialComponent::TickCallouts(double WorldNow)
 	}
 }
 
+// 推进教程步骤、跳过操作、练习攻击与提示显示
 void UCombatTutorialComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                              FActorComponentTickFunction* ThisTickFunction)
 {
@@ -564,6 +583,7 @@ void UCombatTutorialComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	TickCallouts(WorldNow);
 }
 
+// 解除教程事件并恢复临时修改的输入状态
 void UCombatTutorialComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	SetBossHold(false);

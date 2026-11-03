@@ -17,6 +17,7 @@ enum class EPerfectDodgeAccessibility : uint8
 	NoCameraShake
 };
 
+// 集中配置防御成功时的声音、残影、镜头与持续格挡效果
 UCLASS(BlueprintType)
 
 class HEARBLADE_API UPerfectDodgeFeedbackConfig : public UDataAsset
@@ -27,9 +28,9 @@ class HEARBLADE_API UPerfectDodgeFeedbackConfig : public UDataAsset
 	TObjectPtr<UMaterialInterface> PostProcessMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍裂闪|素材")
 	TObjectPtr<UMaterialInterface> GhostMaterial;
-	// Dedicated, translucent material for the sustained HoldBlock armor shell.
-	// Keeping it separate from dodge ghosts lets the two effects evolve without
-	// visual cross-talk.
+	// 持续格挡外壳使用独立半透明材质，与闪避残影分开配置
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍裂闪|素材")
 	TObjectPtr<UMaterialInterface> HoldArmorMaterial;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍裂闪|素材")
@@ -98,9 +99,9 @@ class HEARBLADE_API UPerfectDodgeFeedbackConfig : public UDataAsset
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍裂闪|持续格挡",
 	          meta = (ClampMin = "0.02", ClampMax = "0.15"))
 	float HoldStopSeconds = .06f;
-	// Persistent character shell shown only while an authored HoldBlock range is
-	// actually being defended. It reuses GhostMaterial so the effect works with
-	// the existing project assets and remains fully data driven.
+	// 持续格挡时显示的角色外壳透明度
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍裂闪|持续格挡|霸体",
 	          meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float HoldArmorBaseOpacity = .28f;
@@ -125,7 +126,7 @@ class HEARBLADE_API UPerfectDodgeFeedbackConfig : public UDataAsset
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍裂闪|持续格挡|霸体",
 	          meta = (ClampMin = "0.0", ClampMax = "20.0"))
 	float HoldArmorImpactGlowBoost = 7.0f;
-	// Molten red reads as committed, unflinching guard; downbeats climb to gold.
+	// 普通拍使用红色，强拍向金色变化
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍裂闪|持续格挡|霸体")
 	FLinearColor HoldArmorColor = FLinearColor(1.0f, .035f, .003f, 1.0f);
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍裂闪|持续格挡|霸体")

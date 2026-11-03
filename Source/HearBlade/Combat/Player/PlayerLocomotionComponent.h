@@ -17,13 +17,16 @@ class HEARBLADE_API UPlayerLocomotionComponent : public UActorComponent
     GENERATED_BODY()
 public:
     UPlayerLocomotionComponent();
+    // 缓存角色、移动组件和行走资源，并读取动画参考速度
     void Initialize(UBlendSpace* Locomotion, UBlendSpace* Pursuit);
+    // 结合移动方向和锁定状态，协调角色速度与八方向行走动画
     void Update(float DeltaSeconds, float LockedCombatWalkSpeed, float FreeRunSpeed);
 private:
     friend class FHearBladeLocomotionTest;
     // 从动画测量步速，再换算混合空间的采样位置
     void MeasureSpeeds();
     float RadiusForSpeed(float Speed) const;
+    // 把混合空间半径转换为对应的参考移动速度
     float SpeedForRadius(float Radius) const;
 
     // 使用的角色、动画资源和战斗状态

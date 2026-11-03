@@ -1,4 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -32,7 +31,9 @@ class HEARBLADE_API ABeatClockTestActor : public AActor
 	// 开始和结束
 	// ========================================================
 
+	// 启动关卡音乐和节拍时钟，绑定节拍与战斗结果事件
 	virtual void BeginPlay() override;
+	// 解除事件并停止本对象管理的音乐层
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	// ========================================================
@@ -67,11 +68,11 @@ class HEARBLADE_API ABeatClockTestActor : public AActor
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "拍子时钟测试|连击音乐")
 	TObjectPtr<UAudioComponent> ComboHighComponent;
 
-	// A quiet extra percussion layer makes the meter audible during the Boss fight.
+	// 低音量鼓点层帮助玩家听清拍子
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
 	bool bEnableCombatDrums = true;
 
-	// A one-bar mastered stem runs on the audio thread and stays aligned even if the game hitches.
+	// 整小节鼓点循环由音频线程播放，减少游戏帧卡顿的影响
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点")
 	bool bUseLoopingDrumStem = true;
 
@@ -82,7 +83,7 @@ class HEARBLADE_API ABeatClockTestActor : public AActor
 	          meta = (ClampMin = "0.0", ClampMax = "2.0"))
 	float CombatDrumStemVolume = 1.35f;
 
-	// Slightly lowering the song gives the guide drums a clear place in the mix.
+	// 适当降低主音乐音量，让提示鼓点更清楚
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "拍子时钟测试|战斗鼓点",
 	          meta = (ClampMin = "0.5", ClampMax = "1.0"))
 	float MusicMixVolume = .78f;
@@ -129,17 +130,21 @@ class HEARBLADE_API ABeatClockTestActor : public AActor
 	// 收到拍子事件后，把结果写入输出日志
 	UFUNCTION()
 	void HandleBeat(int32 BeatIndex /* 全部拍子编号 */, int32 BeatInBar /* 当前小节内的拍子编号 */);
+	// 按防御结果更新音乐层需要的反馈档位
+	// 根据玩家共鸣状态调整音乐层
 	UFUNCTION() void HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback);
+	// 从同一音乐位置启动各层，并登记统一变速
 	UFUNCTION() void HandlePlayerResonance(EPlayerResonanceState State);
 	void StartComboLayers(float SourceStartTime);
+	// 在小节边界应用音乐层档位，避免半途切换节奏
 	void ApplyComboTierAtBar();
 	TWeakObjectPtr<UPlayerRhythmCombatComponent> BoundCombat;
 	int32 PendingComboTier = 0;
 	int32 CurrentComboTier = 0;
 	bool bResonanceMusic = false;
-	// Music watchdog: keeps the song playing and beat-aligned. If the voice is
-	// ever dropped (voice stealing / end of file) it is restarted at the position
-	// the beat clock expects, and the song loops on a whole number of bars.
+	// 音乐意外停止后，按节拍时钟计算的位置恢复播放，并按整小节循环
+
+
 	void MaintainMusic();
 	double MusicClockStartAudio = 0., MusicSourceStart = 0., MusicLoopSeconds = 0., MusicBarSeconds = 2.,
 	       DrumSourceStart = 0.;

@@ -10,6 +10,7 @@
 #include "InputKeyEventArgs.h"
 #include "Kismet/KismetSystemLibrary.h"
 
+// 通过实际刀刃接触验证闪避、格挡和反击，以及失败后的恢复
 void UPlayerBeatAttackComponent::TickDefenseContactProbe()
 {
 #if !UE_BUILD_SHIPPING
@@ -72,8 +73,8 @@ void UPlayerBeatAttackComponent::TickDefenseContactProbe()
 		if (Cues.IsEmpty() && DefenseProbeMask != 7 && ResonanceBoss->QueueAttack(DefenseProbeAttack))
 		{
 			ResonanceBoss->SetAttackTarget(GetOwner());
-			// A successful counter knocks the Boss away; restore contact distance
-			// for the next independent physical-contact test.
+			// 反击会推开 Boss，下一项接触测试前先恢复距离
+
 			const auto* BossOwner = ResonanceBoss->GetOwner();
 			GetOwner()->SetActorLocation(BossOwner->GetActorLocation() +
 			                             BossOwner->GetActorForwardVector() * 180.f);
@@ -84,7 +85,7 @@ void UPlayerBeatAttackComponent::TickDefenseContactProbe()
 			if (Now >= Ideal - .015 && Now < Ideal + .06 && ProbeNextInputBeat < Ideal)
 			{
 				ProbeNextInputBeat = Ideal + .001;
-				// Intentionally fail the first strike, then verify both defenses recover.
+				// 先让第一击失败，再验证后续闪避和格挡可以恢复
 				const bool bWrongFirst = ProbeStage == 0;
 				++ProbeStage;
 				const bool bBlock = (Cue.RequiredResponse == ERhythmResponseType::Block) != bWrongFirst;

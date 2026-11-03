@@ -2,6 +2,7 @@
 #include "Combat/Camera/BossCameraModifier.h"
 #include "Camera/CameraTypes.h"
 
+// 计算镜头冲击随时间衰减的强度
 float UBossCameraModifier::GetEnvelope() const
 {
 	// 平滑进入和退出镜头偏移，避免突然跳变
@@ -12,11 +13,13 @@ float UBossCameraModifier::GetEnvelope() const
 	return 1.f - FMath::SmoothStep(0.f, 1.f, (Elapsed - Push - Hold) / FMath::Max(Recover, .001f));
 }
 
+// 计算当前镜头震动的衰减强度
 float UBossCameraModifier::GetShakeEnvelope() const
 {
 	return FMath::Clamp(1.f - Elapsed / FMath::Max(ShakeDuration, .001f), 0.f, 1.f);
 }
 
+// 计算冲击后的回弹强度
 float UBossCameraModifier::GetReboundEnvelope() const
 {
 	if (Elapsed < Push + Hold)
@@ -26,6 +29,7 @@ float UBossCameraModifier::GetReboundEnvelope() const
 	return (1.f - T) - FMath::Sin(T * UE_PI) * ReboundStrength;
 }
 
+// 把镜头冲击、震动和特写混合到本帧视角
 bool UBossCameraModifier::ModifyCamera(float DeltaTime, FMinimalViewInfo& InOutPOV)
 {
 	Elapsed += DeltaTime;

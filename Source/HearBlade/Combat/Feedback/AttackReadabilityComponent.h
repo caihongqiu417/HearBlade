@@ -4,6 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "AttackReadabilityComponent.generated.h"
 
+// 读取 Boss 攻击信息，显示刀刃、危险区域和防御预警
+// 预警只表达攻击状态，不负责伤害结算
 UCLASS(ClassGroup = (Combat))
 
 class HEARBLADE_API UAttackReadabilityComponent : public UActorComponent
@@ -11,9 +13,12 @@ class HEARBLADE_API UAttackReadabilityComponent : public UActorComponent
 	GENERATED_BODY()
   public:
 	UAttackReadabilityComponent();
+	// 查找攻击组件并准备预警显示资源
 	virtual void BeginPlay() override;
+	// 读取当前攻击预警，更新危险路径和应对图形
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* TickFunction) override;
+	// 销毁预警使用的临时显示对象
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 
   private:

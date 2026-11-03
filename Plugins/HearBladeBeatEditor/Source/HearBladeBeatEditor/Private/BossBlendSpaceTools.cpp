@@ -5,6 +5,7 @@
 #include "Animation/AnimSequence.h"
 #include "Animation/Skeleton.h"
 
+// 为骨骼结构兼容的动画指定目标骨架
 bool UBossBlendSpaceTools::AssignIdenticalSkeleton(UAnimSequence* Sequence, USkeleton* Target)
 {
 	if (!Sequence || !Sequence->GetSkeleton() || !Target)
@@ -26,6 +27,7 @@ bool UBossBlendSpaceTools::AssignIdenticalSkeleton(UAnimSequence* Sequence, USke
 	return true;
 }
 
+// 样本变化后重建混合空间的采样连接
 int32 UBossBlendSpaceTools::RebuildBlendSpace(UBlendSpace* BlendSpace)
 {
 	if (!IsValid(BlendSpace))

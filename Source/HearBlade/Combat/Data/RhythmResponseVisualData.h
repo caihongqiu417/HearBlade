@@ -22,6 +22,7 @@ struct FRhythmResponseVisual
 	float IconScale = 1.0f;
 };
 
+// 配置不同防御指令的图标、颜色和提示内容
 UCLASS(BlueprintType)
 
 class HEARBLADE_API URhythmResponseVisualData : public UPrimaryDataAsset

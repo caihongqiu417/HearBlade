@@ -31,6 +31,8 @@ class HEARBLADE_API ABossBeatDirector : public AActor
 	TObjectPtr<UBehaviorTreeComponent> BehaviorTreeComponent;
 
   protected:
+	// 准备黑板和行为树，等场景初始化完成后再启动敌人逻辑
 	virtual void BeginPlay() override;
+	// 退出关卡时停止行为树
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 };

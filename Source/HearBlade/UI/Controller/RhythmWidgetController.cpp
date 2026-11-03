@@ -15,6 +15,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
 
+// 仅允许本地玩家死亡后重新加载当前关卡
 void URhythmWidgetController::RestartLevel()
 {
     Rebind();
@@ -22,6 +23,7 @@ void URhythmWidgetController::RestartLevel()
     UGameplayStatics::OpenLevel(this, FName(*UGameplayStatics::GetCurrentLevelName(this, true)));
 }
 
+// 通过绑定的玩家控制器取得当前世界
 UWorld* URhythmWidgetController::GetWorld() const
 {
 	return Player.IsValid() ? Player->GetWorld() : nullptr;
@@ -143,8 +145,12 @@ void URhythmWidgetController::UpdatePlayerPanel(float Delta)
 	M.ComboText = FText::FromString(FString::Printf(TEXT("%d COMBO"), State->ComboCount));
 	M.ModeText = FText::FromString(State->IsMouseDefenseWindow() ? TEXT("DEFEND  LMB COUNTER / RMB BLOCK")
 	                                                             : TEXT("ATTACK  LMB LIGHT / RMB HEAVY"));
+	// 先清空短时反馈，只有仍在显示期限内的攻击结果才重新写入
 	M.AttackText = FText::GetEmpty();
 	M.ImpactOpacity = 0.f;
+	M.bTipVisible = false;
+	M.WorldTime = Now;
+	M.ComboCount = State->ComboCount;
 	M.FlashOpacity = 0.f;
 	if (auto* Attack = Pawn->FindComponentByClass<UPlayerBeatAttackComponent>())
 	{
@@ -161,7 +167,12 @@ void URhythmWidgetController::UpdatePlayerPanel(float Delta)
 				                  (Attack->LastGrade == EPlayerAttackGrade::Perfect ? TEXT(" PERFECT")
 				                   : Attack->LastGrade == EPlayerAttackGrade::Good  ? TEXT(" GOOD")
 				                                                                    : TEXT(" OFF BEAT")));
-		const float Age = float(Now - Attack->ImpactFxWorldTime);
+		M.ImpactAge = float(Now - Attack->ImpactFxWorldTime);
+        M.bImpactHeavy = Attack->bImpactFxHeavy || Attack->bImpactFxLaunch;
+        M.TipAge = float(Now - Attack->TipBurstWorldTime);
+        M.bTipVisible = M.TipAge >= 0.f && M.TipAge < .18f &&
+            PC->ProjectWorldLocationToScreen(Attack->TipBurstWorld, M.TipPosition, true);
+        const float Age = M.ImpactAge;
 		if (Age >= 0.f && Age < .5f &&
 		    PC->ProjectWorldLocationToScreen(Attack->ImpactFxWorld, M.ImpactPosition, true))
 		{
@@ -204,11 +215,41 @@ void URhythmWidgetController::UpdateJudgments()
 	if (JudgmentAt != LastJudgment && Grade != ERhythmDodgeJudgment::None)
 	{
 		LastJudgment = JudgmentAt;
-		History.Insert(M.JudgmentText, 0);
+		// 评级仅在结果变化时入队，五张卡片从底部进入，最旧一张从顶部退出
+        for (auto& Card : M.JudgmentCards) Card.StartSlot = Card.TargetSlot;
+        if (M.JudgmentCards.Num() >= 5)
+        {
+            M.OutgoingCard = M.JudgmentCards[0];
+            M.OutgoingCard.StartSlot = M.OutgoingCard.TargetSlot;
+            M.OutgoingCard.TargetSlot = -1.f;
+            M.bHasOutgoingCard = true;
+            M.JudgmentCards.RemoveAt(0);
+        }
+        FRhythmJudgmentView Card;
+        Card.Grade = Grade;
+        Card.ErrorMs = State->LastJudgmentErrorMs;
+        Card.Time = Now;
+        M.JudgmentCards.Add(Card);
+        for (int32 I = 0; I < M.JudgmentCards.Num(); ++I)
+            M.JudgmentCards[I].TargetSlot = 5 - M.JudgmentCards.Num() + I;
+        if (Grade == ERhythmDodgeJudgment::Bad || Grade == ERhythmDodgeJudgment::Miss || Grade == ERhythmDodgeJudgment::HoldBreak)
+        {
+            if (auto* Camera = State->GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
+                Camera->TriggerFailureFeedback(Grade != ERhythmDodgeJudgment::Bad);
+        }
+        History.Insert(M.JudgmentText, 0);
 		if (History.Num() > 4)
 			History.SetNum(4);
 	}
 	M.JudgmentHistory = History;
+    const float Age = float(Now - LastJudgment);
+    M.CardMove = 1.f - FMath::Pow(1.f - FMath::Clamp(Age / .14f, 0.f, 1.f), 3.f);
+    if (Age >= .14f) M.bHasOutgoingCard = false;
+    M.ComboPunch = Age < .18f ? 1.f + .08f * (1.f - FMath::Clamp(Age / .18f, 0.f, 1.f)) : 1.f;
+    const bool Failed = Grade == ERhythmDodgeJudgment::Bad || Grade == ERhythmDodgeJudgment::Miss || Grade == ERhythmDodgeJudgment::HoldBreak;
+    M.FailureOpacity = Failed ? 1.f - FMath::SmoothStep(.35f, .8f, Age) : 0.f;
+    M.FailureText = FText::FromString(Grade == ERhythmDodgeJudgment::HoldBreak ? TEXT("HOLD BREAK") :
+        Grade == ERhythmDodgeJudgment::Miss ? TEXT("MISS") : State->LastJudgmentErrorMs < 0.f ? TEXT("TOO EARLY") : TEXT("TOO LATE"));
 }
 
 // 整理敌人血条和阶段提示，延迟血条只用于表现，不参与敌人生命计算
@@ -293,7 +334,11 @@ void URhythmWidgetController::UpdateRhythmTrack(float Delta)
 				if (Until < -.16f || Until > LookAhead)
 					continue;
 				FRhythmNoteView N;
-				N.Position = Until / LookAhead;
+				N.Response = C.RequiredResponse;
+                N.IconOverride = C.IconOverride;
+                N.Color = C.IconColor;
+                N.Scale = C.IconScale;
+                N.Position = Until / LookAhead;
 				const float Lead = C.DamageShape == EBossAttackDamageShape::GroundBurst
 				                       ? LookAhead
 				                       : float(Clock->GetSecondsPerBeat() * 3.);

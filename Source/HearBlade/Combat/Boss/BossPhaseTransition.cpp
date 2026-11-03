@@ -39,6 +39,7 @@ void UBeatSyncedComboComponent::RecordPhaseTwoAttackOutcome(bool bCompleted)
 	       NextAreaAfterMelee, bArea);
 }
 
+// 返回阶段转换的进度，未转换时返回无效值
 float UBeatSyncedComboComponent::GetPhaseTransitionProgress() const
 {
 	const auto* Ascension =
@@ -67,6 +68,7 @@ void UBeatSyncedComboComponent::UpdateBossPhase(const UBeatClockSubsystem* Clock
 			                       false);
 }
 
+// 检查阶段转换条件，通过演出组件启动升阶
 bool UBeatSyncedComboComponent::TryBeginPhaseAscension(AActor* Player, FVector Contact, bool bFromClash)
 {
 	if (bPlayerResonance)

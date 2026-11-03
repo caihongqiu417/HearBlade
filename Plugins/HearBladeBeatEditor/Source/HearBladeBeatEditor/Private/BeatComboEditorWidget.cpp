@@ -53,6 +53,7 @@ void DrawLine(FSlateWindowElementList& Elements, int32 Layer, const FGeometry& G
 }
 }
 
+// 读取 WAV 格式和采样数据，提取时间轴绘制需要的峰值
 bool FBeatWaveform::Load(const FString& Path)
 {
 	Peaks.Reset();
@@ -192,6 +193,7 @@ class SBeatComboTimeline : public SLeafWidget
 	FName DraggedHoldGroup;
 };
 
+// 将音乐时间换成横向位置，绘制波形、拍点与攻击指令
 int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geometry,
                                   const FSlateRect& CullingRect, FSlateWindowElementList& Elements,
                                   int32 LayerId, const FWidgetStyle& Style, bool bParentEnabled) const
@@ -451,6 +453,7 @@ int32 SBeatComboTimeline::OnPaint(const FPaintArgs& Args, const FGeometry& Geome
 	return LayerId + 7;
 }
 
+// 把鼠标位置换成音乐时间，模拟在此时请求攻击
 void SBeatComboTimeline::Pick(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	if (const TSharedPtr<SBeatComboEditorWidget> Editor = Owner.Pin())
@@ -463,6 +466,7 @@ void SBeatComboTimeline::Pick(const FGeometry& Geometry, const FPointerEvent& Ev
 	}
 }
 
+// 优先选中持续格挡端点，否则调整攻击请求预览时间
 FReply SBeatComboTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	if (Event.GetEffectingButton() != EKeys::LeftMouseButton)
@@ -486,6 +490,7 @@ FReply SBeatComboTimeline::OnMouseButtonDown(const FGeometry& Geometry, const FP
 	return FReply::Handled().CaptureMouse(AsShared());
 }
 
+// 结束拖动并释放鼠标捕获
 FReply SBeatComboTimeline::OnMouseButtonUp(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	if (Event.GetEffectingButton() != EKeys::LeftMouseButton)
@@ -496,6 +501,7 @@ FReply SBeatComboTimeline::OnMouseButtonUp(const FGeometry& Geometry, const FPoi
 	return FReply::Handled().ReleaseMouseCapture();
 }
 
+// 拖动期间持续更新时间或格挡端点
 FReply SBeatComboTimeline::OnMouseMove(const FGeometry& Geometry, const FPointerEvent& Event)
 {
 	if (bDraggingHoldEndpoint)
@@ -517,6 +523,7 @@ FReply SBeatComboTimeline::OnMouseMove(const FGeometry& Geometry, const FPointer
 	return FReply::Handled();
 }
 
+// 创建资源选择、波形时间轴、调速控件和属性面板
 void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 {
 	WavPath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Music/Paramore_AintItFun_UE.wav"));
@@ -527,6 +534,7 @@ void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 	FPropertyEditorModule& PropertyEditor =
 	    FModuleManager::LoadModuleChecked<FPropertyEditorModule>(TEXT("PropertyEditor"));
 	DetailsView = PropertyEditor.CreateDetailView(DetailsArgs);
+	// 属性面板修改资源后刷新预览，避免时间轴继续显示旧配置
 	DetailsView->OnFinishedChangingProperties().AddSP(this,
 	                                                  &SBeatComboEditorWidget::OnAssetPropertiesChanged);
 
@@ -814,11 +822,13 @@ void SBeatComboEditorWidget::Construct(const FArguments& InArgs)
 	LoadWav();
 }
 
+// 将选中的防御指令模板写入攻击标记
 FReply SBeatComboEditorWidget::ApplyResponseTemplate(int32 TemplateIndex)
 {
 	UAttackDataAsset* Data = AttackData.Get();
 	if (!Data || Data->ImpactMarkers.IsEmpty())
 		return FReply::Handled();
+	// 先把所有命中恢复为闪避和非长按，再应用选中的模板，避免旧分组残留
 	Data->Modify();
 	for (FAttackImpactMarker& Marker : Data->ImpactMarkers)
 	{
@@ -843,6 +853,7 @@ FReply SBeatComboEditorWidget::ApplyResponseTemplate(int32 TemplateIndex)
 	}
 	else if (TemplateIndex == 4 && Data->ImpactMarkers.Num() >= 3)
 	{
+		// 持续格挡模板需要完整的开始、持续和结束标记
 		const int32 Start = Data->ImpactMarkers.Num() >= 5 ? 1 : 0;
 		const int32 End =
 		    Data->ImpactMarkers.Num() >= 5 ? Data->ImpactMarkers.Num() - 2 : Data->ImpactMarkers.Num() - 1;
@@ -871,6 +882,7 @@ FReply SBeatComboEditorWidget::ApplyResponseTemplate(int32 TemplateIndex)
 	return FReply::Handled();
 }
 
+// 检查防御指令并把结果显示在窗口中
 FReply SBeatComboEditorWidget::ValidateResponses()
 {
 	FString Error;
@@ -878,6 +890,7 @@ FReply SBeatComboEditorWidget::ValidateResponses()
 	return FReply::Handled();
 }
 
+// 检查指令间隔与持续格挡分组，阻止不一致的配置被保存
 bool SBeatComboEditorWidget::ValidateResponseConfiguration(FString& OutError) const
 {
 	const UAttackDataAsset* Data = AttackData.Get();
@@ -1003,6 +1016,7 @@ bool SBeatComboEditorWidget::ValidateResponseConfiguration(FString& OutError) co
 	return true;
 }
 
+// 检查指定命中的防御指令是否有效
 bool SBeatComboEditorWidget::IsImpactResponseValid(int32 ImpactIndex) const
 {
 	const UAttackDataAsset* Data = AttackData.Get();
@@ -1015,6 +1029,7 @@ bool SBeatComboEditorWidget::IsImpactResponseValid(int32 ImpactIndex) const
 	{
 		if (Marker.HoldMarker == ERhythmHoldMarkerType::None || Marker.HoldGroup.IsNone())
 			return false;
+		// 同一长按组只能有一个起点和一个终点，当前命中必须位于两者之间
 		int32 Start = INDEX_NONE, End = INDEX_NONE;
 		for (int32 Index = 0; Index < Data->ImpactMarkers.Num(); ++Index)
 		{
@@ -1046,6 +1061,7 @@ bool SBeatComboEditorWidget::IsImpactResponseValid(int32 ImpactIndex) const
 				return false;
 		}
 	}
+	// 相邻闪避和反击要留出动作时间，间隔按变速后的实际播放时长检查
 	if (ImpactIndex > 0)
 	{
 		const FAttackImpactMarker& Previous = Data->ImpactMarkers[ImpactIndex - 1];
@@ -1060,6 +1076,7 @@ bool SBeatComboEditorWidget::IsImpactResponseValid(int32 ImpactIndex) const
 	return true;
 }
 
+// 查找鼠标附近的持续格挡端点
 bool SBeatComboEditorWidget::TryBeginHoldEndpointDrag(double SourceSeconds, double ToleranceSeconds,
                                                       FName& OutGroup, bool& bOutStart) const
 {
@@ -1089,6 +1106,7 @@ bool SBeatComboEditorWidget::TryBeginHoldEndpointDrag(double SourceSeconds, doub
 	return bFound;
 }
 
+// 把拖动位置转换为对应的格挡起止配置
 void SBeatComboEditorWidget::DragHoldEndpoint(FName Group, bool bStartEndpoint, double SourceSeconds)
 {
 	UAttackDataAsset* Data = AttackData.Get();
@@ -1149,14 +1167,17 @@ void SBeatComboEditorWidget::DragHoldEndpoint(FName Group, bool bStartEndpoint, 
 	RefreshTimeline();
 }
 
+// 根据命中标记重建防御指令编辑控件
 void SBeatComboEditorWidget::RebuildResponseControls()
 {
 	if (!ResponsesBox.IsValid())
 		return;
+	// 先移除旧控件，再按当前命中列表重建，避免显示已经删除的标记
 	ResponsesBox->ClearChildren();
 	UAttackDataAsset* Data = AttackData.Get();
 	if (!Data)
 		return;
+	// 每一行对应一次命中，按钮回调保存索引，执行时重新检查资源和索引是否仍有效
 	for (int32 Index = 0; Index < Data->ImpactMarkers.Num(); ++Index)
 	{
 		if (Data->ImpactMarkers[Index].DamageShape == EBossAttackDamageShape::GroundBurst)
@@ -1169,6 +1190,7 @@ void SBeatComboEditorWidget::RebuildResponseControls()
 			             Index + 1)))];
 			continue;
 		}
+		// 按钮直接修改资源内存并标记待保存，正式写盘仍由保存操作完成
 		ResponsesBox->AddSlot().AutoHeight().Padding(2)
 		    [SNew(SHorizontalBox) +
 			 SHorizontalBox::Slot()
@@ -1325,6 +1347,7 @@ void SBeatComboEditorWidget::RebuildResponseControls()
 	}
 }
 
+// 用两次选择确定持续格挡的起止标记
 FReply SBeatComboEditorWidget::SelectHoldRangeEndpoint(int32 ImpactIndex)
 {
 	UAttackDataAsset* Data = AttackData.Get();
@@ -1358,6 +1381,7 @@ FReply SBeatComboEditorWidget::SelectHoldRangeEndpoint(int32 ImpactIndex)
 	return FReply::Handled();
 }
 
+// 取得音乐重音配置，供首击拍点预览使用
 const UMusicEmphasisData* SBeatComboEditorWidget::GetMusicEmphasis() const
 {
 	const auto* Data = EmphasisData.Get();
@@ -1365,6 +1389,7 @@ const UMusicEmphasisData* SBeatComboEditorWidget::GetMusicEmphasis() const
 	                                                                                              : nullptr;
 }
 
+// 结合音乐起点和偏移，计算波形中的首个拍点
 double SBeatComboEditorWidget::GetFirstBeatSourceSeconds() const
 {
 	const double Period = GetBeatPeriod();
@@ -1374,21 +1399,25 @@ double SBeatComboEditorWidget::GetFirstBeatSourceSeconds() const
 	return SourceStart + Offset;
 }
 
+// 返回预览中第一击的音乐时间
 double SBeatComboEditorWidget::GetFirstImpactSourceSeconds() const
 {
 	return GetFirstBeatSourceSeconds() + GetSelectedBeat() * GetBeatPeriod();
 }
 
+// 预留动作前摇，再按小节要求与音乐重音选择首击拍点
 int32 SBeatComboEditorWidget::GetSelectedBeat() const
 {
 	const UAttackDataAsset* Data = AttackData.Get();
 	const double FirstTime = !Data                           ? 0.0
 	                         : Data->ImpactMarkers.IsEmpty() ? Data->AuthoredImpactTime
 	                                                         : Data->ImpactMarkers[0].AnimationTimeSeconds;
+	// 先为当前动画前摇留足时间，再寻找能够赶上的拍点
 	const double EarliestImpact = PreviewRequestSourceSeconds + GetPreviewElapsedAtAnimationTime(FirstTime) -
 	                              GetPreviewElapsedAtAnimationTime(Data ? Data->ClipStartSeconds : 0.0) + 0.1;
 	int32 CandidateBeat =
 	    FMath::Max(0, FMath::CeilToInt((EarliestImpact - GetFirstBeatSourceSeconds()) / GetBeatPeriod()));
+	// 有小节内拍号要求时，继续向后寻找匹配拍号，不提前到请求之前
 	if (Data && Data->FirstImpactBeatInBar > 0)
 	{
 		constexpr int32 BeatsPerBar = 4;
@@ -1418,6 +1447,7 @@ int32 SBeatComboEditorWidget::GetSelectedBeat() const
 	return CandidateBeat;
 }
 
+// 从首击时间倒推动画开始时间
 double SBeatComboEditorWidget::GetMontageStartSourceSeconds() const
 {
 	const UAttackDataAsset* Data = AttackData.Get();
@@ -1429,6 +1459,7 @@ double SBeatComboEditorWidget::GetMontageStartSourceSeconds() const
 	       GetPreviewElapsedAtAnimationTime(Data->ClipStartSeconds);
 }
 
+// 按各段播放速度累加时长，并计入蓄力停顿
 double SBeatComboEditorWidget::GetPreviewElapsedAtAnimationTime(double AnimationTime) const
 {
 	const UAttackDataAsset* Data = AttackData.Get();
@@ -1457,12 +1488,14 @@ double SBeatComboEditorWidget::GetPreviewElapsedAtAnimationTime(double Animation
 	return Elapsed + FMath::Max(0.0, AnimationTime - Previous) / PreviewSegmentRates[Segment] + Hold;
 }
 
+// 修改临时攻击请求时间并刷新预览，不写入攻击资源
 void SBeatComboEditorWidget::PickRequestAtSourceSeconds(double SourceSeconds)
 {
 	PreviewRequestSourceSeconds = SourceSeconds;
 	RefreshTimeline();
 }
 
+// 读取攻击资源，绑定属性面板并重建预览控件
 void SBeatComboEditorWidget::SelectAsset(UAttackDataAsset* Asset)
 {
 	AttackData = Asset;
@@ -1482,6 +1515,7 @@ void SBeatComboEditorWidget::SelectAsset(UAttackDataAsset* Asset)
 	PreviewSegmentRates.SetNum(Asset->ImpactMarkers.Num() + 1);
 	for (int32 Index = 0; Index < PreviewSegmentRates.Num(); ++Index)
 	{
+		// 速度受上下限约束，超出范围时只能得到最接近的结果，不能保证完全对齐
 		PreviewSegmentRates[Index] = FMath::Clamp(
 		    Asset->SegmentPlayRates.IsValidIndex(Index) ? Asset->SegmentPlayRates[Index] : PreviewRate,
 		    MinimumRate, MaximumRate);
@@ -1498,16 +1532,19 @@ void SBeatComboEditorWidget::SelectAsset(UAttackDataAsset* Asset)
 	RefreshTimeline();
 }
 
+// 将资源选择器的结果交给 SelectAsset
 void SBeatComboEditorWidget::HandleAssetChanged(const FAssetData& AssetData)
 {
 	SelectAsset(Cast<UAttackDataAsset>(AssetData.GetAsset()));
 }
 
+// 返回当前选择的攻击资源路径
 FString SBeatComboEditorWidget::GetAssetPath() const
 {
 	return AttackData.IsValid() ? AttackData->GetPathName() : FString();
 }
 
+// 打开文件选择窗口，选择波形使用的 WAV
 FReply SBeatComboEditorWidget::BrowseWav()
 {
 	IDesktopPlatform* Desktop = FDesktopPlatformModule::Get();
@@ -1526,6 +1563,7 @@ FReply SBeatComboEditorWidget::BrowseWav()
 	return FReply::Handled();
 }
 
+// 加载当前音频路径并刷新波形
 FReply SBeatComboEditorWidget::LoadWav()
 {
 	const bool bLoaded = Waveform.Load(WavPath);
@@ -1535,6 +1573,7 @@ FReply SBeatComboEditorWidget::LoadWav()
 	return FReply::Handled();
 }
 
+// 尝试允许范围内的整体速度，选择各次命中拍点误差最小的结果
 FReply SBeatComboEditorWidget::AutoAlign()
 {
 	const UAttackDataAsset* Data = AttackData.Get();
@@ -1552,6 +1591,7 @@ FReply SBeatComboEditorWidget::AutoAlign()
 	const double Period = GetBeatPeriod();
 	double BestScore = TNumericLimits<double>::Max();
 	float BestRate = MinimumRate;
+	// 逐个尝试允许的整体播放速度，比较所有命中与目标拍点的偏差
 	for (float Rate = MinimumRate; Rate <= MaximumRate + 0.0005f; Rate += 0.001f)
 	{
 		double Score = 0.0;
@@ -1578,6 +1618,7 @@ FReply SBeatComboEditorWidget::AutoAlign()
 	return FReply::Handled();
 }
 
+// 按命中数量重建各段播放速度输入框
 void SBeatComboEditorWidget::RebuildSegmentControls()
 {
 	if (!SegmentsBox.IsValid())
@@ -1619,6 +1660,7 @@ void SBeatComboEditorWidget::RebuildSegmentControls()
 	}
 }
 
+// 资源属性变化后重建相关控件并更新预览
 void SBeatComboEditorWidget::OnAssetPropertiesChanged(const FPropertyChangedEvent& Event)
 {
 	const UAttackDataAsset* Data = AttackData.Get();
@@ -1636,6 +1678,7 @@ void SBeatComboEditorWidget::OnAssetPropertiesChanged(const FPropertyChangedEven
 	RefreshTimeline();
 }
 
+// 分别计算相邻命中间的速度，蓄力停顿先从可用时间中扣除
 FReply SBeatComboEditorWidget::AutoAlignSegments()
 {
 	const UAttackDataAsset* Data = AttackData.Get();
@@ -1673,6 +1716,7 @@ FReply SBeatComboEditorWidget::AutoAlignSegments()
 	return FReply::Handled();
 }
 
+// 恢复整段同速的预览配置
 FReply SBeatComboEditorWidget::ResetSegments()
 {
 	bUseSegmentRates = false;
@@ -1719,6 +1763,7 @@ FReply SBeatComboEditorWidget::SaveAsset()
 		return FReply::Handled();
 	}
 	Data->Modify();
+	// 只有预览速度等临时参数在这里写回，属性面板和指令控件已直接修改内存中的资源
 	Data->PlayRate = PreviewRate;
 	Data->SegmentPlayRates = bUseSegmentRates ? PreviewSegmentRates : TArray<float>();
 	Data->MusicSourceWavPath = WavPath;
@@ -1735,6 +1780,7 @@ FReply SBeatComboEditorWidget::SaveAsset()
 	return FReply::Handled();
 }
 
+// 汇总当前资源、拍点与播放速度的预览信息
 FText SBeatComboEditorWidget::GetSummary() const
 {
 	const UAttackDataAsset* Data = AttackData.Get();
@@ -1778,6 +1824,7 @@ FText SBeatComboEditorWidget::GetSummary() const
 	    bUseSegmentRates ? TEXT("逐击变速") : TEXT("整段同速"), MaxError * 1000.0, *Status, *TimingWarning));
 }
 
+// 通知时间轴重新绘制
 void SBeatComboEditorWidget::RefreshTimeline()
 {
 	if (Timeline.IsValid())

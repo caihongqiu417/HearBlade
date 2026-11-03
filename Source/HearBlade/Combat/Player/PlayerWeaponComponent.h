@@ -16,8 +16,11 @@ class HEARBLADE_API UPlayerWeaponComponent : public UActorComponent
     GENERATED_BODY()
 public:
     UPlayerWeaponComponent();
+    // 保存武器和战斗组件引用，重置握剑校准状态
     void Initialize(UStaticMeshComponent* Sword);
+    // 等待骨骼更新后对齐刀刃，并保存剑相对右手的旋转
     void Calibrate(float VerticalOffsetCm);
+    // 攻击防御时跟随手部姿态，移动时平滑朝向角色前方
     void UpdateDirection(float DeltaSeconds, float InterpSpeed);
 private:
     UPROPERTY(Transient) TObjectPtr<ACharacter> Character;

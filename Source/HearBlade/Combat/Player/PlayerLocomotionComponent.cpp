@@ -15,6 +15,7 @@ UPlayerLocomotionComponent::UPlayerLocomotionComponent()
     PrimaryComponentTick.bCanEverTick = false;
 }
 
+// 缓存角色、移动组件和行走资源，并读取动画参考速度
 void UPlayerLocomotionComponent::Initialize(UBlendSpace* Locomotion, UBlendSpace* Pursuit)
 {
     Character = Cast<ACharacter>(GetOwner());
@@ -26,6 +27,7 @@ void UPlayerLocomotionComponent::Initialize(UBlendSpace* Locomotion, UBlendSpace
     MeasureSpeeds();
 }
 
+// 从混合空间样本获取不同方向的动画移动速度
 void UPlayerLocomotionComponent::MeasureSpeeds()
 {
 	if (!KnightLocomotionBlendSpace)
@@ -124,6 +126,7 @@ float UPlayerLocomotionComponent::RadiusForSpeed(float Speed) const
 	                                              (FastAnimSpeed - RunAnimSpeed));
 }
 
+// 把混合空间半径转换为对应的参考移动速度
 float UPlayerLocomotionComponent::SpeedForRadius(float Radius) const
 {
 	if (Radius <= WalkRadius)
@@ -137,6 +140,7 @@ float UPlayerLocomotionComponent::SpeedForRadius(float Radius) const
 	                   (FMath::Min(Radius, FastRadius) - RunRadius) / (FastRadius - RunRadius));
 }
 
+// 结合移动方向和锁定状态，协调角色速度与八方向行走动画
 void UPlayerLocomotionComponent::Update(float DeltaSeconds, float LockedCombatWalkSpeed, float FreeRunSpeed)
 {
 	if (!Character || !Character->GetMesh() || !KnightLocomotionBlendSpace)

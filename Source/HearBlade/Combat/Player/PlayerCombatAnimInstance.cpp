@@ -102,6 +102,7 @@ UPlayerCombatAnimInstance::UPlayerCombatAnimInstance()
 	SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
 }
 
+// 记录受击方向和时间，启动方向姿态混合
 void UPlayerCombatAnimInstance::StartDirectionalHit(FVector2D ReactionDirection, float Duration)
 {
 	if (!GetWorld())
@@ -117,12 +118,14 @@ void UPlayerCombatAnimInstance::StartDirectionalHit(FVector2D ReactionDirection,
 	EndBeatAttack(BeatAttackMontage);
 }
 
+// 结束受击姿态，回到当前基础动作
 void UPlayerCombatAnimInstance::EndDirectionalHit()
 {
 	bDirectionalHitActive = false;
 	HitReactionEndWorldSeconds = -1.0;
 }
 
+// 创建并播放攻击蒙太奇，让攻击组件接管动画位置
 UAnimMontage* UPlayerCombatAnimInstance::BeginBeatAttack(UAnimSequence* Sequence, float StartPosition,
                                                          float BlendInSeconds)
 {
@@ -146,6 +149,7 @@ UAnimMontage* UPlayerCombatAnimInstance::BeginBeatAttack(UAnimSequence* Sequence
 	return BeatAttackMontage;
 }
 
+// 淡出指定攻击蒙太奇，释放攻击姿态
 void UPlayerCombatAnimInstance::EndBeatAttack(UAnimMontage* Montage, float BlendOutSeconds)
 {
 	if (Montage)
@@ -154,6 +158,7 @@ void UPlayerCombatAnimInstance::EndBeatAttack(UAnimMontage* Montage, float Blend
 		BeatAttackMontage = nullptr;
 }
 
+// 提前释放防御动作，平滑回到行走
 void UPlayerCombatAnimInstance::ReleaseCombatAction(float BlendOutSeconds)
 {
 	if (VisualAction)
@@ -162,16 +167,19 @@ void UPlayerCombatAnimInstance::ReleaseCombatAction(float BlendOutSeconds)
 	ReleaseAtWorldSeconds = -1.0;
 }
 
+// 创建行走、战斗动作槽与受击混合的原生动画图
 FAnimInstanceProxy* UPlayerCombatAnimInstance::CreateAnimInstanceProxy()
 {
 	return new FPlayerCombatAnimProxy(this);
 }
 
+// 释放原生动画图代理
 void UPlayerCombatAnimInstance::DestroyAnimInstanceProxy(FAnimInstanceProxy* Proxy)
 {
 	delete Proxy;
 }
 
+// 播放闪避或防御动作，设置循环和衔接时间
 void UPlayerCombatAnimInstance::PlayCombatAction(UAnimSequence* Sequence, bool bLooping, float Duration,
                                                  float ChainGrace)
 {
@@ -195,6 +203,7 @@ void UPlayerCombatAnimInstance::PlayCombatAction(UAnimSequence* Sequence, bool b
 	ReleaseAtWorldSeconds = bLooping ? -1.0 : GetWorld()->GetTimeSeconds() + ActualDuration + ChainGrace;
 }
 
+// 更新本帧移动参数和战斗姿态混合状态
 void UPlayerCombatAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);

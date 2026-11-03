@@ -15,6 +15,7 @@ class FHearBladeBeatEditorModule : public IModuleInterface
   public:
 	virtual void StartupModule() override
 	{
+		// 先注册窗口创建入口，菜单点击时再真正构建界面
 		FGlobalTabmanager::Get()
 		    ->RegisterNomadTabSpawner(TEXT("HearBladeBeatComboEditor"),
 			                          FOnSpawnTab::CreateRaw(this, &FHearBladeBeatEditorModule::SpawnTab))
@@ -22,6 +23,7 @@ class FHearBladeBeatEditorModule : public IModuleInterface
 		    .SetMenuType(ETabSpawnerMenuType::Hidden);
 		UToolMenus::RegisterStartupCallback(
 		    FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FHearBladeBeatEditorModule::RegisterMenu));
+		// 带有审查参数时自动打开窗口并截图，普通编辑器启动不会执行
 		if (FParse::Param(FCommandLine::Get(), TEXT("BeatEditorAudit")))
 			AuditStart = FTSTicker::GetCoreTicker().AddTicker(
 			    FTickerDelegate::CreateLambda(
@@ -57,6 +59,7 @@ class FHearBladeBeatEditorModule : public IModuleInterface
 
 	virtual void ShutdownModule() override
 	{
+		// 模块卸载前撤销延迟回调，避免关闭窗口后仍执行截图
 		FTSTicker::GetCoreTicker().RemoveTicker(AuditStart);
 		FTSTicker::GetCoreTicker().RemoveTicker(AuditCapture);
 		UToolMenus::UnRegisterStartupCallback(this);

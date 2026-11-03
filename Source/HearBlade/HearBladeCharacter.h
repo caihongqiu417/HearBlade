@@ -28,6 +28,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
  * 组装角色组件，提供移动、视角和闪避入口
  * 按键解析由输入组件处理，战斗判定由各战斗组件处理
  */
+// 创建并连接输入、移动、武器和战斗组件
+// 角色保留移动与镜头入口，具体玩法交给对应组件
 UCLASS(abstract)
 
 class AHearBladeCharacter : public ACharacter
@@ -85,7 +87,9 @@ class AHearBladeCharacter : public ACharacter
   public:
 	/** 创建角色组件 */
 	AHearBladeCharacter();
+	// 依次更新持续输入、角色朝向、行走姿态和握剑方向
 	virtual void Tick(float DeltaSeconds) override;
+	// 初始化武器与移动组件，建立角色表现所需引用
 	virtual void BeginPlay() override;
 
 	// 命中检测前同步剑的朝向，避免使用上一帧的姿态
@@ -97,7 +101,9 @@ class AHearBladeCharacter : public ACharacter
   protected:
 	/** 将角色当前的输入组件交给 PlayerInput */
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+    // 失去控制时解除输入，避免旧按键状态残留
     virtual void UnPossessed() override;
+    // 控制器同步变化后检查并清理输入状态
     virtual void OnRep_Controller() override;
 
   public:
@@ -130,13 +136,17 @@ class AHearBladeCharacter : public ACharacter
 		return FollowCamera;
 	}
 
+	// 将移动意图交给战斗组件作为闪避方向
 	UFUNCTION(BlueprintCallable, Category = "Combat") void DoDodge();
 	// 取得按镜头朝向换算的移动意图，动作期间也保留输入方向
 	FVector GetWorldMoveIntent() const;
   private:
 	FVector2D CurrentMoveInput = FVector2D::ZeroVector;
+	// 将移动与行走动画更新交给移动组件
 	void UpdateKnightLocomotion(float DeltaSeconds);
+	// 战斗锁定时按当前动作调整角色朝向
 	void UpdateCombatFacing(float DeltaSeconds);
+	// 将握剑方向更新交给武器组件
 	void UpdateSwordDirection(float DeltaSeconds);
 	void CalibrateSwordGrip();
 	UPROPERTY(EditAnywhere, Category = "装备|武器", meta = (ClampMin = "-20.0", ClampMax = "20.0"))

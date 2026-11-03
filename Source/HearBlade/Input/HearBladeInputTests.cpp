@@ -1,3 +1,4 @@
+// 验证重复绑定、失去控制和重新控制时的输入生命周期
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
 #include "Misc/ScopeExit.h"
@@ -15,6 +16,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FHearBladeInputLifecycleTest, "HearBlade.Input.
 
 bool FHearBladeInputLifecycleTest::RunTest(const FString&)
 {
+    // 使用独立世界创建正式角色蓝图，测试结束时统一销毁
     UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
     ON_SCOPE_EXIT { World->EndPlay(EEndPlayReason::Quit); World->DestroyWorld(false); };
     UClass* Type = LoadClass<AHearBladeCharacter>(nullptr,

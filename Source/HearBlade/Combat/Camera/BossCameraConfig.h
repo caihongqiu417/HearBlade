@@ -4,6 +4,7 @@
 #include "Engine/DataAsset.h"
 #include "BossCameraConfig.generated.h"
 
+// 保存锁定、构图和战斗镜头反馈参数，供镜头组件读取
 UCLASS(BlueprintType)
 
 class HEARBLADE_API UBossCameraConfig : public UDataAsset
@@ -31,6 +32,7 @@ class HEARBLADE_API UBossCameraConfig : public UDataAsset
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Framing") float CloseRangeFOV = 90.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Framing") float BossFocusWeight = 0.52f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Framing") float MaxCloseRangeUpwardPitch = 6.f;
+	// 瞬移与命中的镜头反馈，时长为秒，视角变化为度
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Feedback") float BlinkFOVKick = 8.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Feedback") float BlinkPushSeconds = 0.08f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Feedback") float BlinkHoldSeconds = 0.05f;

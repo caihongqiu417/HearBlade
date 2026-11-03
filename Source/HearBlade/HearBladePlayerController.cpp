@@ -8,6 +8,7 @@
 #include "HearBlade.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 
+// 为本地玩家添加输入映射
 void AHearBladePlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
@@ -36,6 +37,7 @@ void AHearBladePlayerController::SetupInputComponent()
 	}
 }
 
+// 根据平台和配置决定是否显示触屏操作
 bool AHearBladePlayerController::ShouldUseTouchControls() const
 {
 	// 移动平台或强制触控配置决定是否显示触控界面

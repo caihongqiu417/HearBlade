@@ -10,6 +10,7 @@ UPlayerWeaponComponent::UPlayerWeaponComponent()
     PrimaryComponentTick.bCanEverTick = false;
 }
 
+// 保存武器和战斗组件引用，重置握剑校准状态
 void UPlayerWeaponComponent::Initialize(UStaticMeshComponent* Sword)
 {
     Character = Cast<ACharacter>(GetOwner());
@@ -21,6 +22,7 @@ void UPlayerWeaponComponent::Initialize(UStaticMeshComponent* Sword)
     SwordGripRotationOffset = FQuat::Identity;
 }
 
+// 攻击防御时跟随手部姿态，移动时平滑朝向角色前方
 void UPlayerWeaponComponent::UpdateDirection(float DeltaSeconds, float SwordDirectionInterpSpeed)
 {
 	if (!Character || !bSwordGripCalibrated || !EquippedSword)
@@ -60,6 +62,7 @@ void UPlayerWeaponComponent::UpdateDirection(float DeltaSeconds, float SwordDire
 	EquippedSword->SetWorldRotation(FQuat::Slerp(CurrentRotation, TargetRotation, Alpha).GetNormalized());
 }
 
+// 等待骨骼更新后对齐刀刃，并保存剑相对右手的旋转
 void UPlayerWeaponComponent::Calibrate(float SwordGripVerticalOffsetCm)
 {
 	// 等待前两次骨骼更新，再校准一次握持角度

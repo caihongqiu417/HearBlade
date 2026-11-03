@@ -1,22 +1,21 @@
 // 提供攻击数据运行测试的场景对象
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Test/AttackDataTestActor.h"
 
-// Sets default values
+// 初始化测试对象
 AAttackDataTestActor::AAttackDataTestActor()
 {
-	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// 开启测试对象的逐帧更新
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-// Called when the game starts or when spawned
+// 测试对象进入关卡时调用
 void AAttackDataTestActor::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
-// Called every frame
+// 测试对象每帧更新
 void AAttackDataTestActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);

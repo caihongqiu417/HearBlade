@@ -5,6 +5,7 @@
 #include "Animation/AnimData/IAnimationDataModel.h"
 #include "Animation/AnimData/IAnimationDataController.h"
 
+// 保留动画旋转，将非根骨骼平移校正为参考骨架长度
 bool UBossBlendSpaceTools::NormalizePlayerAttackBoneLengths(UAnimSequence* Sequence)
 {
 	// 只修改项目中的播放副本，保留源动画库

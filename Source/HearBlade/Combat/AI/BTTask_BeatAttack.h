@@ -34,7 +34,7 @@ class HEARBLADE_API UBTTask_BeatAttack : public UBTTaskNode
 	UPROPERTY(EditAnywhere, Category = "节拍攻击", meta = (ClampMin = "0.0"))
 	float ActivationRange = 1500.0f;
 
-	// Desired spacing while circling the player. The attack can start after a short orbit.
+	// 绕行时希望保持的距离，短暂绕行后允许发起攻击
 	UPROPERTY(EditAnywhere, Category = "节拍攻击|环绕",
 	          meta = (ClampMin = "100.0", DisplayName = "环绕半径（厘米）"))
 	float ApproachStopDistance = 400.0f;
@@ -50,17 +50,17 @@ class HEARBLADE_API UBTTask_BeatAttack : public UBTTaskNode
 	          meta = (ClampMin = "50.0", DisplayName = "动画参考步速"))
 	float AnimationReferenceSpeed = 160.0f;
 
-	// Complete one walking animation cycle over this many music beats.
+	// 一个行走动画循环对应的音乐拍数
 	UPROPERTY(EditAnywhere, Category = "节拍攻击|漫步节奏",
 	          meta = (ClampMin = "1.0", DisplayName = "走路循环拍数"))
 	float WalkCycleBeats = 2.0f;
 
-	// Small continuous speed accent around each beat; 0 disables the pulse.
+	// 拍点附近的速度起伏强度，设为零则关闭
 	UPROPERTY(EditAnywhere, Category = "节拍攻击|漫步节奏",
 	          meta = (ClampMin = "0.0", ClampMax = "0.3", DisplayName = "步速拍点重音"))
 	float WalkBeatAccentStrength = 0.16f;
 
-	// Don't launch a fresh combo immediately after the last one; show the circling first.
+	// 两套连招之间先保留一段绕行时间
 	UPROPERTY(EditAnywhere, Category = "节拍攻击|环绕",
 	          meta = (ClampMin = "0.0", DisplayName = "攻击前最短环绕时间"))
 	float MinimumOrbitSeconds = 0.15f;
@@ -85,10 +85,13 @@ class HEARBLADE_API UBTTask_BeatAttack : public UBTTaskNode
 	FBlackboardKeySelector BossActorKey;
 
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	// 等待已安排的攻击执行，期间更新移动并检查任务是否结束
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	// 行为树中止任务时取消连招，避免攻击脱离任务继续执行
 	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
   private:
+	// 根据与玩家的距离调整靠近和绕行，并更新行走动画
 	float UpdateOrbitMovement(UBeatSyncedComboComponent* Combo, AActor* Boss, const APawn* Player,
 	                          const UBeatClockSubsystem* Clock, float DeltaSeconds);
 	bool bAttackStarted = false;

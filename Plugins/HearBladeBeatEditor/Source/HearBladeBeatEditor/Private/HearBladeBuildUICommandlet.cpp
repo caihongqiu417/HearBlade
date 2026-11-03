@@ -1,4 +1,4 @@
-// 仅供首次创建界面资产的编辑器工具，已有资产时拒绝覆盖，运行游戏时不会重新生成布局
+// 创建界面蓝图或通过 RestoreStyle 恢复原版样式，运行游戏时不生成布局
 // 创建初始控件布局并连接蓝图事件，编译后保存为可在设计器中编辑的资源
 #include "HearBladeBuildUICommandlet.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -22,6 +22,8 @@
 #include "WidgetBlueprint.h"
 #include "WidgetBlueprintFactory.h"
 
+int32 RestoreHearBladeUI();
+
 UHearBladeBuildUICommandlet::UHearBladeBuildUICommandlet()
 {
 	IsClient = false;
@@ -30,9 +32,12 @@ UHearBladeBuildUICommandlet::UHearBladeBuildUICommandlet()
 	LogToConsole = true;
 }
 
+// 默认仅创建新蓝图，RestoreStyle 分支更新现有蓝图的原版布局
 int32 UHearBladeBuildUICommandlet::Main(const FString& Params)
 {
+	if (Params.Contains(TEXT("RestoreStyle"))) return RestoreHearBladeUI();
 	const FString PackageName = TEXT("/Game/UI/MVC/WBP_RhythmCombatHUD");
+	// 已有蓝图可能包含人工布局，检测到后立即退出，不重建控件树
 	if (LoadObject<UWidgetBlueprint>(nullptr, *(PackageName + TEXT(".WBP_RhythmCombatHUD"))))
 	{
 		UE_LOG(LogTemp, Error,
@@ -50,6 +55,7 @@ int32 UHearBladeBuildUICommandlet::Main(const FString& Params)
 	auto* Tree = BP->WidgetTree.Get();
 	auto* Root = Tree->ConstructWidget<UCanvasPanel>(UCanvasPanel::StaticClass(), TEXT("Root"));
 	Tree->RootWidget = Root;
+	// 统一设置控件锚点、位置和尺寸，下面各类控件复用同一套布局方式
 	auto Slot = [](UCanvasPanel* Parent, UWidget* W, FVector2D Pos, FVector2D Size,
 	               FVector2D Anchor = FVector2D::ZeroVector, FVector2D Align = FVector2D::ZeroVector)
 	{
@@ -250,6 +256,7 @@ int32 UHearBladeBuildUICommandlet::Main(const FString& Params)
 	if (!Schema->TryCreateConnection(Event->FindPin(UEdGraphSchema_K2::PN_Then), Call->GetExecPin()))
 		return 3;
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(BP);
+	// 先编译检查蓝图连接，失败时不保存半成品
 	FKismetEditorUtilities::CompileBlueprint(BP);
 	if (BP->Status == BS_Error || !BP->GeneratedClass)
 	{

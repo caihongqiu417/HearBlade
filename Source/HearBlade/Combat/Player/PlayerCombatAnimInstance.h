@@ -4,8 +4,8 @@
 #include "Animation/AnimInstance.h"
 #include "PlayerCombatAnimInstance.generated.h"
 
-// Persistent locomotion + one full-body slot. Input timing remains owned by
-// PlayerRhythmCombatComponent; montage blending is presentation only.
+// 行走与全身动作槽统一混合，输入判定仍由战斗组件负责
+
 UCLASS(Transient)
 
 class HEARBLADE_API UPlayerCombatAnimInstance : public UAnimInstance
@@ -21,23 +21,28 @@ class HEARBLADE_API UPlayerCombatAnimInstance : public UAnimInstance
 	UPROPERTY(Transient) TObjectPtr<class UBlendSpace> Locomotion;
 	UPROPERTY(Transient) TObjectPtr<class UBlendSpace> DirectionalHit;
 	FVector LocomotionPosition = FVector::ZeroVector;
-	// Runtime values consumed by the native animation graph. The beat pose is
-	// deliberately presentation-only: it never moves the capsule or changes
-	// CharacterMovement speed.
+	// 节拍姿态只改变动画显示，不移动胶囊或修改角色移动速度
+
+
 	float LocomotionPlayRate = 1.0f;
-	// Set by the character each frame: actual speed / authored speed of the pose.
+	// 角色每帧传入实际速度与动画参考速度的比例
 	float SpeedMatchPlayRate = 1.0f;
 	float BeatPoseAlpha = 0.0f;
 	FVector BeatPelvisTranslation = FVector::ZeroVector;
 	FRotator BeatSpineRotation = FRotator::ZeroRotator;
+	// 播放闪避或防御动作，设置循环和衔接时间
 	void PlayCombatAction(class UAnimSequence* Sequence, bool bLooping, float Duration,
 	                      float ChainGrace = .10f);
+	// 创建并播放攻击蒙太奇，让攻击组件接管动画位置
 	class UAnimMontage* BeginBeatAttack(class UAnimSequence* Sequence, float StartPosition,
 	                                    float BlendInSeconds = .10f);
+	// 淡出指定攻击蒙太奇，释放攻击姿态
 	void EndBeatAttack(class UAnimMontage* Montage, float BlendOutSeconds = .08f);
-	// Hand a defense/dodge clip back to locomotion early (e.g. dodge cancelled into a run).
+	// 提前淡出防御或闪避动作，回到行走姿态
 	void ReleaseCombatAction(float BlendOutSeconds);
+	// 记录受击方向和时间，启动方向姿态混合
 	void StartDirectionalHit(FVector2D ReactionDirection, float Duration);
+	// 结束受击姿态，回到当前基础动作
 	void EndDirectionalHit();
 
 	bool IsDirectionalHitActive() const
@@ -45,10 +50,13 @@ class HEARBLADE_API UPlayerCombatAnimInstance : public UAnimInstance
 		return bDirectionalHitActive;
 	}
 
+	// 更新本帧移动参数和战斗姿态混合状态
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
   protected:
+	// 创建行走、战斗动作槽与受击混合的原生动画图
 	virtual FAnimInstanceProxy* CreateAnimInstanceProxy() override;
+	// 释放原生动画图代理
 	virtual void DestroyAnimInstanceProxy(FAnimInstanceProxy* InProxy) override;
 
   private:

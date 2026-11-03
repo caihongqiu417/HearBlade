@@ -84,16 +84,19 @@ UBossLocomotionAnimInstance::UBossLocomotionAnimInstance()
 	SetRootMotionMode(ERootMotionMode::IgnoreRootMotion);
 }
 
+// 创建原生动画图，连接行走、攻击与受击姿态
 FAnimInstanceProxy* UBossLocomotionAnimInstance::CreateAnimInstanceProxy()
 {
 	return new FBossCombatAnimProxy(this);
 }
 
+// 释放原生动画图代理
 void UBossLocomotionAnimInstance::DestroyAnimInstanceProxy(FAnimInstanceProxy* Proxy)
 {
 	delete Proxy;
 }
 
+// 保存受击方向与时长，开始混合受击姿态
 void UBossLocomotionAnimInstance::StartDirectionalHit(const FVector2D& InDirection, float Duration)
 {
 	if (!GetWorld() || !DirectionalHit)
@@ -108,12 +111,14 @@ void UBossLocomotionAnimInstance::StartDirectionalHit(const FVector2D& InDirecti
 	Montage_Stop(0.045f);
 }
 
+// 结束方向受击，让姿态回到基础动作
 void UBossLocomotionAnimInstance::EndDirectionalHit()
 {
 	bDirectionalHitActive = false;
 	HitReactionEndWorldSeconds = -1.0;
 }
 
+// 更新行走与受击混合使用的参数
 void UBossLocomotionAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
@@ -131,6 +136,7 @@ void UBossLocomotionAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	                                 bDirectionalHitActive ? 38.0f : 10.0f);
 }
 
+// 触发不打断整套攻击的轻微护甲受击姿态
 void UBossLocomotionAnimInstance::PlayArmorFlinch(FVector2D Direction, float Strength)
 {
 	ArmorFlinchStart = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.;

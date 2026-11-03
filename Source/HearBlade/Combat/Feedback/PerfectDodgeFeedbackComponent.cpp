@@ -30,17 +30,18 @@ UPerfectDodgeFeedbackComponent::UPerfectDodgeFeedbackComponent()
 		Config = ConfigAsset.Object;
 }
 
+// 绑定防御结果事件并预先创建可复用残影
 void UPerfectDodgeFeedbackComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	EnsureGhostPool(); // pay the mesh setup cost at load, not mid-dodge
+	EnsureGhostPool(); // 开始游戏时准备残影网格，避免闪避发生时临时创建造成卡顿
 	auto LoadHit = [](const TCHAR* Name)
 	{
 		return LoadObject<USoundBase>(nullptr,
 		                              *FString::Printf(TEXT("/Game/Audio/SFX/HitRush/%s.%s"), Name, Name));
 	};
 	DodgeHitSound =
-	    LoadHit(TEXT("SW_HitRush_Light1")); // for now: the attack punch (SW_HitRush_Dodge kept for later)
+	    LoadHit(TEXT("SW_HitRush_Light1")); // 当前复用攻击命中音效
 	BlockHitSound = LoadHit(TEXT("SW_HitRush_Block"));
 	CounterHitSound = LoadHit(TEXT("SW_HitRush_Counter"));
 	HoldHitSound = LoadHit(TEXT("SW_HitRush_HoldHit"));
@@ -59,6 +60,7 @@ void UPerfectDodgeFeedbackComponent::BeginPlay()
 	}
 }
 
+// 补齐残影对象池，后续闪避直接复用
 void UPerfectDodgeFeedbackComponent::EnsureGhostPool()
 {
 	if (GhostPool.Num() > 0 || !Config || !Config->GhostMaterial || !GetOwner() || !GetWorld())
@@ -83,6 +85,7 @@ void UPerfectDodgeFeedbackComponent::EnsureGhostPool()
 	}
 }
 
+// 解除反馈事件，恢复屏幕状态并清理临时效果
 void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (UPlayerRhythmCombatComponent* Combat =
@@ -101,12 +104,13 @@ void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayR
 	Super::EndPlay(EndPlayReason);
 }
 
+// 按防御方式和评级选择声音、残影与镜头反馈
 void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFeedbackData& Feedback)
 {
 	if (!Config || !GetOwner())
 		return;
 	if (Feedback.bPlayerAttack)
-		return; // Attacks own their lighter, high-frequency feedback.
+		return; // 普通攻击由攻击组件处理自己的反馈
 	if (Feedback.bSuccess)
 	{
 		const bool bTierUp = Feedback.FeedbackTier >
@@ -127,13 +131,13 @@ void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFe
 			break;
 		default:
 			Punch = BlockHitSound;
-			break; // Block, DodgeOrBlock
+			break; // 普通格挡或允许闪避的格挡
 		}
 		const float Pitch = 1.f + .03f * FMath::Clamp(Feedback.FeedbackTier, 0, 3);
 		if (Punch)
 			UGameplayStatics::PlaySound2D(this, Punch, Feedback.bPerfect ? .78f : .62f, Pitch);
 		// 额外评级提示音已关闭，避免与战斗节拍混淆
-		if (false) // judgment stings disabled (see above)
+		if (false) // 此处不叠加评级提示音
 		{
 			USoundBase* Sound = bTierUp             ? Config->TierUpSound.Get()
 			                    : Feedback.bPerfect ? Config->PerfectSound.Get()
@@ -202,6 +206,7 @@ void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFe
 	PlayPerfectFeedback(Perfect, TierScale, Feedback.bKeyPerfect, Feedback.Response);
 }
 
+// 播放共鸣攻击对应的反馈
 void UPerfectDodgeFeedbackComponent::PlayResonanceAttack(bool bBurst)
 {
 	if (!Config || !GetOwner())
@@ -219,12 +224,14 @@ void UPerfectDodgeFeedbackComponent::PlayResonanceAttack(bool bBurst)
 	PlayPerfectFeedback(Data, 1.2f, false);
 }
 
+// 组合声音、残影、光环和镜头，应用反馈强度与显示配置
 void UPerfectDodgeFeedbackComponent::PlayPerfectFeedback(const FPerfectDodgeFeedbackData& Feedback,
                                                          float TierScale, bool bKeyPerfect,
                                                          ERhythmResponseType Response)
 {
 	if (!Config || !GetWorld())
 		return;
+	// 清掉上一轮残影和光环，避免连续完美判定累积过多效果
 	ClearTransientVisuals();
 	ActiveStrength =
 	    FMath::Min(1.65f, TierScale * (Feedback.bStrongBeat ? Config->StrongBeatMultiplier : 1.0f));
@@ -242,6 +249,7 @@ void UPerfectDodgeFeedbackComponent::PlayPerfectFeedback(const FPerfectDodgeFeed
 		PostProcessMID->SetScalarParameterValue(TEXT("DesaturationAmount"),
 		                                        Feedback.bStrongBeat ? .42f : .30f);
 	}
+	// 强拍额外延迟生成第二道光环，残影使用同一轮强度
 	SpawnRing(Feedback, 0.0f);
 	if (Feedback.bStrongBeat)
 		SpawnRing(Feedback, ActiveDuration * .5f);
@@ -251,6 +259,7 @@ void UPerfectDodgeFeedbackComponent::PlayPerfectFeedback(const FPerfectDodgeFeed
 	if (Config->RingParticles)
 		SpawnStandalonePerfectSparks(GetWorld(), Config->RingParticles, Feedback.BladeWorldLocation,
 		                             Feedback.AttackDirection.Rotation(), ActiveStrength);
+	// 镜头反馈遵守关闭震动配置，再按实际防御方式选择表现
 	if (Config->Accessibility != EPerfectDodgeAccessibility::NoCameraShake)
 		if (UBossCombatCameraComponent* Camera =
 		        GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
@@ -273,6 +282,7 @@ void UPerfectDodgeFeedbackComponent::PlayPerfectFeedback(const FPerfectDodgeFeed
 	       ActiveStrength);
 }
 
+// 保存屏幕效果原值并启动短暂冲击帧
 void UPerfectDodgeFeedbackComponent::StartImpactFrame()
 {
 	if (!Config || !GetWorld() || Config->Accessibility != EPerfectDodgeAccessibility::Full ||
@@ -300,6 +310,7 @@ void UPerfectDodgeFeedbackComponent::StartImpactFrame()
 	ImpactFrameEndWorldSeconds = Now + Config->ImpactFrameSeconds;
 }
 
+// 恢复冲击帧修改的屏幕效果
 void UPerfectDodgeFeedbackComponent::RestoreImpactFrame()
 {
 	if (!bImpactFrameActive)
@@ -318,6 +329,7 @@ void UPerfectDodgeFeedbackComponent::RestoreImpactFrame()
 	bImpactFrameActive = false;
 }
 
+// 按配置和延迟生成扩散光环
 void UPerfectDodgeFeedbackComponent::SpawnRing(const FPerfectDodgeFeedbackData& Feedback, float DelaySeconds)
 {
 	if (!Config->RingMaterial || !GetWorld())
@@ -349,6 +361,7 @@ void UPerfectDodgeFeedbackComponent::SpawnRing(const FPerfectDodgeFeedbackData& 
 	Rings.Add({Ring, MID, EffectStartWorldSeconds + DelaySeconds});
 }
 
+// 从对象池取出残影，复制角色当前姿态
 void UPerfectDodgeFeedbackComponent::SpawnGhosts(float Strength)
 {
 	if (!Config->GhostMaterial || !GetOwner() || !GetWorld())
@@ -381,6 +394,7 @@ void UPerfectDodgeFeedbackComponent::SpawnGhosts(float Strength)
 	}
 }
 
+// 更新残影淡出、冲击帧恢复和持续格挡外壳
 void UPerfectDodgeFeedbackComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                                    FActorComponentTickFunction* ThisTickFunction)
 {
@@ -439,6 +453,7 @@ void UPerfectDodgeFeedbackComponent::TickComponent(float DeltaTime, ELevelTick T
 	}
 }
 
+// 为身体和披风准备持续格挡外壳
 void UPerfectDodgeFeedbackComponent::CreateHoldArmorVisual()
 {
 	if (HoldArmorVisuals.Num() > 0 || !Config || !GetOwner() || !GetWorld())
@@ -486,6 +501,7 @@ void UPerfectDodgeFeedbackComponent::CreateHoldArmorVisual()
 	UE_LOG(LogTemp, Display, TEXT("HoldArmorVisual: activated shells=%d"), HoldArmorVisuals.Num());
 }
 
+// 销毁持续格挡外壳并清空引用
 void UPerfectDodgeFeedbackComponent::DestroyHoldArmorVisual()
 {
 	for (FHoldArmorVisual& Visual : HoldArmorVisuals)
@@ -501,11 +517,13 @@ void UPerfectDodgeFeedbackComponent::DestroyHoldArmorVisual()
 	bHoldArmorWasActive = false;
 }
 
+// 跟随角色姿态更新外壳，并按拍点和接触调整亮度
 void UPerfectDodgeFeedbackComponent::UpdateHoldArmorVisual(float DeltaTime)
 {
 	const UPlayerRhythmCombatComponent* Combat =
 	    GetOwner() ? GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr;
 	const bool bShouldBeActive = Combat && Combat->IsSustainedHoldActive();
+	// 持续格挡结束就销毁外壳，不能只靠按键曾经按下过来维持显示
 	if (!bShouldBeActive)
 	{
 		DestroyHoldArmorVisual();
@@ -528,6 +546,7 @@ void UPerfectDodgeFeedbackComponent::UpdateHoldArmorVisual(float DeltaTime)
 		const int32 BeatIndex = FMath::RoundToInt(Beat);
 		bStrongBeat = Clock->GetBeatsPerBar() > 0 && BeatIndex % Clock->GetBeatsPerBar() == 0;
 	}
+	// 音乐拍点起伏与最近一次接触闪光分开计算，再叠加到外壳透明度和发光
 	const float ImpactAge = static_cast<float>(GetWorld()->GetTimeSeconds() - HoldArmorImpactWorldSeconds);
 	const float ImpactPulse =
 	    Config->HoldArmorImpactSeconds > KINDA_SMALL_NUMBER
@@ -556,11 +575,12 @@ void UPerfectDodgeFeedbackComponent::UpdateHoldArmorVisual(float DeltaTime)
 	}
 }
 
+// 清理残影与光环等临时显示
 void UPerfectDodgeFeedbackComponent::ClearTransientVisuals()
 {
 	for (FGhostVisual& Visual : Ghosts)
 		if (Visual.Mesh.IsValid())
-			Visual.Mesh->SetVisibility(false); // pooled
+			Visual.Mesh->SetVisibility(false); // 归还残影供下次使用
 	for (FRingVisual& Visual : Rings)
 		if (Visual.Mesh.IsValid())
 			Visual.Mesh->DestroyComponent();

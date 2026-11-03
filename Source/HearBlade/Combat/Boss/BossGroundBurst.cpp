@@ -9,6 +9,7 @@
 #include "Misc/CommandLine.h"
 #include "Components/BoxComponent.h"
 
+// 判断是否处于范围攻击后的追击机会
 bool UBeatSyncedComboComponent::IsGroundBurstRecovery() const
 {
 	const auto* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
@@ -16,6 +17,7 @@ bool UBeatSyncedComboComponent::IsGroundBurstRecovery() const
 	       Clock->GetAudioNowSeconds() < GroundBurstRecoveryEndAudio;
 }
 
+// 返回范围爆发前的剩余拍数，未预警时返回无效值
 float UBeatSyncedComboComponent::GetGroundBurstRemainingBeats() const
 {
 	const auto* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
@@ -150,6 +152,7 @@ bool UBeatSyncedComboComponent::HasSafeAreaExit(const FVector& Center, float Rad
 	return false;
 }
 
+// 清除危险圈与本次范围攻击状态
 void UBeatSyncedComboComponent::ClearGroundBurst()
 {
 	GroundBurstImpact = INDEX_NONE;
@@ -161,6 +164,7 @@ void UBeatSyncedComboComponent::ClearGroundBurst()
 	bGroundBurstHarmless = false;
 }
 
+// 提供危险圈的位置、半径和预警进度
 bool UBeatSyncedComboComponent::GetGroundBurstPreview(FVector& Center, float& Radius, float& Progress) const
 {
 	if (GroundBurstImpact == INDEX_NONE || bGroundBurstResolved || !AttackData)
@@ -176,6 +180,7 @@ bool UBeatSyncedComboComponent::GetGroundBurstPreview(FVector& Center, float& Ra
 	return true;
 }
 
+// 按攻击时间更新危险圈预警和爆发状态
 void UBeatSyncedComboComponent::UpdateGroundBurst(double AudioNow)
 {
 	if (!AttackData || !AttackTarget.IsValid())
@@ -318,6 +323,7 @@ void UBeatSyncedComboComponent::UpdateGroundBurst(double AudioNow)
 	}
 }
 
+// 结算范围内玩家的伤害或踩拍闪避，并处理攻击后的破绽
 void UBeatSyncedComboComponent::ResolveGroundBurst(int32 ImpactIndex, double AudioNow)
 {
 	if (GroundBurstImpact != ImpactIndex || bGroundBurstResolved || !AttackTarget.IsValid())

@@ -1,8 +1,8 @@
 // 保存攻击片段和命中标记，并在动画时间与实际播放时间之间转换
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Combat/Data/AttackData.h"
 
+// 返回有效动画片段终点，未配置终点时使用蒙太奇长度
 float UAttackDataAsset::GetClipEndSeconds() const
 {
 	if (!AttackMontage)
@@ -24,6 +24,7 @@ float UAttackDataAsset::GetRateAtAnimationTime(float AnimationTime) const
 	return FMath::Max(0.01f, SegmentPlayRates.IsValidIndex(Segment) ? SegmentPlayRates[Segment] : PlayRate);
 }
 
+// 把动画位置换成实际播放时长，并计入蓄力停顿
 float UAttackDataAsset::GetElapsedAtAnimationTime(float AnimationTime) const
 {
 	return GetMotionElapsedAtAnimationTime(AnimationTime) +

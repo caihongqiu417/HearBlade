@@ -4,6 +4,8 @@
 #include "Camera/CameraModifier.h"
 #include "BossCameraModifier.generated.h"
 
+// 把冲击、震动和临时特写应用到最终镜头
+// 反馈参数由战斗镜头组件更新
 UCLASS()
 
 class HEARBLADE_API UBossCameraModifier : public UCameraModifier
@@ -23,15 +25,15 @@ class HEARBLADE_API UBossCameraModifier : public UCameraModifier
 	float PitchKick = 0.f;
 	float SideSign = 1.f;
 	float ReboundStrength = 0.f;
-	float RollKick = 0.f; // Dutch-angle accent (kick finisher only).
+	float RollKick = 0.f; // 踢击收尾时的镜头侧倾
 	float HoldShake = 0.f;
 	float HoldShakeTarget = 0.f;
 	float HoldShakeInterpSpeed = 40.f;
 	float HoldImpact = 0.f;
 	float HoldImpactElapsed = 1.f;
 	float HoldImpactDuration = .06f;
-	// Cinematic shot override, blended by ShotWeight (driven by the combat camera
-	// component every frame): the launcher's side close-up.
+	// 挑飞特写覆盖普通镜头位置，战斗镜头组件每帧更新混合权重
+
 	float ShotWeight = 0.f;
 	FVector ShotLocation = FVector::ZeroVector;
 	FRotator ShotRotation = FRotator::ZeroRotator;
@@ -88,10 +90,14 @@ class HEARBLADE_API UBossCameraModifier : public UCameraModifier
 		HoldImpactElapsed = 1.f;
 	}
 
+	// 把镜头冲击、震动和特写混合到本帧视角
 	virtual bool ModifyCamera(float DeltaTime, FMinimalViewInfo& InOutPOV) override;
 
   private:
+	// 计算镜头冲击随时间衰减的强度
 	float GetEnvelope() const;
+	// 计算冲击后的回弹强度
 	float GetReboundEnvelope() const;
+	// 计算当前镜头震动的衰减强度
 	float GetShakeEnvelope() const;
 };

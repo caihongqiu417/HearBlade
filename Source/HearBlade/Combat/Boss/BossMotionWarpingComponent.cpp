@@ -4,6 +4,7 @@
 #include "Animation/AnimMontage.h"
 #include "Components/SkeletalMeshComponent.h"
 
+// 向动作对齐适配器提供 Boss 与骨骼网格
 void UBossMotionWarpingAdapter::SetBoss(AActor* InBoss, USkeletalMeshComponent* InMesh)
 {
 	Boss = InBoss;
@@ -20,11 +21,13 @@ USkeletalMeshComponent* UBossMotionWarpingAdapter::GetMesh() const
 	return Mesh.Get();
 }
 
+// 返回网格根部位置，作为动作对齐的视觉参考
 FVector UBossMotionWarpingAdapter::GetVisualRootLocation() const
 {
 	return IsValid(Boss.Get()) ? Boss->GetActorLocation() : FVector::ZeroVector;
 }
 
+// 提供网格相对角色的基础位置偏移
 FVector UBossMotionWarpingAdapter::GetBaseVisualTranslationOffset() const
 {
 	return IsValid(Boss.Get()) && IsValid(Mesh.Get())
@@ -32,6 +35,7 @@ FVector UBossMotionWarpingAdapter::GetBaseVisualTranslationOffset() const
 			   : FVector::ZeroVector;
 }
 
+// 提供网格相对角色的基础旋转偏移
 FQuat UBossMotionWarpingAdapter::GetBaseVisualRotationOffset() const
 {
 	return IsValid(Boss.Get()) && IsValid(Mesh.Get())
@@ -39,6 +43,7 @@ FQuat UBossMotionWarpingAdapter::GetBaseVisualRotationOffset() const
 			   : FQuat::Identity;
 }
 
+// 把动画根位移交给动作对齐处理，返回修正后的位移
 FTransform UBossMotionWarpingComponent::WarpRootMotion(const FTransform& LocalDelta, float DeltaSeconds,
                                                        const UAnimMontage* Montage, float PreviousPosition,
                                                        float CurrentPosition, float PlayRate)

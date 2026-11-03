@@ -1,6 +1,7 @@
 // 根据主角攻击结果更新连击、共鸣和成功反馈
 #include "Combat/Player/PlayerRhythmCombatComponent.h"
 
+// 根据玩家攻击评级增加共鸣，并记录本次收益
 void UPlayerRhythmCombatComponent::AwardPlayerAttack(bool bPerfect, float BaseGain)
 {
 	if (Health <= 0.f || !GetWorld())

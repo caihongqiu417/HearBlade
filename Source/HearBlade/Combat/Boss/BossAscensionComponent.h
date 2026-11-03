@@ -10,7 +10,7 @@ class UAnimMontage;
 class ACameraActor;
 class ACharacter;
 
-// Presentation owns a temporary camera and animation only. BeatClock remains the authority.
+// 管理演出期间的临时镜头和动画，音乐时间仍由节拍系统提供
 UCLASS(ClassGroup = (Combat), meta = (BlueprintSpawnableComponent))
 
 class HEARBLADE_API UBossAscensionComponent : public UActorComponent
@@ -18,9 +18,13 @@ class HEARBLADE_API UBossAscensionComponent : public UActorComponent
 	GENERATED_BODY()
   public:
 	UBossAscensionComponent();
+	// 检查演出条件，保存原状态后接管角色和镜头
 	bool BeginAscension(ACharacter* Player, FVector Contact, bool bFromClash);
+	// 统一处理完成和中断，归还镜头与角色控制
 	void FinishPresentation(bool bCompleted);
+	// 推进演出阶段、角色动作与镜头，到结束点后恢复战斗
 	virtual void TickComponent(float DeltaTime, ELevelTick Type, FActorComponentTickFunction* Tick) override;
+	// 退出关卡时结束演出，清理临时对象
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 	UPROPERTY(EditAnywhere, Category = "Ascension") float BodyScaleMultiplier = 1.10f;
 	UPROPERTY(EditAnywhere, Category = "Ascension") float CameraReturnSeconds = .45f;
@@ -30,12 +34,17 @@ class HEARBLADE_API UBossAscensionComponent : public UActorComponent
 		return bPresenting;
 	}
 
+	// 返回当前演出的完成比例
 	float GetProgress() const;
 
   private:
+	// 创建演出使用的临时模型和材质
 	void CreateForm();
+	// 按演出进度更新临时模型和光效
 	void UpdateForm(float DeltaTime, double Beat);
+	// 销毁演出创建的临时模型和效果
 	void DestroyForm();
+	// 为演出中的角色播放指定动画
 	void PlayAscensionMotion();
 	UPROPERTY(Transient) TArray<TObjectPtr<UStaticMeshComponent>> HaloParts;
 	UPROPERTY(Transient) TArray<TObjectPtr<UNiagaraComponent>> Flames;

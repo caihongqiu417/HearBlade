@@ -14,6 +14,8 @@ class UUserWidget;
  * 管理本机输入映射，提供触控配置
  * 界面创建和销毁交给 HUD
  */
+// 配置本地玩家输入映射和触屏启用条件
+// 界面创建与显示数据由 HUD 和界面控制器处理
 UCLASS(abstract)
 
 class AHearBladePlayerController : public APlayerController

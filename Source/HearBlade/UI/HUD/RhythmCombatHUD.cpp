@@ -11,6 +11,7 @@
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
 #if !UE_BUILD_SHIPPING
+void PreviewRestoredRhythmUI(URhythmCombatWidget* View);
 bool VerifyRhythmUIBindings(URhythmCombatWidget* View, URhythmWidgetController* Controller);
 #endif
 
@@ -50,13 +51,16 @@ bool ARhythmCombatHUD::UpdateBlueprintHUD()
 		return false;
 	MVCController->Update(GetWorld()->GetDeltaSeconds());
 #if !UE_BUILD_SHIPPING
+    if(FParse::Param(FCommandLine::Get(), TEXT("RestoredUIVerify"))) PreviewRestoredRhythmUI(MVCWidget);
 	if (FParse::Param(FCommandLine::Get(), TEXT("MVCUIVerify")) && GetWorld()->GetTimeSeconds() > 12.f &&
 	    !bMVCVerifyCaptured)
 	{
 		bMVCVerifyCaptured = true;
 		ensureAlwaysMsgf(VerifyRhythmUIBindings(MVCWidget, MVCController),
 		                 TEXT("RhythmMVC binding verification failed"));
-		FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir() / TEXT("Screenshots/MVC_Runtime.png"),
+		if(FParse::Param(FCommandLine::Get(), TEXT("RestoredUIVerify"))) PreviewRestoredRhythmUI(MVCWidget);
+        FScreenshotRequest::RequestScreenshot(FPaths::ProjectSavedDir() /
+            (FParse::Param(FCommandLine::Get(), TEXT("RestoredUIVerify")) ? TEXT("Screenshots/MVC_RestoredSample.png") : TEXT("Screenshots/MVC_Runtime.png")),
 		                                      true, false);
 		UE_LOG(LogTemp, Display, TEXT("RhythmMVC: Runtime verify player=%d health=%.3f boss=%d notes=%d"),
 		       MVCController->ViewModel.bHasPlayer, MVCController->ViewModel.HealthFraction,

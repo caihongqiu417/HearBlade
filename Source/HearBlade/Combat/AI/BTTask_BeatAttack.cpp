@@ -93,6 +93,7 @@ UBTTask_BeatAttack::UBTTask_BeatAttack()
 		Blink.LandingEffect = EmbersEffect.Object;
 }
 
+// 根据与玩家的距离调整靠近和绕行，并更新行走动画
 float UBTTask_BeatAttack::UpdateOrbitMovement(UBeatSyncedComboComponent* Combo, AActor* Boss,
                                               const APawn* Player, const UBeatClockSubsystem* Clock,
                                               float DeltaSeconds)
@@ -107,12 +108,12 @@ float UBTTask_BeatAttack::UpdateOrbitMovement(UBeatSyncedComboComponent* Combo, 
 	    ToPlayer.IsNearlyZero() ? Boss->GetActorForwardVector().GetSafeNormal2D() : ToPlayer;
 	const FVector Tangent = FVector(-Inward.Y, Inward.X, 0.0f) * (bOrbitClockwise ? 1.0f : -1.0f);
 	const float RadialError = Distance - DesiredRadius;
-	// Close range should look like pressure circling, not a compulsory three-step retreat.
+	// 近距离保持绕行，不强制连续后退
 	const float RadialVelocity = RadialError < 0.0f ? FMath::Max(RadialError * 0.8f, -ApproachSpeed * 0.45f)
 	                                                : FMath::Min(RadialError * 1.5f, ApproachSpeed);
-	// Stalk, don't skitter: when the boss is outside its ring (e.g. right after a
-	// backstep) it walks straight in, facing the player; the sideways circling only
-	// fades in near the ring, and at half the old speed.
+	// 离玩家较远时先靠近，接近绕行距离后再逐渐加入横向移动
+
+
 	const float OrbitScale = .5f * FMath::Clamp(1.f - (RadialError - 40.f) / 140.f, 0.f, 1.f);
 	FVector WantedVelocity = Inward * RadialVelocity + Tangent * OrbitSpeed * OrbitScale;
 	if (WantedVelocity.Size2D() > FMath::Max(ApproachSpeed, OrbitSpeed))
@@ -163,6 +164,7 @@ EBTNodeResult::Type UBTTask_BeatAttack::ExecuteTask(UBehaviorTreeComponent& Owne
 	return EBTNodeResult::InProgress;
 }
 
+// 等待已安排的攻击执行，期间更新移动并检查任务是否结束
 void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 #if !UE_BUILD_SHIPPING
@@ -369,6 +371,7 @@ void UBTTask_BeatAttack::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 	}
 }
 
+// 行为树中止任务时取消连招，避免攻击脱离任务继续执行
 EBTNodeResult::Type UBTTask_BeatAttack::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	if (bAttackStarted)

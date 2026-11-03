@@ -15,7 +15,7 @@ bool FHearBladeAttackTimingTest::RunTest(const FString& Parameters)
 		const auto* Data = LoadObject<UAttackDataAsset>(nullptr, *Path);
 		if (!TestNotNull(Path, Data))
 			continue;
-		// Sample through transitions and recovery, including either side of the hold.
+		// 检查蓄力停顿前后、阶段衔接和收招期间的时间换算
 		for (float Time = Data->ClipStartSeconds; Time < Data->GetClipEndSeconds(); Time += .013f)
 		{
 			const float Restored = Data->GetAnimationTimeAtElapsed(Data->GetElapsedAtAnimationTime(Time));

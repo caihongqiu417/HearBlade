@@ -22,6 +22,7 @@
 #include "InputCoreTypes.h"
 #include "UObject/UnrealType.h"
 
+// 在真实运行流程中检查连招路线、输入缓存和连续按键
 void UPlayerBeatAttackComponent::TickComboProbe()
 {
 #if !UE_BUILD_SHIPPING
@@ -91,12 +92,12 @@ void UPlayerBeatAttackComponent::TickComboProbe()
 				UE_LOG(LogTemp, Error, TEXT("ComboProbe: expected=%s actual=%s"), *Expected,
 				       *CurrentAttack.ToString());
 			}
-			// Cover an early buffered link and a late link in the real montage route.
+			// 覆盖实际蒙太奇流程中的提前缓存和迟到接招
 			ProbeNextInputBeat = ComboInputAudio + (ProbeStage == 0 && InputProbeStep == 1   ? -.25
 			                                        : ProbeStage == 1 && InputProbeStep == 1 ? .15
 			                                                                                 : 0.);
-			// The mashing regression runs after all routes. Extra presses during
-			// a route intentionally buffer the first input and would change it.
+			// 连招路线测试结束后再测试连续乱按，避免额外按键改变当前路线
+
 		}
 		if (InputProbeStep < Route.Len() && Now >= ProbeNextInputBeat)
 		{
@@ -124,7 +125,7 @@ void UPlayerBeatAttackComponent::TickComboProbe()
 	}
 	else
 	{
-		// Simulate sustained 20 Hz clicks; count actual attacks, not accepted calls.
+		// 模拟每秒二十次按键，统计实际起手次数
 		if (Now >= ProbeNextInputBeat)
 		{
 			TryAttack(EPlayerAttackInput::Light);
@@ -155,6 +156,7 @@ void UPlayerBeatAttackComponent::TickComboProbe()
 #endif
 }
 
+// 按命令行参数驱动攻击验证流程
 void UPlayerBeatAttackComponent::TickRuntimeProbe()
 {
 #if !UE_BUILD_SHIPPING
@@ -228,7 +230,7 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 			if (auto* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>();
 			    Camera && ResonanceBoss.IsValid())
 			{
-				// The probe stops the encounter AI; retain its explicit test lock.
+				// 测试暂停了敌人行为树，需要保留测试使用的锁定状态
 				Camera->SetCombatTarget(ResonanceBoss->GetOwner());
 				Camera->SetComponentTickEnabled(false);
 			}
@@ -413,11 +415,13 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 #endif
 }
 
+// 检查侧移后武器接触与攻击判定的变化
 void UPlayerBeatAttackComponent::TickSpatialSidestepProbe()
 {
 #if !UE_BUILD_SHIPPING
 	if (!Clock() || !Clock()->IsRunning() || !Combat.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
 		return;
+	// 测试先停止自主战斗并固定距离，再单独安排一次攻击
 	if (!bProbeStarted)
 	{
 		bProbeStarted = true;
@@ -455,6 +459,7 @@ void UPlayerBeatAttackComponent::TickSpatialSidestepProbe()
 	ResonanceBoss->GetUpcomingImpactCues(Cues, 1, true);
 	if (!Cues.IsEmpty() && Cues[0].ImpactIndex == 0)
 	{
+		// 在第一刀临近时施加横向移动，命中窗口过去后检查是否产生侧移破绽且没有扣血
 		const double Until = Cues[0].ImpactAudioSeconds - Clock()->GetAudioNowSeconds();
 		if (Until < .7 && Until > -.02)
 			if (auto* Character = Cast<ACharacter>(GetOwner()))
@@ -490,8 +495,9 @@ void UPlayerBeatAttackComponent::TickSpatialSidestepProbe()
 #endif
 }
 
+// 按预设顺序输入指令，记录实际攻击状态
 void UPlayerBeatAttackComponent::TickInputProbe()
 {
-	// Compatibility alias for the current combo/cadence regression.
+	// 兼容旧测试入口，转到当前连招节奏测试
 	TickComboProbe();
 }

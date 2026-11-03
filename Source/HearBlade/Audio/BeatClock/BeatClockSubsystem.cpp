@@ -1,5 +1,4 @@
 // 为攻击、动画和界面提供同一套音乐时间
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "BeatClockSubsystem.h"
 
@@ -26,6 +25,7 @@ static TAutoConsoleVariable<float> CVarBeatOffsetMs(
 // 开始和结束
 // ============================================================
 
+// 初始化当前世界的节拍状态
 void UBeatClockSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	// 调用父类初始化函数，让 Unreal 正确管理这个系统
@@ -34,6 +34,7 @@ void UBeatClockSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	LastEmittedBeat = -1;
 }
 
+// 停止计时并解除拍点事件，避免切换关卡后保留旧监听
 void UBeatClockSubsystem::Deinitialize()
 {
 	StopClock();
@@ -46,6 +47,7 @@ void UBeatClockSubsystem::Deinitialize()
 // 启动和停止
 // ============================================================
 
+// 校验节拍参数，以当前音频时间作为计时起点
 void UBeatClockSubsystem::StartClock(FBeatClockSettings InSettings)
 {
 	Settings = InSettings;
@@ -67,11 +69,13 @@ void UBeatClockSubsystem::StartClock(FBeatClockSettings InSettings)
 	bRunning = true;
 }
 
+// 返回当前主音乐资源，供频谱与界面读取
 USoundBase* UBeatClockSubsystem::GetPlayingMusicSound() const
 {
 	return MusicSource.IsValid() ? MusicSource->GetSound() : nullptr;
 }
 
+// 从指定位置播放音乐，同时启动节拍时钟并登记主音源
 void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAudioComponent* MusicComponent,
                                               float MusicStartTimeSeconds)
 {
@@ -96,6 +100,7 @@ void UBeatClockSubsystem::StartClockWithMusic(FBeatClockSettings InSettings, UAu
 	    IsValid(MusicComponent) && MusicComponent->IsPlaying() ? 1 : 0);
 }
 
+// 停止节拍推进，恢复登记音源的原始速度和主音乐音量
 void UBeatClockSubsystem::StopClock()
 {
 	if (UAudioComponent* Source = MusicSource.Get())
@@ -112,10 +117,12 @@ void UBeatClockSubsystem::StopClock()
 	PlaybackRateRestoreRawAudioSeconds = -1.0;
 }
 
+// 登记音乐层并立即应用当前速度，重复登记会忽略
 void UBeatClockSubsystem::RegisterSynchronizedMusicComponent(UAudioComponent* Component)
 {
 	if (!IsValid(Component))
 		return;
+	// 同一个音源只登记一次，避免把已经变速后的值再次当作原始速度
 	for (const FSynchronizedMusicSource& Entry : SynchronizedMusicSources)
 		if (Entry.Component.Get() == Component)
 			return;
@@ -123,6 +130,7 @@ void UBeatClockSubsystem::RegisterSynchronizedMusicComponent(UAudioComponent* Co
 	Component->SetPitchMultiplier(Component->PitchMultiplier * CurrentPlaybackRate);
 }
 
+// 移除音乐层，并恢复它登记前的播放速度
 void UBeatClockSubsystem::UnregisterSynchronizedMusicComponent(UAudioComponent* Component)
 {
 	for (int32 Index = SynchronizedMusicSources.Num() - 1; Index >= 0; --Index)
@@ -136,6 +144,7 @@ void UBeatClockSubsystem::UnregisterSynchronizedMusicComponent(UAudioComponent* 
 	}
 }
 
+// 设置目标音乐速度及渐变速度
 void UBeatClockSubsystem::SetMusicalPlaybackRate(float TargetRate, float BlendSeconds)
 {
 	TargetPlaybackRate = FMath::Clamp(TargetRate, .35f, 1.f);
@@ -145,6 +154,7 @@ void UBeatClockSubsystem::SetMusicalPlaybackRate(float TargetRate, float BlendSe
 	       CurrentPlaybackRate, TargetPlaybackRate, BlendSeconds);
 }
 
+// 设置临时慢放，并记录强制恢复的截止时间
 void UBeatClockSubsystem::SetTemporaryMusicalPlaybackRate(float TargetRate, float BlendSeconds,
                                                           float MaximumDurationSeconds)
 {
@@ -153,12 +163,14 @@ void UBeatClockSubsystem::SetTemporaryMusicalPlaybackRate(float TargetRate, floa
 	    UGameplayStatics::GetAudioTimeSeconds(GetWorld()) + FMath::Max(.05f, MaximumDurationSeconds);
 }
 
+// 取消恢复计时，平滑回到正常音乐速度
 void UBeatClockSubsystem::RestoreMusicalPlaybackRate(float BlendSeconds)
 {
 	PlaybackRateRestoreRawAudioSeconds = -1.0;
 	SetMusicalPlaybackRate(1.f, BlendSeconds);
 }
 
+// 短暂压低音乐，给命中声音留出空间
 void UBeatClockSubsystem::TriggerImpactDuck(float MusicGain, float HoldSeconds, float ReleaseSpeed)
 {
 	if (UAudioComponent* Source = MusicSource.Get(); bRunning && Source && Source->IsPlaying())
@@ -265,6 +277,7 @@ int32 UBeatClockSubsystem::GetCurrentBeatInBar() const
 // 每帧检查拍子
 // ============================================================
 
+// 推进音乐时间、恢复音量，再逐拍广播尚未发出的拍点
 void UBeatClockSubsystem::Tick(float DeltaTime)
 {
 	if (!bRunning)
@@ -272,6 +285,7 @@ void UBeatClockSubsystem::Tick(float DeltaTime)
 		return;
 	}
 	const double RawNow = UGameplayStatics::GetAudioTimeSeconds(GetWorld());
+	// 用原始音频时间检查恢复期限，即使音乐很慢也能及时恢复
 	if (PlaybackRateRestoreRawAudioSeconds > 0.0 && RawNow >= PlaybackRateRestoreRawAudioSeconds)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("BeatCinematic: failsafe restored musical playback rate"));

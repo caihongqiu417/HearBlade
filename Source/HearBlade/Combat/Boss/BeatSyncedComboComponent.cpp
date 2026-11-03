@@ -45,7 +45,7 @@ UNiagaraComponent* SpawnBriefFire(UWorld* World, UNiagaraSystem* Effect, const F
 {
 	if (!World || !Effect)
 		return nullptr;
-	// Mesh-sampled body embers cannot be spawned at an unattached blink location.
+	// 依赖角色网格采样的火星特效不能直接放在未附着的瞬移位置
 	if (IsMeshSampledCourtEmber(Effect))
 	{
 		Effect = LoadObject<UNiagaraSystem>(
@@ -132,6 +132,7 @@ UBeatSyncedComboComponent::UBeatSyncedComboComponent()
 	    TEXT("/Game/Blood_VFX_Pack/Particles/Systems/P_BigSplash_HitWithMetal.P_BigSplash_HitWithMetal"));
 }
 
+// 接收引擎伤害事件，转入 Boss 的伤害处理
 void UBeatSyncedComboComponent::ReceiveBossDamage(AActor* DamagedActor, float Damage,
                                                   const UDamageType* DamageType, AController* InstigatedBy,
                                                   AActor* DamageCauser)
@@ -139,11 +140,13 @@ void UBeatSyncedComboComponent::ReceiveBossDamage(AActor* DamagedActor, float Da
 	ApplyBossDamageFrom(Damage, DamageCauser);
 }
 
+// 处理没有明确来源的伤害
 void UBeatSyncedComboComponent::ApplyBossDamage(float Damage)
 {
 	ApplyBossDamageFrom(Damage, AttackTarget.Get());
 }
 
+// 扣除生命并更新受击表现，死亡时停止当前连招
 void UBeatSyncedComboComponent::ApplyBossDamageFrom(float Damage, const AActor* DamageSource,
                                                     bool bForceHeavyBlood, float ExplicitPoise,
                                                     FVector ImpactLocation)
@@ -153,8 +156,8 @@ void UBeatSyncedComboComponent::ApplyBossDamageFrom(float Damage, const AActor* 
 	const float PoiseDamage = ExplicitPoise >= 0.f ? ExplicitPoise : Damage * PoiseDamagePerHealthDamage;
 	const bool bHeavyBlood = bForceHeavyBlood || PoiseDamage >= BossPoise || Damage >= BossHealth;
 	SpawnBossBlood(DamageSource, bHeavyBlood, ImpactLocation);
-	// Tutorial sparring: hits still land (blood, flinch, stagger) but cost no health,
-	// so beating on the boss can never trigger phase two mid-lesson.
+	// 教程中仍播放受击和硬直，但不扣 Boss 生命，避免练习时触发阶段转换
+
 	if (bTutorialNoDamage)
 	{
 		ApplyBossPoiseDamage(PoiseDamage, DamageSource);
@@ -181,6 +184,7 @@ void UBeatSyncedComboComponent::ApplyBossDamageFrom(float Damage, const AActor* 
 		ApplyBossPoiseDamage(PoiseDamage, DamageSource);
 }
 
+// 根据攻击来源确定方向，在命中位置生成血液效果
 void UBeatSyncedComboComponent::SpawnBossBlood(const AActor* DamageSource, bool bHeavy,
                                                FVector ImpactLocation) const
 {
@@ -207,6 +211,7 @@ void UBeatSyncedComboComponent::SpawnBossBlood(const AActor* DamageSource, bool 
 	       *GetNameSafe(Effect), *Location.ToString());
 }
 
+// 减少韧性，达到破防条件时打断攻击并进入硬直
 void UBeatSyncedComboComponent::ApplyBossPoiseDamage(float Amount, const AActor* DamageSource)
 {
 	if (!GetWorld() || Amount <= 0.0f || BossHealth <= 0.0f)
@@ -243,12 +248,13 @@ void UBeatSyncedComboComponent::ApplyBossPoiseDamage(float Amount, const AActor*
 	}
 }
 
+// 记录受击方向和持续时间，启动方向受击动画
 void UBeatSyncedComboComponent::StartBossHitReaction(const AActor* DamageSource, float Duration,
                                                      bool bInterruptAttack)
 {
 	if (!GetWorld() || !GetOwner() || BossHealth <= 0.0f)
 		return;
-	// Mid-backstep the hop owns the body; a light flinch would fight the displacement.
+	// 后跳期间不插入轻微受击动作，避免两种动作同时控制身体
 	if (IsBackstepping() && !bInterruptAttack)
 		return;
 	FVector ReactionDirection = DamageSource
@@ -284,6 +290,7 @@ void UBeatSyncedComboComponent::StartBossHitReaction(const AActor* DamageSource,
 	       Local.Y, Duration, bInterruptAttack ? 1 : 0, ReactingMeshCount);
 }
 
+// 结束方向受击并恢复行走动画状态
 void UBeatSyncedComboComponent::EndBossHitReaction()
 {
 	if (!bBossHitReacting)
@@ -302,6 +309,7 @@ void UBeatSyncedComboComponent::EndBossHitReaction()
 	}
 }
 
+// 绑定伤害事件，检查身体和动画配置，准备战斗使用的组件
 void UBeatSyncedComboComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -311,11 +319,11 @@ void UBeatSyncedComboComponent::BeginPlay()
 		auto* Readability = NewObject<UAttackReadabilityComponent>(GetOwner());
 		Readability->RegisterComponent();
 	}
-	// Migrate previous defaults retained by existing Blueprint/level instances.
+	// 修正已有蓝图和关卡实例中保留的旧默认值
 	if (FMath::IsNearlyEqual(MaxBossHealth, 1000.f) || FMath::IsNearlyEqual(MaxBossHealth, 1200.f) ||
 	    FMath::IsNearlyEqual(MaxBossHealth, 1500.f) || FMath::IsNearlyEqual(MaxBossHealth, 2000.f) ||
 	    FMath::IsNearlyEqual(MaxBossHealth, 5000.f) || FMath::IsNearlyEqual(MaxBossHealth, 1800.f))
-		MaxBossHealth = 2700.f; // +50% (was 1800)
+		MaxBossHealth = 2700.f; // 旧生命值为 1800
 	BossHealth = FMath::Max(1.f, MaxBossHealth);
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("PhaseTwoVisualTest")))
@@ -326,7 +334,7 @@ void UBeatSyncedComboComponent::BeginPlay()
 		UE_LOG(LogTemp, Display, TEXT("PhaseTwoVisualTest: test-only immediate phase 2 and area selection"));
 	}
 #endif
-	// Tougher boss: twice the poise (was 160) so it is not broken out of every combo.
+	// 提高韧性，避免轻击频繁打断连招
 	if (FMath::IsNearlyEqual(MaxBossPoise, 160.f))
 		MaxBossPoise = 320.f;
 	if (FMath::IsNearlyEqual(BossPoiseRecoveryPerSecond, 48.f))
@@ -352,20 +360,20 @@ void UBeatSyncedComboComponent::BeginPlay()
 	}
 #endif
 	GetOwner()->OnTakeAnyDamage.AddUniqueDynamic(this, &UBeatSyncedComboComponent::ReceiveBossDamage);
-	// The Boss is an Actor rather than a Character. Its root capsule is the only
-	// primitive swept by locomotion and montage root motion. Old placed instances
-	// can retain a tiny overlap-only capsule even when the Blueprint default changed.
+	// Boss 使用普通 Actor，移动碰撞由根胶囊体负责，这里统一修正旧实例的胶囊尺寸与碰撞设置
+
+
 	if (UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(GetOwner()->GetRootComponent()))
 	{
 		Capsule->SetCapsuleSize(FMath::Max(Capsule->GetUnscaledCapsuleRadius(), 60.f),
 		                        FMath::Max(Capsule->GetUnscaledCapsuleHalfHeight(), 110.f), true);
 		Capsule->SetCollisionProfileName(TEXT("Pawn"));
-		// Keep Pawn/world blocking, but do not let a circling or blinking Boss
-		// repeatedly shorten the player's spring arm on the Camera channel.
+		// 保留与角色和场景的阻挡，但忽略镜头检测，避免绕行时反复拉近镜头
+
 		Capsule->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-		// Existing placed Boss actors can also retain the old -90 cm mesh offset.
-		// The greaves reference bounds reach approximately z=0 in mesh space, so
-		// their root must sit at the bottom of the 110 cm capsule.
+		// 修正旧实例的网格偏移，让脚底对齐胶囊底部
+
+
 		TArray<USkeletalMeshComponent*> BossMeshes;
 		GetOwner()->GetComponents<USkeletalMeshComponent>(BossMeshes);
 		for (USkeletalMeshComponent* Mesh : BossMeshes)
@@ -394,15 +402,15 @@ void UBeatSyncedComboComponent::BeginPlay()
 		       TEXT("BossCollision: %s needs a root capsule; swept movement cannot block the player"),
 		       *GetNameSafe(GetOwner()));
 	}
-	// Every Boss primitive must ignore the spring arm probe. A weapon or an
-	// accessory with its own collision can otherwise still retract the camera.
+	// 武器和附件也忽略镜头检测，避免单独的碰撞体触发镜头回缩
+
 	TArray<UPrimitiveComponent*> BossPrimitives;
 	GetOwner()->GetComponents<UPrimitiveComponent>(BossPrimitives);
 	for (UPrimitiveComponent* Primitive : BossPrimitives)
 		if (IsValid(Primitive))
 			Primitive->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-	// The native graph owns locomotion, the attack slot and directional hit blending.
-	// This keeps hit reactions compatible with the existing montage system.
+	// 原生动画图统一混合行走、攻击槽和方向受击，受击仍可叠加在蒙太奇上
+
 	UClass* AnimClass = UBossLocomotionAnimInstance::StaticClass();
 	if (!AnimClass)
 		return;
@@ -554,6 +562,7 @@ void UBeatSyncedComboComponent::BeginPlay()
 	    *GetNameSafe(WeakBladeSound));
 }
 
+// 停止连招与演出，清理临时效果和事件绑定
 void UBeatSyncedComboComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (UAudioComponent* Voice = ActiveBladeVoice.Get())
@@ -566,6 +575,7 @@ void UBeatSyncedComboComponent::EndPlay(const EEndPlayReason::Type EndPlayReason
 	Super::EndPlay(EndPlayReason);
 }
 
+// 读取行走动画时长，供步伐与音乐拍点对齐
 float UBeatSyncedComboComponent::GetWalkClipLengthSeconds() const
 {
 	return DirectionalWalkAnimations.IsValidIndex(0) && DirectionalWalkAnimations[0]
@@ -573,12 +583,14 @@ float UBeatSyncedComboComponent::GetWalkClipLengthSeconds() const
 			   : 0.f;
 }
 
+// 根据音乐拍点调整角色火焰强度
 void UBeatSyncedComboComponent::UpdateBeatFirePulse(const UBeatClockSubsystem* Clock)
 {
 	float Scale = 1.f;
 	if (Clock && Clock->IsRunning() && FireBeatPulseStrength > 0.f)
 	{
 		const double Beat = Clock->GetCurrentBeat();
+		// 用当前拍的小数部分计算火焰起伏，小节首拍额外增强
 		const float Phase = static_cast<float>(FMath::Frac(Beat));
 		const float Accent = FMath::Pow(FMath::Max(0.f, FMath::Cos(2.f * UE_PI * Phase)), 4.f);
 		const int32 NearestBeat = FMath::RoundToInt(Beat);
@@ -610,6 +622,7 @@ void UBeatSyncedComboComponent::UpdateBeatFirePulse(const UBeatClockSubsystem* C
 		{
 			const bool bWeapon = Component->GetName().Contains(TEXT("Sword"), ESearchCase::IgnoreCase) ||
 			                     Component->GetName().Contains(TEXT("Weapon"), ESearchCase::IgnoreCase);
+			// 出现攻击预警时降低武器火焰，避免盖住应对提示
 			const float ReadabilityScale = bReadingAttack ? (bWeapon          ? .38f
 			                                                 : BossPhase >= 2 ? .65f
 			                                                                  : 1.f)
@@ -618,6 +631,7 @@ void UBeatSyncedComboComponent::UpdateBeatFirePulse(const UBeatClockSubsystem* C
 		}
 }
 
+// 更新强拍攻击的蓄力火焰与身体表现
 void UBeatSyncedComboComponent::UpdateStrongBeatPresentation(const UBeatClockSubsystem* Clock)
 {
 	float Glow = 1.f;
@@ -632,6 +646,7 @@ void UBeatSyncedComboComponent::UpdateStrongBeatPresentation(const UBeatClockSub
 			const float Ease = Alpha * Alpha * (3.f - 2.f * Alpha);
 			Glow = FMath::Lerp(1.f, StrongBeatSwordGlowMultiplier, Ease);
 			LightIntensity = 3800.f * Ease;
+			// 蓄力开始只生成一次预警特效，后续帧只更新大小和亮度
 			if (!bStrongBeatChargeStarted)
 			{
 				bStrongBeatChargeStarted = true;
@@ -672,6 +687,7 @@ void UBeatSyncedComboComponent::UpdateStrongBeatPresentation(const UBeatClockSub
 	FVector ReadPosition;
 	float ReadProgress = 0.f;
 	double ReadKey = 0.;
+	// 刀刃预警显示期间压低装饰发光，保持攻击轮廓清楚
 	const bool bReadingBlade = GetRecognitionCue(ReadInfo, ReadPosition, ReadProgress, ReadKey) &&
 	                           ReadInfo.Shape != EAttackRecognitionShape::GroundWarning;
 	for (const FSwordGlowTarget& Target : SwordGlowTargets)
@@ -682,6 +698,7 @@ void UBeatSyncedComboComponent::UpdateStrongBeatPresentation(const UBeatClockSub
 		Light->SetIntensity(LightIntensity);
 }
 
+// 记录一次材质闪光的强度和时间
 void UBeatSyncedComboComponent::TriggerBeatOverlay(bool bStrong, double AudioNow)
 {
 	if (!BeatOverlayInstance)
@@ -698,6 +715,7 @@ void UBeatSyncedComboComponent::TriggerBeatOverlay(bool bStrong, double AudioNow
 	}
 }
 
+// 更新并衰减护甲材质的拍点与受击效果
 void UBeatSyncedComboComponent::UpdateBeatOverlay(const UBeatClockSubsystem* Clock)
 {
 	if (!BeatOverlayInstance || !Clock || !Clock->IsRunning())
@@ -719,6 +737,7 @@ void UBeatSyncedComboComponent::UpdateBeatOverlay(const UBeatClockSubsystem* Clo
 		           HitOverlayStrength * Envelope(LastHitOverlayAudioSeconds, .1f)));
 }
 
+// 恢复强拍演出修改的身体与特效状态
 void UBeatSyncedComboComponent::ResetStrongBeatPresentation()
 {
 	const bool bWasCharging = bStrongBeatChargeStarted;
@@ -739,6 +758,7 @@ void UBeatSyncedComboComponent::ResetStrongBeatPresentation()
 		UE_LOG(LogTemp, Display, TEXT("BossStrongBeat: restored sword glow, light and warning fire"));
 }
 
+// 接收攻击资源，确定首击拍点并建立本次连招的运行数据
 bool UBeatSyncedComboComponent::QueueAttack(UAttackDataAsset* InAttackData)
 {
 	if (bPlayerResonance && InAttackData != ResonanceCounterAttack)
@@ -752,14 +772,17 @@ bool UBeatSyncedComboComponent::QueueAttack(UAttackDataAsset* InAttackData)
 	return QueueCombo();
 }
 
+// 只在本次攻击开始时选择防御指令组合，后续提示与判定共用结果
 void UBeatSyncedComboComponent::SelectRuntimeResponsePattern()
 {
 	RuntimeImpactMarkers.Reset();
 	ActiveResponsePattern = NAME_None;
 	if (!IsValid(AttackData))
 		return;
+	// 先复制原标记，只修改本次攻击的副本，不污染多次攻击共用的资源
 	RuntimeImpactMarkers = AttackData->ImpactMarkers;
 
+	// 只有权重为正且替换区间没有越界的指令组合参与抽选
 	float TotalWeight = 0.0f;
 	for (const FAttackResponsePattern& Pattern : AttackData->ResponsePatterns)
 	{
@@ -789,6 +812,7 @@ void UBeatSyncedComboComponent::SelectRuntimeResponsePattern()
 	if (!Selected)
 		return;
 
+	// 选中后只替换应对方式和长按分组，命中时间与伤害保持不变
 	for (int32 InstructionIndex = 0; InstructionIndex < Selected->Instructions.Num(); ++InstructionIndex)
 	{
 		FAttackImpactMarker& Marker = RuntimeImpactMarkers[Selected->FirstImpactIndex + InstructionIndex];
@@ -806,9 +830,10 @@ void UBeatSyncedComboComponent::SelectRuntimeResponsePattern()
 	       *GetNameSafe(AttackData), *ActiveResponsePattern.ToString());
 }
 
+// 确定本次连招哪些命中使用慢放表现
 void UBeatSyncedComboComponent::SelectRuntimeCinematicAccents()
 {
-	// Never discard an active accent flag before restoring music and actor rates.
+	// 先恢复音乐和角色速度，再清除慢放状态
 	EndCinematicAccent(true);
 	RuntimeCinematicEnabled.Init(false, RuntimeImpactMarkers.Num());
 	if (bPlayerResonance)
@@ -832,6 +857,7 @@ void UBeatSyncedComboComponent::SelectRuntimeCinematicAccents()
 	bCinematicAccentActive = false;
 }
 
+// 到达配置时刻后启动慢放，并在结束条件满足时恢复
 void UBeatSyncedComboComponent::UpdateCinematicAccent(UBeatClockSubsystem* Clock, double AudioNow)
 {
 	if (!Clock || !Clock->IsRunning())
@@ -846,13 +872,14 @@ void UBeatSyncedComboComponent::UpdateCinematicAccent(UBeatClockSubsystem* Clock
 		CinematicPlayerActor.Reset();
 		CinematicActorSlowEndWorldSeconds = -1000.0;
 	}
-	// End by unscaled world time. Musical time itself is slowed, so using it as the
-	// release clock can leave the system waiting on the very clock it has slowed.
+	// 用未随音乐变速的时间结束慢放，避免恢复流程被慢放自身拖延
+
 	if (bCinematicAccentActive && GetWorld() &&
 	    GetWorld()->GetTimeSeconds() >= CinematicAccentEndWorldSeconds)
 		EndCinematicAccent(false);
 }
 
+// 记录实际交锋位置并通知镜头表现
 void UBeatSyncedComboComponent::TriggerCinematicClash(int32 ImpactIndex, const FVector& ClashLocation,
                                                       bool bStrongBeat)
 {
@@ -892,6 +919,7 @@ void UBeatSyncedComboComponent::TriggerCinematicClash(int32 ImpactIndex, const F
 	       *ClashLocation.ToString());
 }
 
+// 恢复音乐和角色速度，再结束本次慢放
 void UBeatSyncedComboComponent::EndCinematicAccent(bool bImmediate)
 {
 	if (!bCinematicAccentActive)
@@ -923,6 +951,7 @@ const FAttackImpactMarker& UBeatSyncedComboComponent::GetImpactMarker(int32 Inde
 	return AttackData->ImpactMarkers[Index];
 }
 
+// 保存下一次攻击的瞬移配置，等待 QueueAttack 安排时间
 void UBeatSyncedComboComponent::ConfigureNextBlink(const FBeatBlinkSettings& Settings)
 {
 	BlinkSettings = Settings;
@@ -931,6 +960,7 @@ void UBeatSyncedComboComponent::ConfigureNextBlink(const FBeatBlinkSettings& Set
 	bBlinkExecuted = false;
 }
 
+// 清除本次瞬移的目标、预警和执行状态
 void UBeatSyncedComboComponent::ClearBlink()
 {
 	if (bBlinkWarningShown && !bBlinkExecuted)
@@ -941,6 +971,7 @@ void UBeatSyncedComboComponent::ClearBlink()
 	bBlinkExecuted = false;
 }
 
+// 确定瞬移落点，后续按已锁定的位置执行
 bool UBeatSyncedComboComponent::LockBlinkDestination()
 {
 	AActor* Boss = GetOwner();
@@ -974,11 +1005,13 @@ bool UBeatSyncedComboComponent::LockBlinkDestination()
 	return true;
 }
 
+// 记录攻击目标，供追踪和动作对齐使用
 void UBeatSyncedComboComponent::SetAttackTarget(AActor* InTarget)
 {
 	AttackTarget = InTarget;
 }
 
+// 移除攻击使用的动作对齐目标
 void UBeatSyncedComboComponent::ClearWarping()
 {
 	if (IsValid(WarpComponent))
@@ -1068,6 +1101,7 @@ float UBeatSyncedComboComponent::GetImpactTime(int32 Index) const
 	                                           : GetImpactMarker(Index).AnimationTimeSeconds;
 }
 
+// 提供下一击的命中时间与理想闪避提前量
 bool UBeatSyncedComboComponent::GetNextImpactDodgeTiming(double& OutImpactAudioSeconds,
                                                          float& OutIdealLeadSeconds) const
 {
@@ -1097,6 +1131,7 @@ void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>
 	     Index < GetImpactCount() && OutCues.Num() < MaxCount; ++Index)
 	{
 		FUpcomingImpactCue& Cue = OutCues.AddDefaulted_GetRef();
+		// 从片段起点累加分段播放时间，再加本次起手时间，得到真实命中时刻
 		const double MarkerElapsed =
 		    AttackData->GetElapsedAtAnimationTime(GetImpactTime(Index)) - ClipStartElapsed;
 		Cue.ImpactAudioSeconds = ScheduledStartAudioSeconds + MarkerElapsed;
@@ -1111,6 +1146,7 @@ void UBeatSyncedComboComponent::GetUpcomingImpactCues(TArray<FUpcomingImpactCue>
 			Cue.DamageShape = Marker.DamageShape;
 			if (Marker.DamageShape == EBossAttackDamageShape::GroundBurst)
 				Cue.IdealDodgeLeadSeconds = 0.f;
+			// 读取本次攻击选定的指令副本，让提示与伤害结算保持一致
 			Cue.RequiredResponse = Marker.RequiredResponse;
 			Cue.HoldMarker = Marker.HoldMarker;
 			if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock &&
@@ -1274,6 +1310,7 @@ bool UBeatSyncedComboComponent::QueueCombo()
 	return true;
 }
 
+// 取消排队或正在播放的连招，清理窗口、移动对齐和临时表现
 void UBeatSyncedComboComponent::CancelCombo()
 {
 	// 取消攻击时一并淡出挥刀声音，避免旧声音的尾音留到下一动作
@@ -1322,6 +1359,7 @@ void UBeatSyncedComboComponent::CancelCombo()
 	LocomotionResumeWorldSeconds = GetWorld()->GetTimeSeconds() + 0.2;
 }
 
+// 查找用于刀刃采样的武器网格
 UMeshComponent* UBeatSyncedComboComponent::FindBladeMesh() const
 {
 	if (!GetOwner())
@@ -1571,6 +1609,7 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	}
 }
 
+// 窗口结束仍未接触时进行躲避或教程判定，不按真实接触扣血
 void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex)
 {
 	if (!bActiveDamageThreatened || !AttackTarget.IsValid() || !IsValid(AttackData) || ImpactIndex < 0 ||
@@ -1628,6 +1667,7 @@ void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex
 	       ImpactIndex + 1, bHandledByDodge ? 1 : 0);
 }
 
+// 启动攻击蒙太奇并恢复到音乐时间对应的动画位置
 bool UBeatSyncedComboComponent::StartPlayback(double AudioNowSeconds)
 {
 	ClearWarping();
@@ -1718,6 +1758,7 @@ bool UBeatSyncedComboComponent::StartPlayback(double AudioNowSeconds)
 	return true;
 }
 
+// 按音乐时间推进瞬移、动画、命中窗口和收尾，并处理阶段演出
 void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                               FActorComponentTickFunction* ThisTickFunction)
 {
@@ -1740,6 +1781,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	}
 	if (BossHealth <= 0.f)
 		return;
+	// 先处理后跳和击退，再判断是否允许普通行走推进身体
 	TickBackstep(DeltaTime);
 	if (USkeletalMeshComponent* Mesh = LocomotionMesh.Get())
 	{
@@ -1760,6 +1802,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 				const float Length = Clip->GetPlayLength();
 				float Remaining = FMath::Max(0.0f, DeltaTime * Mesh->GlobalAnimRateScale);
 				float RootDistance = 0.0f;
+				// 一帧跨过行走动画结尾时分段提取位移，循环后继续处理剩余时间
 				while (Length > KINDA_SMALL_NUMBER && Remaining > KINDA_SMALL_NUMBER)
 				{
 					const float End = FMath::Min(Length, LocomotionAnimationTime + Remaining);
@@ -1783,6 +1826,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 					        : 100.0f;
 					FCollisionQueryParams Query(SCENE_QUERY_STAT(BossLocomotionFloor), false, GetOwner());
 					FHitResult Floor;
+					// 先检查计划落脚位置有可走地面，再移动根胶囊
 					const FVector Probe = Before + Delta;
 					const bool bFloor = GetWorld()->LineTraceSingleByChannel(
 					    Floor, Probe + FVector(0, 0, 50.0f), Probe - FVector(0, 0, HalfHeight + 180.0f),
@@ -1938,6 +1982,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 			    *GetOwner()->GetActorLocation().ToString(), FootClearance);
 		}
 	}
+	// 排队只代表确定了拍点，到起手时刻才创建并播放动画
 	if (bQueued && Now >= ScheduledStartAudioSeconds)
 	{
 		bQueued = false;
@@ -1982,6 +2027,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 	    AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds) +
 	    static_cast<float>(Now - ScheduledStartAudioSeconds) - DodgeWindupLag);
 	const double ClipStartElapsed = AttackData->GetElapsedAtAnimationTime(AttackData->ClipStartSeconds);
+	// 逐个消费已经到时的挥刀音效标记，避免下一帧重复播放同一击
 	while (NextBladeSoundIndex < GetImpactCount())
 	{
 		const double MarkerElapsed =
@@ -2138,7 +2184,7 @@ void UBeatSyncedComboComponent::TickComponent(float DeltaTime, ELevelTick TickTy
 		ClearWarping();
 		AttackTarget.Reset();
 		ClearBlink();
-		TryScheduleBackstep(); // before the broadcast, so nothing queues over the hop
+		TryScheduleBackstep(); // 先安排后跳再广播，防止回调立即插入下一套攻击
 		OnComboFinished.Broadcast();
 	}
 }

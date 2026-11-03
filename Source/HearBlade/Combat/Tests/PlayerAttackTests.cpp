@@ -1,3 +1,4 @@
+// 验证攻击节奏计算和正式攻击资源，覆盖连招时间与节点配置
 // 验证主角攻击时间计算与攻击资产配置
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
@@ -11,6 +12,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPlayerAttackTimingTest, "HearBlade.Combat.Play
 
 bool FPlayerAttackTimingTest::RunTest(const FString& Parameters)
 {
+	// 先检查评级窗口边界，再检查拍点安排、动画位置和连招缓存范围
 	TestEqual(TEXT("Perfect inclusive early edge"), PlayerAttackTiming::Judge(-.060),
 	          EPlayerAttackGrade::Perfect);
 	TestEqual(TEXT("Good outside perfect"), PlayerAttackTiming::Judge(.061), EPlayerAttackGrade::Good);
@@ -78,6 +80,7 @@ bool FPlayerAttackTimingTest::RunTest(const FString& Parameters)
 	}
 	TestFalse(TEXT("Early spam cannot reserve next combo step"),
 	          PlayerAttackTiming::CanQueue(9.699, 10., false));
+	// 提前和迟到边界都要覆盖，避免刚好处于边界的输入被错误丢弃
 	TestTrue(TEXT("Combo input opens 300 ms before the next cue"),
 	         PlayerAttackTiming::CanQueue(9.7, 10., false));
 	TestFalse(TEXT("One window holds exactly one command"), PlayerAttackTiming::CanQueue(10., 10., true));
@@ -109,6 +112,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPlayerAttackAssetTest, "HearBlade.Combat.Playe
 
 bool FPlayerAttackAssetTest::RunTest(const FString& Parameters)
 {
+	// 加载正式资源检查节点和动画，而不是仅检查临时构造的数据
 	const auto* Data = LoadObject<UPlayerAttackSet>(nullptr, TEXT("/Game/Combat/Player/DA_PlayerAttackSet"));
 	for (const TCHAR* SoundPath :
 	     {TEXT("/Game/Audio/SFX/SW_BossBladeWeak"), TEXT("/Game/Audio/SFX/SW_BossBladeStrong"),

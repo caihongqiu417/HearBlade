@@ -2,9 +2,9 @@
 #include "Combat/Boss/BeatSyncedComboComponent.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 
-// Sparring note for the tutorial: the same trimmed single-hit attack the player
-// resonance uses, but with the requested response, gentle damage, a 4-beat
-// prompt on the rail, always judged (even at range), landing exactly on TargetBeat.
+// 教程使用指定拍点的单击，提前四拍显示指令，即使没有接触也进行练习判定
+
+
 bool UBeatSyncedComboComponent::QueuePracticeAttack(ERhythmResponseType Response, double TargetBeat,
                                                     AActor* Target)
 {
@@ -32,9 +32,9 @@ bool UBeatSyncedComboComponent::QueuePracticeAttack(ERhythmResponseType Response
 	PracticeAttack->PlayRate = .8f;
 	PracticeAttack->ClipEndSeconds =
 	    FMath::Min(Hit.AnimationTimeSeconds + .35f, Template->GetClipEndSeconds());
-	PracticeAttack->bWarpToTarget = Template->bWarpToTarget; // lunge to the player like a real attack
+	PracticeAttack->bWarpToTarget = Template->bWarpToTarget; // 像正式攻击一样向玩家突进
 	EndBossHitReaction();
-	// The behaviour tree normally assigns the target; it is paused while sparring.
+	// 教程暂停了行为树，需要在这里直接指定目标
 	SetAttackTarget(Target);
 	if (!QueueAttack(PracticeAttack))
 		return false;

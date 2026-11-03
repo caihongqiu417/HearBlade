@@ -15,6 +15,7 @@ ABossBeatDirector::ABossBeatDirector()
 	BehaviorTreeComponent = CreateDefaultSubobject<UBehaviorTreeComponent>(TEXT("BossBehaviorTree"));
 }
 
+// 准备黑板和行为树，等场景初始化完成后再启动敌人逻辑
 void ABossBeatDirector::BeginPlay()
 {
 	Super::BeginPlay();
@@ -39,7 +40,7 @@ void ABossBeatDirector::BeginPlay()
 	BehaviorTreeComponent->CacheBlackboardComponent(BlackboardComponent);
 	UE_LOG(LogTemp, Display, TEXT("BossBeatDirector: Boss=%s Tree=%s"), *GetNameSafe(BossActor),
 	       *GetNameSafe(BehaviorTreeAsset));
-	// Let every actor finish BeginPlay first, especially the actor starting the music clock.
+	// 下一帧再启动行为树，等音乐时钟等对象完成 BeginPlay
 	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(
 	    this,
 	    [this]()
@@ -51,6 +52,7 @@ void ABossBeatDirector::BeginPlay()
 	    }));
 }
 
+// 退出关卡时停止行为树
 void ABossBeatDirector::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (BehaviorTreeComponent)

@@ -95,18 +95,21 @@ void AHearBladeCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
     PlayerInput->Bind(PlayerInputComponent, JumpAction, MoveAction, LookAction, MouseLookAction);
 }
 
+// 失去控制时解除输入，避免旧按键状态残留
 void AHearBladeCharacter::UnPossessed()
 {
     PlayerInput->Unbind();
     Super::UnPossessed();
 }
 
+// 控制器同步变化后检查并清理输入状态
 void AHearBladeCharacter::OnRep_Controller()
 {
     Super::OnRep_Controller();
     if (!IsLocallyControlled()) PlayerInput->Unbind();
 }
 
+// 把二维移动输入转换为角色移动意图
 void AHearBladeCharacter::DoMove(float Right, float Forward)
 {
 	CurrentMoveInput = FVector2D(Right, Forward);
@@ -133,6 +136,7 @@ void AHearBladeCharacter::DoMove(float Right, float Forward)
 	}
 }
 
+// 将视角输入交给镜头控制
 void AHearBladeCharacter::DoLook(float Yaw, float Pitch)
 {
 	if (RhythmCombat && RhythmCombat->IsPhaseCinematic())
@@ -150,6 +154,7 @@ void AHearBladeCharacter::DoLook(float Yaw, float Pitch)
 	}
 }
 
+// 初始化武器与移动组件，建立角色表现所需引用
 void AHearBladeCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -163,6 +168,7 @@ void AHearBladeCharacter::BeginPlay()
     Locomotion->Initialize(KnightLocomotionBlendSpace, PursuitBlendSpace);
 }
 
+// 依次更新持续输入、角色朝向、行走姿态和握剑方向
 void AHearBladeCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -174,11 +180,13 @@ void AHearBladeCharacter::Tick(float DeltaSeconds)
 	UpdateKnightLocomotion(DeltaSeconds);
 }
 
+// 将握剑方向更新交给武器组件
 void AHearBladeCharacter::UpdateSwordDirection(float DeltaSeconds)
 {
     Weapon->UpdateDirection(DeltaSeconds, SwordDirectionInterpSpeed);
 }
 
+// 战斗锁定时按当前动作调整角色朝向
 void AHearBladeCharacter::UpdateCombatFacing(float DeltaSeconds)
 {
 	if (BeatAttack && BeatAttack->IsPlayingAttackMotion())
@@ -220,11 +228,13 @@ void AHearBladeCharacter::CalibrateSwordGrip()
     Weapon->Calibrate(SwordGripVerticalOffsetCm);
 }
 
+// 将移动与行走动画更新交给移动组件
 void AHearBladeCharacter::UpdateKnightLocomotion(float DeltaSeconds)
 {
     Locomotion->Update(DeltaSeconds, LockedCombatWalkSpeed, FreeRunSpeed);
 }
 
+// 把当前移动输入转换为世界方向
 FVector AHearBladeCharacter::GetWorldMoveIntent() const
 {
 	FVector2D Input = CurrentMoveInput;
@@ -238,6 +248,7 @@ FVector AHearBladeCharacter::GetWorldMoveIntent() const
 	    .GetClampedToMaxSize(1.f);
 }
 
+// 将移动意图交给战斗组件作为闪避方向
 void AHearBladeCharacter::DoDodge()
 {
 	if (!RhythmCombat)
@@ -256,6 +267,7 @@ void AHearBladeCharacter::DoDodge()
 	RhythmCombat->TryDodge(Direction);
 }
 
+// 处理跳跃按下入口
 void AHearBladeCharacter::DoJumpStart()
 {
 	if (RhythmCombat && RhythmCombat->IsPhaseCinematic())
@@ -264,6 +276,7 @@ void AHearBladeCharacter::DoJumpStart()
 	Jump();
 }
 
+// 处理跳跃松开入口
 void AHearBladeCharacter::DoJumpEnd()
 {
 	// 结束跳跃按住状态

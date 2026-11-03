@@ -1,3 +1,4 @@
+// 注册游戏主模块和项目日志分类
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #include "HearBlade.h"

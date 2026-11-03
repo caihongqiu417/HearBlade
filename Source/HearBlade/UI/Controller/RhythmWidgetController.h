@@ -17,6 +17,7 @@ class HEARBLADE_API URhythmWidgetController : public UObject
 {
 	GENERATED_BODY()
   public:
+	// 通过绑定的玩家控制器取得当前世界
 	virtual UWorld* GetWorld() const override;
 	/** 绑定玩家控制器并初始化玩法数据引用 */
 	void Initialize(APlayerController* InPlayer);
@@ -35,12 +36,16 @@ class HEARBLADE_API URhythmWidgetController : public UObject
 	UFUNCTION(BlueprintCallable, Category="HUD") void RestartLevel();
 
   private:
+	// 玩法对象引用：只读取已有状态，不拥有这些角色
 	TWeakObjectPtr<APlayerController> Player;
 	TWeakObjectPtr<UPlayerRhythmCombatComponent> Combat;
 	TWeakObjectPtr<UBeatSyncedComboComponent> Boss;
 	TArray<FText> History;
+	// 上次收录的判定时间，防止每帧把同一结果加入历史
 	double LastJudgment = -1000.;
+	// 下一次允许查找 Boss 的游戏时间
 	double NextBossSearch = 0.;
+	// 频谱分析的生命周期与平滑缓存
 	bool bSpectrumStarted = false;
 	float SpectrumPeak = .01f;
 	TArray<float> SmoothedSpectrum;

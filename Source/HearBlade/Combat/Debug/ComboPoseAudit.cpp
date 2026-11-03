@@ -15,6 +15,7 @@
 #include "Misc/Paths.h"
 #include "UnrealClient.h"
 
+// 按测试参数采样连招姿态，输出动画衔接检查结果
 bool UBeatSyncedComboComponent::TickComboPoseAudit()
 {
 #if !UE_BUILD_SHIPPING

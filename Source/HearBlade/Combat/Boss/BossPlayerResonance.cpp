@@ -7,6 +7,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "TimerManager.h"
 
+// 统一接收玩家命中，处理生命、韧性、挑飞和受击反馈
 void UBeatSyncedComboComponent::ReceivePlayerStrike(float Damage, float PoiseDamage, AActor* Source,
                                                     bool bHeavy, FVector ImpactLocation, bool bUppercut)
 {
@@ -90,6 +91,7 @@ void UBeatSyncedComboComponent::GetOpenings(TArray<FBossOpening>& Out) const
 	Out.Add(CachedTail);
 }
 
+// 查找指定音乐时刻是否落在可追击的破绽内
 bool UBeatSyncedComboComponent::GetOpeningAt(double AudioSeconds, FBossOpening& Out) const
 {
 	TArray<FBossOpening> All;
@@ -123,9 +125,9 @@ void UBeatSyncedComboComponent::StartUppercutFeedback(AActor* Source)
 	if (!GetWorld() || !GetOwner() || BossHealth <= 0.f || bPhaseTransitionActive)
 		return;
 	EndUppercutFeedback();
-	// This is a real stagger, while the visual lift stays on the skeletal meshes.
-	// The collision capsule remains grounded so follow-up strikes still intersect.
-	StartBossHitReaction(Source, FMath::Max(.95f, HeavyHitReactionSeconds), true); // covers the air time
+	// 挑飞表现只抬高网格，碰撞胶囊仍留在地面，让后续攻击能够继续命中
+
+	StartBossHitReaction(Source, FMath::Max(.95f, HeavyHitReactionSeconds), true); // 硬直覆盖挑飞过程
 	TArray<USkeletalMeshComponent*> Meshes;
 	GetOwner()->GetComponents(Meshes);
 	for (USkeletalMeshComponent* Mesh : Meshes)
@@ -152,12 +154,13 @@ void UBeatSyncedComboComponent::StartUppercutFeedback(AActor* Source)
 	       UppercutMeshBases.Num());
 }
 
+// 推进网格的挑飞曲线，保持碰撞身体在地面
 void UBeatSyncedComboComponent::TickUppercutFeedback()
 {
 	if (!GetWorld())
 		return;
-	// Launch arc: fast rise (ease-out), a short hang at the apex, gravity-like fall
-	// (ease-in), then a small landing bounce. The body leans back with the lift.
+	// 挑飞依次经过快速上升、顶部停留、下落和落地回弹
+
 	constexpr float Rise = .24f, Hang = .14f, Fall = .34f, Bounce = .14f, Height = 125.f, BounceH = 12.f,
 	                MaxTilt = 16.f;
 	constexpr float Duration = Rise + Hang + Fall + Bounce;
@@ -192,7 +195,7 @@ void UBeatSyncedComboComponent::TickUppercutFeedback()
 		Lift = BounceH * FMath::Sin(U * PI);
 		Tilt = MaxTilt * .4f * (1.f - U);
 	}
-	// Lean back = rotate about the actor's right axis, top moving away from the hit.
+	// 绕角色右轴向后倾斜，让上半身远离攻击来源
 	const FQuat Lean(FVector::RightVector, FMath::DegreesToRadians(-Tilt));
 	for (const auto& Entry : UppercutMeshBases)
 		if (USkeletalMeshComponent* Mesh = Entry.Key.Get())
@@ -203,6 +206,7 @@ void UBeatSyncedComboComponent::TickUppercutFeedback()
 		}
 }
 
+// 还原挑飞修改的网格位置和旋转
 void UBeatSyncedComboComponent::EndUppercutFeedback()
 {
 	if (GetWorld())
@@ -218,20 +222,21 @@ void UBeatSyncedComboComponent::EndUppercutFeedback()
 	UppercutStartWorldSeconds = -1000.;
 }
 
+// 播放受击闪光、轻推移和动画停顿
 void UBeatSyncedComboComponent::PlayPlayerHitFeedback(AActor* Source, float Strength, float FreezeSeconds)
 {
 	if (!GetWorld() || !GetOwner() || BossHealth <= 0.f)
 		return;
 	Strength = FMath::Clamp(Strength, 0.f, 2.f);
-	// Small hit shader: a dim 0.1 s pulse on the weak overlay channel (the full
-	// strong-beat flash on every hit was blinding).
+	// 受击只使用短暂的弱拍材质闪光，避免每次命中都出现强闪烁
+
 	if (const auto* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>())
 	{
 		LastHitOverlayAudioSeconds = Clock->GetAudioNowSeconds();
-		HitOverlayStrength = .3f + .12f * Strength; // Strength 0..2
+		HitOverlayStrength = .3f + .12f * Strength; // 表现强度范围为零到二
 	}
-	// Shove away from the player. Skip while an attack is committed so warped
-	// boss swings keep their authored landing.
+	// 正在执行攻击时不插入受击推移，保留已经安排好的攻击落点
+
 	if (auto* Boss = Cast<ACharacter>(GetOwner());
 	    Boss && Source && !bQueued && !bPlaying && !bPhaseTransitionActive)
 	{
@@ -240,7 +245,7 @@ void UBeatSyncedComboComponent::PlayPlayerHitFeedback(AActor* Source, float Stre
 		if (Away.Normalize())
 			Boss->LaunchCharacter(Away * (160.f + 220.f * Strength), true, false);
 	}
-	// Shudder along the hit direction for the freeze (plus a little tail).
+	// 停顿期间沿受击方向抖动，结束后保留短暂衰减
 	if (auto* Boss = Cast<ACharacter>(GetOwner()); Boss && Boss->GetMesh() && Source)
 	{
 		USkeletalMeshComponent* Body = Boss->GetMesh();
@@ -257,8 +262,8 @@ void UBeatSyncedComboComponent::PlayPlayerHitFeedback(AActor* Source, float Stre
 		    HitShakeTimer, FTimerDelegate::CreateUObject(this, &UBeatSyncedComboComponent::TickHitShake),
 		    1.f / 120.f, true);
 	}
-	// Hit-stop: freeze the boss meshes for a few frames, then restore exactly the
-	// rate that was there (resonance also scales these meshes).
+	// 记录网格原有速度，短暂停顿后恢复，避免覆盖共鸣施加的速度
+
 	if (FreezeSeconds <= 0.f)
 		return;
 	TArray<USkeletalMeshComponent*> Meshes;
@@ -266,9 +271,9 @@ void UBeatSyncedComboComponent::PlayPlayerHitFeedback(AActor* Source, float Stre
 	for (auto* Mesh : Meshes)
 	{
 		if (!IsValid(Mesh) || Mesh->GlobalAnimRateScale <= .06f)
-			continue; // already frozen
+			continue; // 已经进入停顿
 		const float Previous = Mesh->GlobalAnimRateScale;
-		Mesh->GlobalAnimRateScale = .05f; // near-freeze, not a hard stop
+		Mesh->GlobalAnimRateScale = .05f; // 保留极小速度，不完全停止动画
 		FTimerHandle Handle;
 		TWeakObjectPtr<USkeletalMeshComponent> Weak = Mesh;
 		GetWorld()->GetTimerManager().SetTimer(
@@ -284,6 +289,7 @@ void UBeatSyncedComboComponent::PlayPlayerHitFeedback(AActor* Source, float Stre
 	}
 }
 
+// 进入玩家共鸣配合流程，记录拍点与目标
 void UBeatSyncedComboComponent::BeginPlayerResonance(double StartBeat, AActor* Player)
 {
 	if (bPlayerResonance || BossHealth <= 0.f || bPhaseTransitionActive)
@@ -328,6 +334,7 @@ void UBeatSyncedComboComponent::BeginPlayerResonance(double StartBeat, AActor* P
 	UE_LOG(LogTemp, Display, TEXT("PlayerResonance: boss suppression begin beat=%.3f"), StartBeat);
 }
 
+// 推进共鸣期间的攻击与动作安排
 void UBeatSyncedComboComponent::TickPlayerResonance()
 {
 	if (!bPlayerResonance)
@@ -361,6 +368,7 @@ void UBeatSyncedComboComponent::TickPlayerResonance()
 	}
 }
 
+// 结束共鸣配合并恢复 Boss 正常战斗状态
 void UBeatSyncedComboComponent::EndPlayerResonance()
 {
 	if (!bPlayerResonance)
@@ -379,6 +387,7 @@ void UBeatSyncedComboComponent::EndPlayerResonance()
 	UE_LOG(LogTemp, Display, TEXT("PlayerResonance: boss restored"));
 }
 
+// 更新受击抖动，并在停顿结束后恢复网格速度和位置
 void UBeatSyncedComboComponent::TickHitShake()
 {
 	auto* Boss = Cast<ACharacter>(GetOwner());

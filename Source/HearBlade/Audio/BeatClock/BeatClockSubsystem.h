@@ -1,4 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -68,6 +67,7 @@ class HEARBLADE_API UBeatClockSubsystem : public UTickableWorldSubsystem
 	// Unreal在关卡创建时自动调用
 	// 系统被创建时的准备工作
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+	// 停止计时并解除拍点事件，避免切换关卡后保留旧监听
 	virtual void Deinitialize() override;
 
 	// Unreal 每帧调用一次，用来检查是否进入新的一拍
@@ -125,6 +125,7 @@ class HEARBLADE_API UBeatClockSubsystem : public UTickableWorldSubsystem
 	{
 		return AudioTime - ClockStartAudioSeconds + MusicStartSourceSeconds;
 	}
+	// 返回当前主音乐资源，供频谱与界面读取
 	class USoundBase* GetPlayingMusicSound() const;
 
 	// 返回一拍需要多少秒
@@ -146,18 +147,21 @@ class HEARBLADE_API UBeatClockSubsystem : public UTickableWorldSubsystem
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 	int32 GetCurrentBeatInBar() const;
 
-	// Briefly clear space in the music mix for a blade strike, then recover.
+	// 命中时短暂降低背景音乐音量，随后恢复
 	void TriggerImpactDuck(float MusicGain, float HoldSeconds = 0.07f, float ReleaseSpeed = 9.f);
 
-	// Register every music stem that must remain phase locked with the main song.
-	// Cinematic rate changes are applied to all registered components together.
+	// 登记需要一起变速的音乐层，保持与主音乐一致的播放速度
+
 	void RegisterSynchronizedMusicComponent(UAudioComponent* Component);
+	// 移除音乐层，并恢复它登记前的播放速度
 	void UnregisterSynchronizedMusicComponent(UAudioComponent* Component);
 
-	// Changes musical time and audio pitch together. Gameplay input and camera
-	// stay at normal world speed while beat-authored animation remains aligned.
+	// 同时调整音乐时间和音源速度，按拍点播放的动作随之变速，输入和镜头仍按游戏时间更新
+
 	void SetMusicalPlaybackRate(float TargetRate, float BlendSeconds = 0.06f);
+	// 设置临时慢放，并记录强制恢复的截止时间
 	void SetTemporaryMusicalPlaybackRate(float TargetRate, float BlendSeconds, float MaximumDurationSeconds);
+	// 取消恢复计时，平滑回到正常音乐速度
 	void RestoreMusicalPlaybackRate(float BlendSeconds = 0.24f);
 	UFUNCTION(BlueprintPure, Category = "拍子时钟")
 

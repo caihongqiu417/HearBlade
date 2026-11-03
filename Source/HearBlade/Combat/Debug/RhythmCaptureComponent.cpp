@@ -15,6 +15,7 @@ URhythmCaptureComponent::URhythmCaptureComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
+// 按截图任务推进等待和采集，完成后结束任务
 void URhythmCaptureComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                             FActorComponentTickFunction* Function)
 {
@@ -53,6 +54,7 @@ void URhythmCaptureComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	}
 }
 
+// 按当前截图任务保存画面
 void URhythmCaptureComponent::CaptureScreenshot(int32 Width, int32 Height, const TArray<FColor>& Pixels)
 {
 	if (!bRequested || bFinished)
@@ -72,6 +74,7 @@ void URhythmCaptureComponent::CaptureScreenshot(int32 Width, int32 Height, const
 	                 }));
 }
 
+// 停止音画采集，等待后台写入完成并保存帧时间表
 void URhythmCaptureComponent::FinishCapture()
 {
 	if (bFinished || !bStarted)
@@ -90,6 +93,7 @@ void URhythmCaptureComponent::FinishCapture()
 	       bSaved, *Folder);
 }
 
+// 停止截图流程并清理状态
 void URhythmCaptureComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	FinishCapture();

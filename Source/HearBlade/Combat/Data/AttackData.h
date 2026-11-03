@@ -1,5 +1,4 @@
 // 定义敌人攻击数据，连接编辑器保存的标记与运行时连击
-// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
@@ -137,7 +136,7 @@ struct FImpactCinematicSettings
 	float ClashActorSlowSeconds = .11f;
 };
 
-// 一段独立攻击中的一次命中BeatOffset 相对第一击，第一击填 0
+// 一段独立攻击中的一次命中，BeatOffset 相对第一击，第一击填 0
 USTRUCT(BlueprintType)
 
 struct FAttackImpactMarker
@@ -212,9 +211,9 @@ struct FAttackImpactMarker
 	FImpactCinematicSettings Cinematic;
 };
 
-// One runtime instruction used by a response pattern. Timing and damage still
-// come from the authored impact marker; only the player's required response is
-// replaced when this pattern is selected.
+// 替换玩家需要执行的防御操作，命中时间和伤害仍使用原命中标记
+
+
 USTRUCT(BlueprintType)
 
 struct FAttackResponseInstruction
@@ -233,8 +232,8 @@ struct FAttackResponseInstruction
 	FName HoldGroup = TEXT("HoldA");
 };
 
-// A weighted command sequence selected once when an attack is queued. This
-// keeps the HUD prompt and the damage judgment on the same locked sequence.
+// 攻击排队时只选择一次指令组合，让界面提示与伤害判定使用同一组指令
+
 USTRUCT(BlueprintType)
 
 struct FAttackResponsePattern
@@ -247,7 +246,7 @@ struct FAttackResponsePattern
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令", meta = (ClampMin = "0.0"))
 	float Weight = 1.0f;
 
-	// Zero based index of the first impact replaced by Instructions.
+	// 从第几个命中标记开始替换，索引从零开始
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令", meta = (ClampMin = "0"))
 	int32 FirstImpactIndex = 0;
 
@@ -275,7 +274,7 @@ class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "技能信息")
 	FAttackRecognitionInfo DefaultRecognition;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "技能信息") float SourceFrameRate = 0.f;
-	// A non-damaging pose hold lets a committed ground attack reserve escape time.
+	// 在攻击姿势上停留一段时间，为玩家离开危险区域留出时间
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "蓄力动作", meta = (ClampMin = "0"))
 	float ChargePoseAnimationSeconds = 0.f;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "蓄力动作", meta = (ClampMin = "0"))
@@ -294,6 +293,7 @@ class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据", meta = (ClampMin = "0.0"))
 	float ClipEndSeconds = 0.0f;
 
+	// 返回有效动画片段终点，未配置终点时使用蒙太奇长度
 	float GetClipEndSeconds() const;
 
 	// 动画开始到命中的时间
@@ -304,8 +304,8 @@ class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据")
 	TArray<FAttackImpactMarker> ImpactMarkers;
 
-	// Empty keeps the authored marker responses. Otherwise one valid pattern is
-	// selected per attack using Weight. Animation timing is never changed.
+	// 为空时使用原指令，否则按权重选择一组指令，不改变动画时间
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|随机指令")
 	TArray<FAttackResponsePattern> ResponsePatterns;
 
@@ -316,7 +316,7 @@ class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据")
 	TArray<float> SegmentPlayRates;
 
-	// Use UE Motion Warping during the lead-in to each configured impact.
+	// 每次命中前通过动作对齐修正移动目标
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|Motion Warping")
 	bool bWarpToTarget = true;
 
@@ -332,8 +332,8 @@ class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 	          meta = (ClampMin = "0.0"))
 	float MaxWarpTravelPerStrike = 250.0f;
 
-	// Stop retargeting shortly before impact so a sidestep can beat a committed
-	// blade without removing the attack's earlier pursuit.
+	// 临近命中时停止追踪目标，让玩家能够侧移躲过已经出手的刀刃
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|Motion Warping")
 	bool bCommitStrikeDirection = true;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss攻击数据|Motion Warping",
@@ -341,6 +341,7 @@ class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 	float StrikeCommitLeadSeconds = 0.45f;
 
 	float GetRateAtAnimationTime(float AnimationTime) const;
+	// 把动画位置换成实际播放时长，并计入蓄力停顿
 	float GetElapsedAtAnimationTime(float AnimationTime) const;
 	float GetAnimationTimeAtElapsed(float ElapsedSeconds) const;
 
@@ -354,7 +355,7 @@ class HEARBLADE_API UAttackDataAsset : public UPrimaryDataAsset
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍编辑器", meta = (ClampMin = "0.0"))
 	double ReferenceMusicStartSeconds = 4.0;
 
-	// 0 = any beat; 1 = first beat of each bar. The runtime uses the music clock's beats-per-bar.
+	// 零表示任意拍，其他值指定小节内拍号，运行时使用音乐时钟的小节拍数
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "节拍编辑器|调度", meta = (ClampMin = "0"))
 	int32 FirstImpactBeatInBar = 1;
 

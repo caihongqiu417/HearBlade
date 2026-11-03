@@ -24,6 +24,7 @@ UAttackReadabilityComponent::UAttackReadabilityComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
+// 查找攻击组件并准备预警显示资源
 void UAttackReadabilityComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -117,6 +118,7 @@ void UAttackReadabilityComponent::BeginPlay()
 	}
 }
 
+// 读取当前攻击预警，更新危险路径和应对图形
 void UAttackReadabilityComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                                 FActorComponentTickFunction* TickFunction)
 {
@@ -288,7 +290,7 @@ void UAttackReadabilityComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		                                   FVector(0, 0, 45));
 		DodgePathWarning->SetWorldRotation(FRotator(-90.f, PathDirection.Rotation().Yaw, 0.f));
 		// 提示带沿已确定的出剑方向摆放，表示剑刃经过的区域
-		DodgePathWarning->DecalSize = FVector(110.f, 150.f, PathLength * .5f); // wider danger corridor
+		DodgePathWarning->DecalSize = FVector(110.f, 150.f, PathLength * .5f); // 扩大危险区域的显示宽度
 	}
 	if (DodgePathMaterial)
 	{
@@ -401,6 +403,7 @@ void UAttackReadabilityComponent::TickComponent(float DeltaTime, ELevelTick Tick
 #endif
 }
 
+// 销毁预警使用的临时显示对象
 void UAttackReadabilityComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	if (Symbol)
@@ -425,6 +428,7 @@ void UAttackReadabilityComponent::EndPlay(const EEndPlayReason::Type Reason)
 	Super::EndPlay(Reason);
 }
 
+// 提供只能闪避攻击的危险路径
 bool UBeatSyncedComboComponent::GetDodgeOnlyPath(double ImpactAudioSeconds, FVector& Start,
                                                  FVector& Direction, float& Length) const
 {
@@ -451,6 +455,7 @@ bool UBeatSyncedComboComponent::GetDodgeOnlyPath(double ImpactAudioSeconds, FVec
 	return false;
 }
 
+// 提供当前攻击的应对类型、位置和预警进度
 bool UBeatSyncedComboComponent::GetRecognitionCue(FAttackRecognitionInfo& Info, FVector& Location,
                                                   float& Progress, double& Key) const
 {

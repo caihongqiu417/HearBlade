@@ -48,8 +48,8 @@ UPlayerBeatAttackComponent::UPlayerBeatAttackComponent()
 	    LoadObject<UParticleSystem>(nullptr, TEXT("/Game/InsaneAirCombo/Particles/Trail_P.Trail_P"));
 	BeatKickSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_BossDrumKick.SW_BossDrumKick"));
 	GoodHitSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_RhythmGood.SW_RhythmGood"));
-	// NOTE: SW_ComboTier1Low/2Snare/3High are LOOPING music layers - never fire them as one-shots
-	// (each hit left an endless loop running, which starved the voice pool and cut the music).
+	// 循环音乐层不能当作单次命中音效播放，否则会不断叠加音源
+
 	SnareSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_BossDrumTick.SW_BossDrumTick"));
 	FinisherSound = LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/SW_ComboTierUp.SW_ComboTierUp"));
 	FinisherPerfectSound =
@@ -58,6 +58,7 @@ UPlayerBeatAttackComponent::UPlayerBeatAttackComponent()
 	    nullptr, TEXT("/Game/Combat/Feedback/NS_PerfectDodge_Ring.NS_PerfectDodge_Ring"));
 }
 
+// 加载各连段的命中音效，排除缺失资源
 void UPlayerBeatAttackComponent::LoadHitRushSounds()
 {
 	if (LightHitSounds.Num())
@@ -87,34 +88,38 @@ void UPlayerBeatAttackComponent::LoadHitRushSounds()
 	    LoadObject<USoundBase>(nullptr, TEXT("/Game/Audio/SFX/HitRush/SW_HitRush_Kick.SW_HitRush_Kick"));
 	OffBeatHitSound = LoadObject<USoundBase>(
 	    nullptr, TEXT("/Game/Audio/SFX/HitRush/SW_HitRush_OffBeat.SW_HitRush_OffBeat"));
-	// Air whooshes replace the boss blade swings (those rang metallic).
+	// 挥刀使用风声，避免叠加 Boss 武器的金属声
 	LightSwingSound = LoadObject<USoundBase>(
 	    nullptr, TEXT("/Game/Audio/SFX/HitRush/SW_HitRush_WhooshLight.SW_HitRush_WhooshLight"));
 	HeavySwingSound = LoadObject<USoundBase>(
 	    nullptr, TEXT("/Game/Audio/SFX/HitRush/SW_HitRush_WhooshHeavy.SW_HitRush_WhooshHeavy"));
 }
 
+// 取得当前世界的节拍时钟
 UBeatClockSubsystem* UPlayerBeatAttackComponent::Clock() const
 {
 	return GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
 }
 
+// 缓存战斗组件，加载音效并校验攻击配置
 void UPlayerBeatAttackComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	Combat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>();
-	LoadHitRushSounds(); // loaded here (not the constructor) so a fresh import works without restart
+	LoadHitRushSounds(); // 开局加载，方便编辑器中新导入的音效直接生效
 	FString Error;
 	if (!AttackSet || !AttackSet->Validate(Error))
 		UE_LOG(LogTemp, Error, TEXT("PlayerAttack: invalid data %s"), *Error);
 }
 
+// 退出关卡时清空攻击与共鸣状态
 void UPlayerBeatAttackComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Reset();
 	Super::EndPlay(Reason);
 }
 
+// 优先使用镜头锁定目标，否则寻找前方附近的存活 Boss
 AActor* UPlayerBeatAttackComponent::FindTarget() const
 {
 	if (const auto* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
@@ -187,6 +192,7 @@ bool UPlayerBeatAttackComponent::TryAttack(EPlayerAttackInput Input)
 	return QueuePending();
 }
 
+// 返回连招允许迟按的时间宽限
 double UPlayerBeatAttackComponent::ChainLateSeconds() const
 {
 	// 较长的重击允许更晚接续，其余动作使用普通连招迟到窗口
@@ -194,11 +200,13 @@ double UPlayerBeatAttackComponent::ChainLateSeconds() const
 	return Node && Node->DurationBeats > 1.2f ? .26 : PlayerAttackTiming::ComboQueueLateSeconds;
 }
 
+// 计算出手到接触姿态需要预留的时间
 double UPlayerBeatAttackComponent::StrikeLead(const FPlayerAttackNode& Node)
 {
 	return FMath::Clamp(double(Node.ImpactTime - Node.StrikeStart) / 1.2, .05, .12);
 }
 
+// 返回蓄力拍数，当前实现关闭该分支并返回零
 double UPlayerBeatAttackComponent::WindupBeats(const FPlayerAttackNode& Node, bool bResonance)
 {
 	// 当前关闭重攻击蓄力，轻重攻击都按普通命中流程执行
@@ -209,6 +217,7 @@ double UPlayerBeatAttackComponent::WindupBeats(const FPlayerAttackNode& Node, bo
 	                  FMath::RoundToDouble(double(Node.DurationBeats) * (bResonance ? .5 : 1.) * 2.) * .5);
 }
 
+// 根据蓄力进度计算应该显示的动画位置
 float UPlayerBeatAttackComponent::WindupPosition(double Now, double SampleNow) const
 {
 	// 备用蓄力曲线分为抬剑、保持、挥击和收招
@@ -305,7 +314,7 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 		{
 			Target = Beat0 + FMath::CeilToDouble((Now - Beat0) / RootGrid) * RootGrid;
 			if (!bWindup && Target - Now > .15)
-				return false; // not yet: the caller keeps the press pending
+				return false; // 尚未到起手时机，由调用者继续保留输入
 		}
 		// 备用蓄力分支以按键拍点为起点，命中安排在蓄力结束后
 		if (bWindup)
@@ -396,11 +405,11 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 			Pre *= K;
 			Chamber *= K;
 			Snap *= K;
-		} // late press
+		} // 按键晚于目标时刻
 		ChamberStartAudio = Now + Pre;
 		ChamberEndAudio = ChamberStartAudio + Chamber;
 		SnapStartAudio = ImpactAudio - Snap;
-		SwingStartAudio = SnapStartAudio; // keep turning toward the target through the charge
+		SwingStartAudio = SnapStartAudio; // 蓄力期间继续朝向目标
 		// 备用蓄力分支按整拍安排视觉提示，不在命中前重复补发
 		NextChargeCueAudio = Beat0 + FMath::CeilToDouble((Now + .1 - Beat0) / SPB) * SPB;
 		if (NextChargeCueAudio >= ImpactAudio - .1)
@@ -427,7 +436,7 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 	if (!bFlowsOn)
 		EndAudio =
 		    FMath::Min(EndAudio, ImpactAudio + FMath::Max(.2, double(ActiveClipEnd - Node->ImpactTime) + .1));
-	NextStartAllowedAudio = EndAudio - .025; // One-frame scheduling tolerance, not a speed-up.
+	NextStartAllowedAudio = EndAudio - .025; // 允许一帧的调度误差，不提前下一击的目标拍点
 	RecoveryUntilAudio = EndAudio + (Node->bFinisher ? .06 : 0.);
 	// 终结技命中后保留最短收招，再允许下一轮普通起手
 	if (!bFlowsOn)
@@ -448,7 +457,7 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 	LastErrorMs = (InputAudio - IdealInput) * 1000.;
 	LastGrade = PlayerAttackTiming::Judge(LastErrorMs / 1000.);
 	if (PressCountSinceCommit > 1)
-		LastGrade = EPlayerAttackGrade::Bad; // mashed
+		LastGrade = EPlayerAttackGrade::Bad; // 连续乱按降低评级
 	UE_LOG(LogTemp, Display, TEXT("PlayerAttack: judged presses=%d errorMs=%.1f grade=%d"),
 	       PressCountSinceCommit, LastErrorMs, int(LastGrade));
 	PressCountSinceCommit = 0;
@@ -493,6 +502,7 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 	return true;
 }
 
+// 返回攻击期间允许的移动比例
 float UPlayerBeatAttackComponent::GetMovementScale() const
 {
 	const auto* Node = AttackSet ? AttackSet->Find(CurrentAttack) : nullptr;
@@ -501,6 +511,7 @@ float UPlayerBeatAttackComponent::GetMovementScale() const
 	return Node ? 0.f : 1.f; // 攻击期间由动画根位移负责移动
 }
 
+// 根据当前连招节点生成下一步按键提示
 FString UPlayerBeatAttackComponent::GetComboPrompt() const
 {
 	if (!Clock() || !AttackSet)
@@ -535,6 +546,7 @@ FString UPlayerBeatAttackComponent::GetComboPrompt() const
 	       Choices;
 }
 
+// 检查防御能否打断当前攻击，允许时结束攻击动作
 bool UPlayerBeatAttackComponent::CancelForDefense(bool bDodge)
 {
 	// 先取消待执行的普通攻击，防御结束后不会补出之前排队的攻击
@@ -555,6 +567,7 @@ bool UPlayerBeatAttackComponent::CancelForDefense(bool bDodge)
 	return true;
 }
 
+// 停止本次攻击的动画、轨迹和输入缓存
 void UPlayerBeatAttackComponent::CancelAttack()
 {
 	if (IsAttacking())
@@ -579,6 +592,7 @@ void UPlayerBeatAttackComponent::CancelAttack()
 	}
 }
 
+// 受击等外部中断发生时清理攻击状态
 void UPlayerBeatAttackComponent::NotifyInterrupted()
 {
 	bHasPendingAttack = false;
@@ -586,6 +600,7 @@ void UPlayerBeatAttackComponent::NotifyInterrupted()
 	InputSequence.Empty();
 }
 
+// 重置攻击、缓存和共鸣状态
 void UPlayerBeatAttackComponent::Reset()
 {
 	bHasPendingAttack = false;
@@ -598,6 +613,7 @@ void UPlayerBeatAttackComponent::Reset()
 	SetResonanceState(EPlayerResonanceState::Filling);
 }
 
+// 按音乐时间推进动作、接触检测与连招接续
 void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 {
 	const auto* Node = AttackSet->Find(CurrentAttack);
@@ -606,6 +622,7 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 		CancelAttack();
 		return;
 	}
+	// 每次攻击只播放一次挥刀声，和实际命中声音分开
 	if (!bSwingPresented && Now >= ImpactAudio - .07)
 	{
 		bSwingPresented = true;
@@ -690,6 +707,7 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 			}
 			Anim->Montage_SetPosition(AttackMontage, Position);
 			C->GetMesh()->TickAnimation(0.f, false);
+			// 先让骨骼更新到当前动画位置，再同步武器，后面的检测使用这一帧刀刃位置
 			C->GetMesh()->RefreshBoneTransforms();
 			if (auto* Player = Cast<AHearBladeCharacter>(C))
 				Player->SyncAttackWeapon();
@@ -710,6 +728,7 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 		Trail->DeactivateSystem();
 		Trail = nullptr;
 	}
+	// 到达命中拍点但没有接触时仍完成挥空表现，不因此生成伤害
 	if (!bImpactPresented && Now >= ImpactAudio)
 	{
 		bImpactPresented = true;
@@ -738,7 +757,7 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 	// 备用重击蓄力从按键拍点开始，命中另加蓄力拍数
 	const double UpWindup = Upcoming ? WindupBeats(*Upcoming, IsResonanceActive()) : 0.;
 	// 早按的输入只等待固定接续拍点，不立即开始下一次挥击
-	const double Slot = ComboInputAudio; // fixed tempo: the next hit is always on the next cue
+	const double Slot = ComboInputAudio; // 下一击仍安排在既定拍点，不因连续按键加快
 	const double FireAt = UpWindup > 0. ? HeavyPressAudio : (Upcoming ? Slot - StrikeLead(*Upcoming) : 0.);
 	if (bHasBufferedInput && Upcoming && Now >= FireAt)
 	{
@@ -788,6 +807,7 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 	}
 }
 
+// 记录破绽中的有效命中，并检查是否达到填满条件
 void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening, bool bGap)
 {
 	OpeningHitMarks.Add({ImpactAudio, bGap});
@@ -795,6 +815,7 @@ void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening,
 		OpeningHitMarks.RemoveAt(0);
 	LastOpeningHitWorldTime = GetWorld() ? GetWorld()->GetTimeSeconds() : -1000.;
 	bLastOpeningHitGap = bGap;
+	// 换到新的破绽后重新计数，不能把上一个破绽的命中带过来
 	if (!FMath::IsNearlyEqual(OpeningKey, Opening.StartAudio, .01))
 	{
 		OpeningKey = Opening.StartAudio;
@@ -802,7 +823,7 @@ void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening,
 		bOpeningFilled = false;
 	}
 	++OpeningHits;
-	// FILL: about one hit per beat of the opening (at least two).
+	// 按破绽拍数计算填满所需命中次数，至少两次
 	const double SPB = Clock() ? Clock()->GetSecondsPerBeat() : .5;
 	const int32 Needed = FMath::Max(2, FMath::FloorToInt((Opening.EndAudio - Opening.StartAudio) / SPB) + 1);
 	if (!bOpeningFilled && OpeningHits >= Needed)
@@ -812,11 +833,12 @@ void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening,
 		FillAudio = ImpactAudio;
 		bFillGap = bGap;
 		ReceiveReward(EPlayerAttackGrade::Perfect, bGap ? 8.f : 5.f, true);
-		// (tier-up sting on a filled opening removed: judgment stings read as stray drums)
+		// 填满破绽时不额外播放升级提示音
 		UE_LOG(LogTemp, Display, TEXT("PlayerAttack: FILL gap=%d hits=%d"), bGap ? 1 : 0, OpeningHits);
 	}
 }
 
+// 取得双腿检测端点，供踢击接触检测使用
 void UPlayerBeatAttackComponent::SampleLegs(FVector OutA[2], FVector OutB[2]) const
 {
 	const auto* C = Cast<ACharacter>(GetOwner());
@@ -959,6 +981,7 @@ void UPlayerBeatAttackComponent::SweepBlade(double Now)
 	SampleLegs(LastLegA, LastLegB);
 }
 
+// 记录攻击收益，更新共鸣与命中反馈状态
 void UPlayerBeatAttackComponent::ReceiveReward(EPlayerAttackGrade Grade, float Amount, bool bHit)
 {
 	if (!Combat.IsValid() || !bHit || Grade == EPlayerAttackGrade::Bad)
@@ -970,6 +993,7 @@ void UPlayerBeatAttackComponent::ReceiveReward(EPlayerAttackGrade Grade, float A
 	Combat->LastJudgmentErrorMs = LastErrorMs;
 }
 
+// 按命中结果和评级组合动作停顿、声音、特效与镜头
 void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AActor* Target)
 {
 	if (!bHit)
@@ -981,30 +1005,29 @@ void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AAct
 	const bool bLauncher = bHeavy && Node->Id == FName(TEXT("HHH"));
 	const bool bPerfect = LastGrade == EPlayerAttackGrade::Perfect,
 	           bGood = LastGrade == EPlayerAttackGrade::Good;
-	// Dead-as-Disco style: timing scales everything. Off-beat hits still land and
-	// still read, on-beat hits hit much harder, finishers hardest.
+	// 节奏评级调整命中表现强度，偏拍仍有反馈，踩拍收尾最强
+
 	const float Grade = bPerfect ? 1.f : bGood ? .7f : .4f;
 	const float Power = Grade * (bFinisher ? 1.6f : 1.f) * (IsResonanceActive() ? 1.25f : 1.f);
-	const int32 Step = FMath::Clamp(InputSequence.Len() / 2 - 1, 0, 4); // L=0, LL=1, LLL=2
+	const int32 Step = FMath::Clamp(InputSequence.Len() / 2 - 1, 0, 4); // 轻击第一段到第三段对应索引零到二
 	const float Pitch = 1.f + .06f * Step;
 	const FVector Forward = GetOwner()->GetActorForwardVector();
 	UWorld* World = GetWorld();
 
-	// 1. Hit-stop on the player pose (music clock) and on the enemy meshes.
-	// Short, DaD-like stops; the player's ease-out curve carries the weight.
+	// 先记录命中停顿，玩家姿态按音乐时间恢复，敌人网格单独恢复速度
+
 	HitStopSeconds = (bPerfect ? .07f
 	                  : bGood  ? .05f
 	                           : .03f) +
 	                 (bFinisher ? .03f : 0.f) + (bKick ? .05f : 0.f) + (bHeavy ? .02f : 0.f) +
 	                 (bLauncher ? .03f : 0.f);
 	HitStopEase = (bPerfect ? 2.1f : bGood ? 1.8f : 1.5f) + (bKick ? .3f : 0.f);
-	// Freeze on the authored contact pose even if the sweep registered a frame early.
+	// 检测略早发生时仍停在配置的接触姿态
 	HitStopStartAudio = Clock() ? FMath::Max(Clock()->GetAudioNowSeconds(), ImpactAudio) : -1000.;
 
-	// 2. Sound (Hi-Fi-Rush style): every connecting hit is a fist-impact on the beat (Dead-as-Disco punch).
-	//    Each combo step has its own sample (light rises through LLLL, heavy
-	//    through HHHH), finishers/kicks have their own. Timing sets the level;
-	//    an off-beat hit gets a thin, quiet version instead of the full drum.
+	// 根据轻重击和连段选择命中声音，再按节奏评级调整音量
+
+
 	{
 		const TArray<TObjectPtr<USoundBase>>& Set = bHeavy ? HeavyHitSounds : LightHitSounds;
 		USoundBase* Main = bFinisher && FinisherHitSound ? FinisherHitSound.Get()
@@ -1015,12 +1038,12 @@ void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AAct
 			Main = OffBeatHitSound;
 		if (Main)
 			UGameplayStatics::PlaySound2D(this, Main, bPerfect ? .78f : bGood ? .68f : .60f, 1.f);
-		// No blade slice / chime layers: the fist impact alone carries the hit.
+		// 只播放选中的命中音，不继续叠加刀刃和铃声音层
 	}
 
-	// 2b. Comic layer for the HUD: onomatopoeia on big hits (every heavy, kick and
-	//     finisher; lights only when Perfect), burst lines, and an impact frame
-	//     (one white + one dark frame) on on-beat heavies/finishers.
+	// 记录界面需要的命中文字、位置与强度，强力命中可附带短暂闪白
+
+
 	{
 		static const TCHAR* HeavyWords[] = {TEXT("BAM!"), TEXT("WHAM!"), TEXT("SMASH!"), TEXT("KRAKOOM!")};
 		static const TCHAR* LightWords[] = {TEXT("POW!"), TEXT("BAP!"), TEXT("PAK!")};
@@ -1030,7 +1053,7 @@ void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AAct
 		ImpactFxPower = FMath::Clamp(Power, .4f, 1.8f);
 		bImpactFxHeavy = bBig;
 		bImpactFxPerfect = bPerfect;
-		bImpactFxFrame = bBig && bPerfect; // only perfect big hits get the (faint) impact frame
+		bImpactFxFrame = bBig && bPerfect; // 只有完美的强力命中触发轻微闪白
 		bImpactFxLaunch = bLauncher;
 		ImpactFxWord = (!bPerfect && !bGood) ? FString()
 		               : bFinisher           ? FString(bHeavy ? TEXT("KRAKOOM!") : TEXT("BOOM!"))
@@ -1049,15 +1072,15 @@ void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AAct
 			}
 	}
 
-	// 3. Sparks at the contact point, sized by timing; on-beat adds a burst.
+	// 在接触点生成火花，大小随节奏评级变化
 	if (HitEffect)
 		RetireCombatFX(UGameplayStatics::SpawnEmitterAtLocation(
 		                   World, HitEffect, Location, Forward.Rotation(), FVector(.8f + 1.1f * Power), true),
 		               .03f, .12f);
-	// Heavies/finishers get the comic tip explosion (HUD) instead of the spark burst.
+	// 重击和收尾使用界面刀尖爆发效果
 	if ((bPerfect || bFinisher) && !bHeavy && !bFinisher && PerfectBurstEffect)
 	{
-		// Short burst only: emit for one frame, keep a brief tail.
+		// 短暂发射后停止，保留粒子的消散过程
 		UParticleSystem* Burst =
 		    LoadObject<UParticleSystem>(nullptr, TEXT("/Game/SwordAnim/demo/FX/P_Spark.P_Spark"));
 		if (Burst)
@@ -1066,8 +1089,8 @@ void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AAct
 			               .03f, .15f);
 	}
 
-	// Kick weight follows the music: on the bar's downbeat it always lands big,
-	// otherwise the big camera is a likely (not certain) extra.
+	// 强拍踢击使用完整镜头反馈，其他拍点按概率选择较强反馈
+
 	bool bKickDownbeat = false;
 	if (const auto* KC = Clock(); bKick && KC && KC->GetSecondsPerBeat() > 0.)
 		bKickDownbeat =
@@ -1076,59 +1099,58 @@ void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AAct
 		    0;
 	const float KickWeight = bKickDownbeat ? 1.f : .6f;
 	const bool bKickCamera = bKick && FMath::FRand() < (bKickDownbeat ? .95f : bPerfect ? .7f : .5f);
-	// 4. Enemy: flash, shove, freeze. Poise/hit-reaction stays in ReceivePlayerStrike.
+	// 敌人的闪光、推移和停顿由表现函数处理，韧性与受击由 ReceivePlayerStrike 处理
 	if (Target)
 		if (auto* Boss = Target->FindComponentByClass<UBeatSyncedComboComponent>())
 		{
 			Boss->PlayPlayerHitFeedback(GetOwner(), Power * (bKick ? 1.5f : 1.f), HitStopSeconds + .02f);
-			// The kick sends the boss back a step (after the freeze reads).
+			// 踢击停顿后再执行击退
 			if (bKick)
 				Boss->StartKickKnockback(GetOwner(), (110.f + 30.f * Grade) + 60.f * KickWeight, .26f);
 		}
 
-	// 5. Camera punch: FOV kick + shake, stronger on the beat.
+	// 按节奏评级调整镜头视角和震动
 	if (IsResonanceActive())
 		if (auto* FX = GetOwner()->FindComponentByClass<UPerfectDodgeFeedbackComponent>())
 			FX->PlayResonanceAttack(bFinisher);
 	if (auto* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>(); Camera && bKick)
-	// Kick finisher: punch-in + Dutch roll toward the kick, held through the freeze.
+	// 踢击拉近镜头并向踢出方向侧倾
 	{
 		{
-			if (bKickCamera) // big kick camera: full on the downbeat, lighter otherwise
+			if (bKickCamera) // 强拍使用完整踢击镜头，其他拍点减弱
 				Camera->TriggerKickAccent(2.f + 2.5f * KickWeight + 1.5f * Grade * KickWeight,
 				                          1.f + 1.5f * KickWeight + 1.5f * Grade * KickWeight,
 				                          .1f + .25f * KickWeight + .2f * Grade * KickWeight,
 				                          .14f * KickWeight + .08f * Grade * KickWeight, Location,
 				                          HitStopSeconds + .06f * KickWeight);
-			else // the ordinary light-hit punch-in
+			else // 普通轻击的轻微拉近
 				Camera->TriggerKickAccent(2.5f + 1.5f * Grade, 1.f + 1.f * Grade, .15f + .1f * Grade, 0.f,
 				                          Location, HitStopSeconds);
 		}
 	}
 	else if (Camera && bLauncher)
 	{
-		// Launcher: side close-up that follows the boss up, plus an upward accent.
+		// 挑飞使用跟随 Boss 上升的侧面特写
 		if (Target)
 			Camera->TriggerLaunchShot(Target, 1.3f);
 		Camera->TriggerKickAccent(1.5f + 1.f * Grade, .4f + .4f * Grade, 0.f, 0.f, Location,
-		                          HitStopSeconds); // no upward pitch
+		                          HitStopSeconds); // 此处不额外抬高镜头俯仰
 	}
 	else if (Camera && bHeavy)
-		// Heavy: the same punch-in + small roll into the blow, a notch below the kick.
+		// 重击使用拉近和轻微侧倾，强度低于踢击
 		Camera->TriggerKickAccent(2.f + 1.3f * Grade, .5f + .7f * Grade, .1f + .08f * Grade, 0.f, Location,
 		                          HitStopSeconds);
 	else if (Camera)
-		// Camera stays small and directional (GDC 'Juicing Your Cameras': in 3D use
-		// small rotational motion, not big translation). The weight comes from
-		// hit-stop, the enemy's shudder, flash and sound instead. Strength is 1 so
-		// values are final: <=~3.5 deg FOV, <=~.2 deg shake, <=~.3 deg pitch dip.
-		// No oscillating shake on ordinary hits (a 12 Hz wobble read as judder):
-		// only a small smooth FOV punch and pitch dip.
+		// 普通命中只做小幅镜头变化，主要冲击感由动作停顿、受击、声音和闪光提供
+
+
+		// 普通命中不使用持续震荡，只平滑调整视角和俯仰
+
 		Camera->TriggerPerfectDodgeFeedback(.25f + .4f * Power, 0.f, 1.f, Location, Forward, bPerfect, 0.f,
 		                                    0.f, 0.f, .02f + .03f * Power,
-		                                    .08f); // gentler: every light hit was pumping the view
+		                                    .08f); // 降低轻击的镜头变化
 
-	// 6. Screen punch + controller rumble.
+	// 更新屏幕效果并触发手柄震动
 	PunchStartWorld = World ? World->GetTimeSeconds() : -1000.;
 	PunchStrength = Power * (bKick ? 1.35f : bHeavy ? 1.3f : 1.f);
 	if (auto* PC = Cast<APlayerController>(Cast<APawn>(GetOwner()) ? Cast<APawn>(GetOwner())->GetController()
@@ -1137,6 +1159,7 @@ void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AAct
 		                             true, true, true);
 }
 
+// 衰减命中造成的色散与暗角，结束后恢复原值
 void UPlayerBeatAttackComponent::TickScreenPunch()
 {
 	auto* Player = Cast<AHearBladeCharacter>(GetOwner());
@@ -1152,13 +1175,14 @@ void UPlayerBeatAttackComponent::TickScreenPunch()
 	const float Age = float(GetWorld()->GetTimeSeconds() - PunchStartWorld),
 	            Duration = .08f + .04f * PunchStrength;
 	const float Env = Age >= 0.f && Age < Duration ? FMath::Square(1.f - Age / Duration) : 0.f;
-	// Softer screen punch (was 2.0 fringe / .3 vignette per hit: read as flicker).
+	// 限制色散和暗角强度，减少连续命中时的闪烁
 	PP.bOverride_SceneFringeIntensity = true;
 	PP.SceneFringeIntensity = BaseFringe + Env * .6f * PunchStrength;
 	PP.bOverride_VignetteIntensity = true;
 	PP.VignetteIntensity = BaseVignette + Env * .12f * PunchStrength;
 }
 
+// 切换共鸣状态并通知监听者
 void UPlayerBeatAttackComponent::SetResonanceState(EPlayerResonanceState State)
 {
 	if (State == ResonanceState)
@@ -1169,6 +1193,7 @@ void UPlayerBeatAttackComponent::SetResonanceState(EPlayerResonanceState State)
 	       Clock() ? Clock()->GetCurrentBeat() : 0.);
 }
 
+// 检查共鸣条件，通过后等待指定拍点启动
 bool UPlayerBeatAttackComponent::TryActivateResonance()
 {
 	if (!Combat.IsValid() || Combat->Health <= 0 || Combat->IsPhaseCinematic() || !Clock() ||
@@ -1190,6 +1215,7 @@ bool UPlayerBeatAttackComponent::TryActivateResonance()
 	return true;
 }
 
+// 返回当前共鸣剩余拍数
 float UPlayerBeatAttackComponent::GetRemainingBeats() const
 {
 	return IsResonanceActive() && Clock()
@@ -1197,6 +1223,7 @@ float UPlayerBeatAttackComponent::GetRemainingBeats() const
 			   : 0.f;
 }
 
+// 结束共鸣并通知配合的 Boss 恢复状态
 void UPlayerBeatAttackComponent::EndResonance()
 {
 	if (ResonanceState != EPlayerResonanceState::Active && ResonanceState != EPlayerResonanceState::Armed)

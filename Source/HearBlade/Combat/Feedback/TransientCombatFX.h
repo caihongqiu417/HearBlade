@@ -36,6 +36,7 @@ inline void RetireCombatFX(UNiagaraComponent* Component, float EmitSeconds, floa
 	                StopAt + FMath::Max(.01f, TailSeconds), false);
 }
 
+// 旧粒子系统也先停止发射，再延迟销毁，避免循环特效一直残留
 inline void RetireCombatFX(UParticleSystemComponent* Component, float EmitSeconds, float TailSeconds = .6f)
 {
 	if (!Component || !Component->GetWorld())

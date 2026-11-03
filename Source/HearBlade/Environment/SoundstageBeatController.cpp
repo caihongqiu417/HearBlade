@@ -22,6 +22,7 @@ ASoundstageBeatController::ASoundstageBeatController()
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("StageRoot"));
 }
 
+// 查找场景装饰，记录初始变换和材质
 void ASoundstageBeatController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -32,6 +33,7 @@ void ASoundstageBeatController::BeginPlay()
 		Capture->RegisterComponent();
 	}
 #endif
+	// 按场景标签找到天空和装饰，保存初始变换，之后始终在原位置基础上计算运动
 	for (TActorIterator<AActor> It(GetWorld()); It; ++It)
 	{
 		if (It->ActorHasTag(TEXT("HB_RhythmSky")))
@@ -58,6 +60,7 @@ void ASoundstageBeatController::BeginPlay()
 	if (FParse::Param(FCommandLine::Get(), TEXT("HarmonicCourtCapture")) ||
 	    FParse::Param(FCommandLine::Get(), TEXT("HarmonicCourtLongCapture")))
 	{
+		// 以下只在指定截图参数下执行，记录画面、地面检测和粒子状态
 		const bool bLong = FParse::Param(FCommandLine::Get(), TEXT("HarmonicCourtLongCapture"));
 		const TArray<int32> CaptureTimes = bLong ? TArray<int32>{5, 25, 50, 80} : TArray<int32>{5, 12};
 		for (int32 Second : CaptureTimes)
@@ -123,6 +126,7 @@ void ASoundstageBeatController::BeginPlay()
 #endif
 }
 
+// 按音乐节拍更新舞台物件、灯光与材质
 void ASoundstageBeatController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -209,6 +213,7 @@ void ASoundstageBeatController::Tick(float DeltaSeconds)
 	}
 }
 
+// 退出时恢复场景装饰的原始状态
 void ASoundstageBeatController::EndPlay(const EEndPlayReason::Type Reason)
 {
 	for (const FMovingProp& Prop : Props)

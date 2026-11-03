@@ -39,6 +39,7 @@ UBossAscensionComponent::UBossAscensionComponent()
 	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 }
 
+// 检查演出条件，保存原状态后接管角色和镜头
 bool UBossAscensionComponent::BeginAscension(ACharacter* Player, FVector Contact, bool bFromClash)
 {
 	auto* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
@@ -106,6 +107,7 @@ bool UBossAscensionComponent::BeginAscension(ACharacter* Player, FVector Contact
 	return true;
 }
 
+// 返回当前演出的完成比例
 float UBossAscensionComponent::GetProgress() const
 {
 	const auto* Clock = GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
@@ -114,11 +116,12 @@ float UBossAscensionComponent::GetProgress() const
 			   : -1.f;
 }
 
+// 创建演出使用的临时模型和材质
 void UBossAscensionComponent::CreateForm()
 {
 	if (!HaloParts.IsEmpty())
 		return;
-	// Reuse the knight's detailed weapon rather than architectural ring blocks.
+	// 复用骑士武器作为演出模型
 	auto* Asset = LoadObject<UStaticMesh>(
 	    nullptr,
 	    TEXT("/Game/Enemies/DF_DRAGON_KNIGHT/MESHES/SWORD/SM_Dragon_knight_sword.SM_Dragon_knight_sword"));
@@ -156,6 +159,7 @@ void UBossAscensionComponent::CreateForm()
 			}
 }
 
+// 为演出中的角色播放指定动画
 void UBossAscensionComponent::PlayAscensionMotion()
 {
 	bMotionStarted = true;
@@ -183,6 +187,7 @@ void UBossAscensionComponent::PlayAscensionMotion()
 	       PresentationMontages.Num(), Duration);
 }
 
+// 按演出进度更新临时模型和光效
 void UBossAscensionComponent::UpdateForm(float DeltaTime, double Beat)
 {
 	const float P = GetProgress();
@@ -193,6 +198,7 @@ void UBossAscensionComponent::UpdateForm(float DeltaTime, double Beat)
 	const auto* CrownCapsule = Cast<UCapsuleComponent>(GetOwner()->GetRootComponent());
 	const float Half = CrownCapsule ? CrownCapsule->GetScaledCapsuleHalfHeight() : 110.f;
 	const FVector CrownCenter = GetOwner()->GetActorLocation() + FVector(0, 0, Half * .86f) - Forward * 65.f;
+	// 按展开进度排列武器模型，尺寸和位置共同变化形成升阶外观
 	for (int32 I = 0; I < HaloParts.Num(); ++I)
 	{
 		auto* Part = HaloParts[I].Get();
@@ -218,6 +224,7 @@ void UBossAscensionComponent::UpdateForm(float DeltaTime, double Beat)
 		const float NewScale = FMath::Lerp(1.f, AllowedScale, Reveal);
 		if (auto* Capsule = Cast<UCapsuleComponent>(GetOwner()->GetRootComponent()))
 		{
+			// 放大身体后按胶囊高度差抬高位置，让脚底仍停在原地面
 			const float OldHalf = Capsule->GetScaledCapsuleHalfHeight();
 			GetOwner()->SetActorScale3D(InitialBossScale * NewScale);
 			GetOwner()->AddActorWorldOffset(FVector(0, 0, Capsule->GetScaledCapsuleHalfHeight() - OldHalf),
@@ -227,6 +234,7 @@ void UBossAscensionComponent::UpdateForm(float DeltaTime, double Beat)
 	}
 }
 
+// 推进演出阶段、角色动作与镜头，到结束点后恢复战斗
 void UBossAscensionComponent::TickComponent(float DeltaTime, ELevelTick Type,
                                             FActorComponentTickFunction* Tick)
 {
@@ -362,6 +370,7 @@ void UBossAscensionComponent::TickComponent(float DeltaTime, ELevelTick Type,
 	}
 }
 
+// 统一处理完成和中断，归还镜头与角色控制
 void UBossAscensionComponent::FinishPresentation(bool bCompleted)
 {
 	if (!bPresenting)
@@ -398,6 +407,7 @@ void UBossAscensionComponent::FinishPresentation(bool bCompleted)
 	       bCompleted);
 }
 
+// 销毁演出创建的临时模型和效果
 void UBossAscensionComponent::DestroyForm()
 {
 	for (UStaticMeshComponent* Part : HaloParts)
@@ -420,6 +430,7 @@ void UBossAscensionComponent::DestroyForm()
 	bTransformed = false;
 }
 
+// 退出关卡时结束演出，清理临时对象
 void UBossAscensionComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	FinishPresentation(false);

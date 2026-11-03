@@ -64,8 +64,8 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FOnBossCinematicClash, float, Str
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBossCinematicAccentEnded);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnBossPhaseChanged, int32, Phase);
 
-// A read-only snapshot used by player-facing HUD. Times come from the same audio clock
-// that drives the combo, so the cue never invents a separate visual rhythm timer.
+// 界面读取的命中提示，与连招共用音乐时钟，不另设界面计时器
+
 struct FUpcomingImpactCue
 {
 	EBossAttackDamageShape DamageShape = EBossAttackDamageShape::Blade;
@@ -82,9 +82,9 @@ struct FUpcomingImpactCue
 	FLinearColor IconColor = FLinearColor::White;
 };
 
-// An attack opening in the boss's rhythm (audio-clock seconds). Gap = the rest
-// between two notes of one boss combo (the one we most want players to hit);
-// Tail = after the combo's last note, or while the boss is staggered.
+// 玩家可以追击的时间段，Gap 表示连招两击之间的空隙，Tail 表示连招结束或硬直期间的破绽
+
+
 enum class EBossOpeningKind : uint8
 {
 	None,
@@ -112,30 +112,37 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	GENERATED_BODY()
 
   public:
-	// Attack openings around the current combo (see FBossOpening), oldest first.
+	// 按时间顺序返回当前连招附近的破绽
 	void GetOpenings(TArray<FBossOpening>& Out) const;
+	// 查找指定音乐时刻是否落在可追击的破绽内
 	bool GetOpeningAt(double AudioSeconds, FBossOpening& Out) const;
+	// 统一接收玩家命中，处理生命、韧性、挑飞和受击反馈
 	void ReceivePlayerStrike(float Damage, float PoiseDamage, AActor* Source, bool bHeavy,
 	                         FVector ImpactLocation, bool bUppercut = false);
-	// Presentation-only feedback for an ordinary player hit: armour flash, a short
-	// shove away from the player and a brief animation freeze (hit-stop).
-	// Strength ~0.5 (off-beat) .. 1.6 (on-beat finisher).
+	// 普通命中的表现包括护甲闪光、短距离后退和动画停顿，强度由节奏评级和招式决定
+
+
 	void PlayPlayerHitFeedback(AActor* Source, float Strength, float FreezeSeconds);
-	// Hit shudder (Sakurai-style hitstop shake): the struck body vibrates along the
-	// hit direction while frozen, decaying to rest.
+	// 命中停顿期间沿受击方向抖动身体，随后逐渐恢复
+
 	FTimerHandle HitShakeTimer;
 	FVector HitShakeBase = FVector::ZeroVector, HitShakeDir = FVector::ZeroVector;
 	float HitShakeElapsed = 0.f, HitShakeDuration = 0.f, HitShakeAmplitude = 0.f;
 	bool bHitShaking = false;
+	// 更新受击抖动，并在停顿结束后恢复网格速度和位置
 	void TickHitShake();
 	void StartUppercutFeedback(AActor* Source);
+	// 推进网格的挑飞曲线，保持碰撞身体在地面
 	void TickUppercutFeedback();
+	// 还原挑飞修改的网格位置和旋转
 	void EndUppercutFeedback();
 	FTimerHandle UppercutTimer;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FVector> UppercutMeshBases;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FRotator> UppercutMeshRots;
 	double UppercutStartWorldSeconds = -1000.;
+	// 进入玩家共鸣配合流程，记录拍点与目标
 	void BeginPlayerResonance(double StartBeat, AActor* Player);
+	// 结束共鸣配合并恢复 Boss 正常战斗状态
 	void EndPlayerResonance();
 
 	bool IsPlayerResonanceActive() const
@@ -143,19 +150,20 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 		return bPlayerResonance;
 	}
 
+	// 推进共鸣期间的攻击与动作安排
 	void TickPlayerResonance();
 	bool bPlayerResonance = false;
 	double PlayerResonanceStartBeat = 0.;
 	int32 PlayerResonanceAttempt = 0;
 	UPROPERTY(Transient) TObjectPtr<UAttackDataAsset> ResonanceCounterAttack;
-	// Tutorial sparring: one slow single-note attack asking for Response, landing on TargetBeat.
+	// 教程使用的单次攻击，在指定拍点命中，并要求玩家执行指定防御操作
 	bool QueuePracticeAttack(ERhythmResponseType Response, double TargetBeat, AActor* Target);
 	UPROPERTY(Transient) TObjectPtr<UAttackDataAsset> PracticeAttack;
-	// Tutorial practice note in flight: always judged, however far away the player stands.
+	// 教程攻击即使未接触玩家也会进行练习判定
 	bool bPracticeNote = false;
-	// Set by the tutorial while sparring: hits react but deal no health damage.
+	// 教程练习期间保留受击表现，但不扣生命
 	bool bTutorialNoDamage = false;
-	// Beat backstep after a finished combo (see BossBackstep.cpp).
+	// 连招结束后的踩拍后跳，实现在 BossBackstep.cpp
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss后跳",
 	          meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float BackstepChance = .85f;
@@ -170,11 +178,13 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	}
 
 	void TryScheduleBackstep();
+	// 等待后跳拍点，推进带碰撞的位移，结束或中断时恢复行为树
 	void TickBackstep(float DeltaTime);
-	// Light-combo kick: shove the boss back a step (eased, collision-swept).
+	// 踢击造成的短距离击退，移动时检查碰撞
 	void StartKickKnockback(const AActor* Source, float Distance, float Seconds);
+	// 按累计目标距离推进击退，碰到阻挡后停止
 	void TickKnockback(float DeltaTime);
-	// Small hit shader: a short, dim pulse on the weak beat overlay channel.
+	// 受击时短暂增强弱拍材质效果
 	double LastHitOverlayAudioSeconds = -1000.;
 	float HitOverlayStrength = 0.f;
 	FVector KnockDir = FVector::ZeroVector;
@@ -191,6 +201,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	TSoftObjectPtr<UMusicEmphasisData> MusicEmphasisData = TSoftObjectPtr<UMusicEmphasisData>(
 	    FSoftObjectPath(TEXT("/Game/Audio/Music/DA_AintItFun_Emphasis.DA_AintItFun_Emphasis")));
 	UPROPERTY(Transient) TObjectPtr<UMusicEmphasisData> LoadedMusicEmphasis;
+	// 在允许等待的拍数内选择音乐重音，兼顾攻击等待时间
 	int32 SelectMusicEmphasisBeat(const UAttackDataAsset* Data, float& OutPriority) const;
 	UBeatSyncedComboComponent();
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss阶段") bool bEnableSecondPhase = true;
@@ -205,6 +216,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 		return bPhaseTransitionActive;
 	}
 
+	// 检查阶段转换条件，通过演出组件启动升阶
 	bool TryBeginPhaseAscension(AActor* Player, FVector Contact, bool bFromClash);
 	void FinishPhaseAscension(bool bCompleted);
 
@@ -221,9 +233,13 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	void UpdateBossPhase(const UBeatClockSubsystem* Clock);
 	bool HasSafeAreaExit(const FVector& Center, float Radius, const AActor* Target,
 	                     double AvailableSeconds = -1.0) const;
+	// 按攻击时间更新危险圈预警和爆发状态
 	void UpdateGroundBurst(double AudioNow);
+	// 结算范围内玩家的伤害或踩拍闪避，并处理攻击后的破绽
 	void ResolveGroundBurst(int32 ImpactIndex, double AudioNow);
+	// 清除危险圈与本次范围攻击状态
 	void ClearGroundBurst();
+	// 提供危险圈的位置、半径和预警进度
 	bool GetGroundBurstPreview(FVector& OutCenter, float& OutRadius, float& OutProgress) const;
 
 	bool HasResolvedGroundBurst() const
@@ -231,7 +247,9 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 		return bGroundBurstResolved;
 	}
 
+	// 判断是否处于范围攻击后的追击机会
 	bool IsGroundBurstRecovery() const;
+	// 返回范围爆发前的剩余拍数，未预警时返回无效值
 	float GetGroundBurstRemainingBeats() const;
 	bool TryRecoveryStrike(AActor* Player);
 	UPROPERTY(EditAnywhere, Category = "二阶段|破绽") float GroundBurstRecoveryBeats = 2.f;
@@ -239,22 +257,26 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	double LastRecoveryStrikeAudio = -100.;
 	float ActiveGroundBurstRadius = 0.f;
 	bool bGroundBurstHarmless = false;
+	// 返回阶段转换的进度，未转换时返回无效值
 	float GetPhaseTransitionProgress() const;
 	void RecordPhaseTwoAttackOutcome(bool bCompleted);
 	bool bPhaseTwoAttackCounted = false;
+	// 按测试参数采样连招姿态，输出动画衔接检查结果
 	bool TickComboPoseAudit();
 	int32 PoseAuditCaptured = INDEX_NONE;
 	TWeakObjectPtr<AActor> PoseAuditCamera;
 	bool bGroundBurstTestInjected = false;
 	int32 GroundBurstBoundaryCrossings = 0;
+	// 提供当前攻击的应对类型、位置和预警进度
 	bool GetRecognitionCue(FAttackRecognitionInfo& Info, FVector& Location, float& Progress,
 	                       double& Key) const;
+	// 提供只能闪避攻击的危险路径
 	bool GetDodgeOnlyPath(double ImpactAudioSeconds, FVector& Start, FVector& Direction, float& Length) const;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Boss生命", meta = (ClampMin = "1"))
 	float MaxBossHealth = 2700.f;
-	// Area attacks are escaped by dodging on the detonation beat, not by outrunning
-	// a small circle: the circle may exceed walking reach, a dodge pressed in
-	// [-0.35s, +LateGrace] around the hit passes through it.
+	// 范围攻击允许在爆发附近的闪避窗口内躲过，不要求玩家必须跑出整个危险圈
+
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "范围攻击") bool bGroundBurstDodgeThrough = true;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "范围攻击",
 	          meta = (ClampMin = "0", ClampMax = "0.15"))
@@ -270,13 +292,15 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 		return MaxBossHealth > 0.f ? FMath::Clamp(BossHealth / MaxBossHealth, 0.f, 1.f) : 0.f;
 	}
 
+	// 处理没有明确来源的伤害
 	UFUNCTION(BlueprintCallable, Category = "Boss生命") void ApplyBossDamage(float Damage);
+	// 接收引擎伤害事件，转入 Boss 的伤害处理
 	UFUNCTION()
 	void ReceiveBossDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType,
 	                       AController* InstigatedBy, AActor* DamageCauser);
 
-	// Hidden poise prevents light attacks from stun-locking the Boss. Idle hits react
-	// immediately; attacks are interrupted only by a counter or a poise break.
+	// 韧性控制攻击能否被打断，普通受击与破防分开处理
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss受击|韧性", meta = (ClampMin = "1.0"))
 	float MaxBossPoise = 320.0f;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Boss受击|韧性")
@@ -320,7 +344,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招")
 	FName MeshComponentTag;
 
-	// Optional animation graph used for idle/walk and montage blending.
+	// 用于混合待机、行走和攻击蒙太奇的动画类
 	UPROPERTY(EditAnywhere, Category = "节拍连招|移动")
 	TSoftClassPtr<UAnimInstance> LocomotionAnimClass;
 
@@ -343,7 +367,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	UPROPERTY(BlueprintAssignable, Category = "节拍连招|关键慢放")
 	FOnBossCinematicAccentEnded OnCinematicAccentEnded;
 
-	// Call this from actual damage confirmation, not from an animation impact marker.
+	// 实际确认命中后调用，不能只凭动画到达命中标记就调用
 	UFUNCTION(BlueprintCallable, Category = "节拍连招|相机") void NotifyConfirmedHit()
 	{
 		OnConfirmedHit.Broadcast();
@@ -356,7 +380,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	UFUNCTION(BlueprintCallable, Category = "节拍连招")
 	bool QueueAttack(UAttackDataAsset* InAttackData);
 
-	// Must be called before QueueAttack. The first impact and the blink then share one clock timestamp.
+	// 在 QueueAttack 前设置，让瞬移和第一击使用同一个目标时间
 	void ConfigureNextBlink(const FBeatBlinkSettings& Settings);
 
 	double GetScheduledFirstImpactAudioSeconds() const
@@ -369,14 +393,16 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 		return ScheduledStartAudioSeconds;
 	}
 
-	// Runtime timing for the next unresolved blade contact. Used by player-facing rhythm cues and tests.
+	// 返回下一次尚未结算的刀刃命中时间，供提示和测试使用
 	bool GetNextImpactDodgeTiming(double& OutImpactAudioSeconds, float& OutIdealLeadSeconds) const;
 	void GetUpcomingImpactCues(TArray<FUpcomingImpactCue>& OutCues, int32 MaxCount = 4,
 	                           bool bIncludeRecent = false) const;
 
+	// 记录攻击目标，供追踪和动作对齐使用
 	UFUNCTION(BlueprintCallable, Category = "节拍连招")
 	void SetAttackTarget(AActor* InTarget);
 
+	// 取消排队或正在播放的连招，清理窗口、移动对齐和临时表现
 	UFUNCTION(BlueprintCallable, Category = "节拍连招")
 	void CancelCombo();
 
@@ -416,10 +442,11 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 		return bLastLocomotionBlocked;
 	}
 
+	// 读取行走动画时长，供步伐与音乐拍点对齐
 	float GetWalkClipLengthSeconds() const;
 
-	// If no marker is explicitly authored, selected final hits can still receive
-	// an occasional accent. Disable this to use marker settings exclusively.
+	// 允许为未配置慢放的收尾攻击补充慢放表现，关闭后只使用资源中的配置
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|关键慢放")
 	bool bEnableOccasionalFinalImpactCinematic = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|关键慢放",
@@ -430,12 +457,12 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	          meta = (EditCondition = "bEnableOccasionalFinalImpactCinematic"))
 	FImpactCinematicSettings FinalImpactCinematic;
 
-	// The existing fire effects breathe on the music beat, including while idle.
+	// 待机和战斗期间都让火焰随音乐节拍变化
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|节奏感",
 	          meta = (ClampMin = "0.0", ClampMax = "0.3"))
 	float FireBeatPulseStrength = 0.10f;
 
-	// The first strike of a bar draws the fire into the blade before it lands.
+	// 小节第一击落下前，先让火焰向刀刃聚拢
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|强拍",
 	          meta = (ClampMin = "0.25", ClampMax = "2.0"))
 	float StrongBeatChargeBeats = 1.0f;
@@ -444,7 +471,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	          meta = (ClampMin = "1.0", ClampMax = "6.0"))
 	float StrongBeatSwordGlowMultiplier = 3.5f;
 
-	// Additive outline and moving energy bands drawn on top of the armor.
+	// 叠加在护甲上的轮廓光与流动光带
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|强弱拍")
 	TObjectPtr<UMaterialInterface> BeatOverlayMaterial;
 
@@ -470,23 +497,23 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	          meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float WeakBladeVolume = .9f;
 
-	// Extra gain for short wind sounds against the full-band music mix.
+	// 挥刀风声的额外音量，避免被背景音乐盖住
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|强弱拍",
 	          meta = (ClampMin = "0.5", ClampMax = "4.0"))
 	float BladeSfxGain = .72f;
 
-	// Start the air sweep before the animation's blade impact marker.
+	// 挥刀声音比动画命中标记提前播放
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|强弱拍",
 	          meta = (ClampMin = "0.0", ClampMax = "0.15"))
 	float BladeWhooshLeadSeconds = 0.15f;
 
-	// Skip the quiet head of the selected user sound. Combined with the lead,
-	// its main air-slice transient lands just before the impact marker.
+	// 跳过音效开头的静音部分，让主要挥刀声出现在命中之前
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|强弱拍",
 	          meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float BladeSoundStartTimeSeconds = 0.15f;
 
-	// Brief background music reduction leaves room for the blade transient.
+	// 命中时短暂降低背景音乐音量，突出刀刃声音
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "节拍连招|强拍",
 	          meta = (ClampMin = "0.2", ClampMax = "1.0"))
 	float StrongBeatMusicGain = .38f;
@@ -495,12 +522,16 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	          meta = (ClampMin = "0.2", ClampMax = "1.0"))
 	float WeakBeatMusicGain = .58f;
 
+	// 按音乐时间推进瞬移、动画、命中窗口和收尾，并处理阶段演出
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
 	                           FActorComponentTickFunction* ThisTickFunction) override;
+	// 绑定伤害事件，检查身体和动画配置，准备战斗使用的组件
 	virtual void BeginPlay() override;
+	// 停止连招与演出，清理临时效果和事件绑定
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
   private:
+	// 范围爆发：当前标记、预警区域、玩家离开时间与结算状态
 	int32 GroundBurstImpact = INDEX_NONE;
 	bool bGroundBurstResolved = false;
 	FVector GroundBurstCenter = FVector::ZeroVector;
@@ -510,38 +541,62 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	double GroundBurstStartAudio = 0.0;
 	double GroundBurstExitAudio = -1.0;
 	bool bGroundBurstWasInside = false;
+	// 阶段转换：请求等待、演出执行和后续攻击计数
 	bool bPhaseChangePending = false;
 	bool bPhaseTransitionActive = false;
 	double PhaseTransitionStartBeat = -1.0;
 	double PhaseRequestWorldSeconds = -1.0;
 	int32 CompletedPhaseTwoMelee = 0;
 	int32 NextAreaAfterMelee = 2;
+	// 只在本次攻击开始时选择防御指令组合，后续提示与判定共用结果
 	void SelectRuntimeResponsePattern();
 	const FAttackImpactMarker& GetImpactMarker(int32 Index) const;
 	float GetImpactTime(int32 Index) const;
 	int32 GetImpactCount() const;
+	// 启动攻击蒙太奇并恢复到音乐时间对应的动画位置
 	bool StartPlayback(double AudioNowSeconds);
+	// 更新追踪目标，出刀锁定后保留既定方向
 	void UpdateWarpTarget(float AnimationPosition);
+	// 移除攻击使用的动作对齐目标
 	void ClearWarping();
+	// 确定瞬移落点，后续按已锁定的位置执行
 	bool LockBlinkDestination();
+	// 清除本次瞬移的目标、预警和执行状态
 	void ClearBlink();
+	// 根据音乐拍点调整角色火焰强度
 	void UpdateBeatFirePulse(const UBeatClockSubsystem* Clock);
+	// 更新强拍攻击的蓄力火焰与身体表现
 	void UpdateStrongBeatPresentation(const UBeatClockSubsystem* Clock);
+	// 恢复强拍演出修改的身体与特效状态
 	void ResetStrongBeatPresentation();
+	// 更新并衰减护甲材质的拍点与受击效果
 	void UpdateBeatOverlay(const UBeatClockSubsystem* Clock);
+	// 记录一次材质闪光的强度和时间
 	void TriggerBeatOverlay(bool bStrong, double AudioNow);
+	// 在命中窗口内检查刀刃路径，先记录提前接触，再按命中时刻结算
 	void UpdateDamageSweep(double AudioNow);
+	// 窗口结束仍未接触时进行躲避或教程判定，不按真实接触扣血
 	void ResolveUncontactedDamageWindow(int32 ImpactIndex);
+	// 查找用于刀刃采样的武器网格
 	UMeshComponent* FindBladeMesh() const;
+	// 扣除生命并更新受击表现，死亡时停止当前连招
 	void ApplyBossDamageFrom(float Damage, const AActor* DamageSource, bool bForceHeavyBlood = false,
 	                         float ExplicitPoise = -1.f, FVector ImpactLocation = FVector::ZeroVector);
+	// 减少韧性，达到破防条件时打断攻击并进入硬直
 	void ApplyBossPoiseDamage(float Amount, const AActor* DamageSource);
+	// 记录受击方向和持续时间，启动方向受击动画
 	void StartBossHitReaction(const AActor* DamageSource, float Duration, bool bInterruptAttack);
+	// 结束方向受击并恢复行走动画状态
 	void EndBossHitReaction();
+	// 根据攻击来源确定方向，在命中位置生成血液效果
 	void SpawnBossBlood(const AActor* DamageSource, bool bHeavy, FVector ImpactLocation) const;
+	// 确定本次连招哪些命中使用慢放表现
 	void SelectRuntimeCinematicAccents();
+	// 到达配置时刻后启动慢放，并在结束条件满足时恢复
 	void UpdateCinematicAccent(UBeatClockSubsystem* Clock, double AudioNow);
+	// 恢复音乐和角色速度，再结束本次慢放
 	void EndCinematicAccent(bool bImmediate);
+	// 记录实际交锋位置并通知镜头表现
 	void TriggerCinematicClash(int32 ImpactIndex, const FVector& ClashLocation, bool bStrongBeat);
 
 	// 排队表示已经确定攻击拍点但尚未播放，与正在播放分开
@@ -563,7 +618,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	int32 NextBladeSoundIndex = 0;
 	TWeakObjectPtr<UAudioComponent> ActiveBladeVoice;
 	double ScheduledStartAudioSeconds = 0.0;
-	mutable FBossOpening CachedTail; // keeps the last combo's tail alive after it ends
+	mutable FBossOpening CachedTail; // 连招结束后仍保留最后一段追击破绽
 	double ScheduledFirstImpactAudioSeconds = 0.0;
 	FBeatBlinkSettings BlinkSettings;
 	bool bBlinkRequested = false;
@@ -615,6 +670,7 @@ class HEARBLADE_API UBeatSyncedComboComponent : public UActorComponent
 	TWeakObjectPtr<UNiagaraComponent> LandingWarningFX;
 	UPROPERTY(Transient)
 	TObjectPtr<UBossMotionWarpingComponent> WarpComponent;
+	// 动作对齐：当前窗口与本次出刀锁定的位置
 	int32 ActiveWarpWindowIndex = INDEX_NONE;
 	FVector WarpAnchorLocation = FVector::ZeroVector;
 	FTransform CommittedWarpTarget = FTransform::Identity;

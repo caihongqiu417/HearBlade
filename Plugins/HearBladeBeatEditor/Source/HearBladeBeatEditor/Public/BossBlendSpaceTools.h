@@ -6,6 +6,7 @@
 
 class UBlendSpace;
 
+// 提供编辑器脚本调用的骨架修正、混合空间重建与动画校准工具
 UCLASS()
 
 class HEARBLADEBEATEDITOR_API UBossBlendSpaceTools : public UBlueprintFunctionLibrary
@@ -13,11 +14,13 @@ class HEARBLADEBEATEDITOR_API UBossBlendSpaceTools : public UBlueprintFunctionLi
 	GENERATED_BODY()
 
   public:
-	// Rebuilds the triangulation after samples have been populated by an editor script.
+	// 脚本添加采样点后，重建混合空间的三角形连接
 	UFUNCTION(BlueprintCallable, Category = "HearBlade|Boss Animation")
 	static int32 RebuildBlendSpace(UBlendSpace* BlendSpace);
+	// 为骨骼结构兼容的动画指定目标骨架
 	UFUNCTION(BlueprintCallable, Category = "HearBlade|Boss Animation")
 	static bool AssignIdenticalSkeleton(class UAnimSequence* Sequence, class USkeleton* Target);
+	// 保留动画旋转，将非根骨骼平移校正为参考骨架长度
 	UFUNCTION(BlueprintCallable, Category = "HearBlade|Player Animation")
 	static bool NormalizePlayerAttackBoneLengths(class UAnimSequence* Sequence);
 };

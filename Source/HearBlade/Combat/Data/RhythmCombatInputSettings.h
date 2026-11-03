@@ -6,6 +6,7 @@
 #include "InputCoreTypes.h"
 #include "RhythmCombatInputSettings.generated.h"
 
+// 保存键盘、鼠标和手柄的战斗按键配置，输入组件据此创建动作映射
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "节奏战斗输入"))
 
 class HEARBLADE_API URhythmCombatInputSettings : public UDeveloperSettings

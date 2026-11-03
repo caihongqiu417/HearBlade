@@ -4,6 +4,7 @@
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "Engine/World.h"
 
+// 在允许等待的拍数内选择音乐重音，兼顾攻击等待时间
 int32 UBeatSyncedComboComponent::SelectMusicEmphasisBeat(const UAttackDataAsset* Data,
                                                          float& OutPriority) const
 {

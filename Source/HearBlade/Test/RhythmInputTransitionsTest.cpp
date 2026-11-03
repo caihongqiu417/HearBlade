@@ -20,6 +20,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FRhythmInputTransitionsTest, "HearBlade.Combat.
 
 bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
 {
+	// 在独立世界中逐项切换防御状态，检查缓存、松键和中断后的恢复
 	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
 	AActor* Owner = World->SpawnActor<AActor>();
 	UPlayerRhythmCombatComponent* Combat = NewObject<UPlayerRhythmCombatComponent>(Owner);
@@ -214,8 +215,8 @@ bool FRhythmAnimationBlendTest::RunTest(const FString& Parameters)
 	    TEXT("/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/Defense01_Start.Defense01_Start"));
 	auto* Roll =
 	    LoadObject<UAnimSequence>(nullptr, TEXT("/Game/SwordAnim/Animation/UE5/roll_front.roll_front"));
-	// Regression: an active clock-driven ordinary attack must not suppress the
-	// original guard/counter animation, even if its montage pointer is stale.
+	// 验证普通攻击状态或旧蒙太奇指针不会压住新的格挡和反击动画
+
 	auto* Ordinary = LoadObject<UAnimSequence>(nullptr, TEXT("/Game/Combat/Player/Animations/combo01_1"));
 	UAnimMontage* Lead = Anim->BeginBeatAttack(Ordinary, .4f);
 	Step(8);
@@ -265,8 +266,8 @@ bool FRhythmAnimationBlendTest::RunTest(const FString& Parameters)
 	Anim->PlayCombatAction(Guard, false, .4f);
 	UAnimMontage* Second = Anim->GetCurrentActiveMontage();
 	Step(3);
-	// Blending-out instances are removed from the active montage map immediately,
-	// but remain in the evaluated instance list until their weight reaches zero.
+	// 淡出蒙太奇可能已退出活动映射，但权重归零前仍参与姿态计算
+
 	FAnimMontageInstance* Outgoing = Anim->GetMontageInstanceForID(FirstInstanceID);
 	FAnimMontageInstance* Incoming = Anim->GetActiveInstanceForMontage(Second);
 	TestTrue(TEXT("Attack and guard coexist during crossfade"),
@@ -339,6 +340,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FPlayerEightWayTest, "HearBlade.Combat.PlayerEi
 
 bool FPlayerEightWayTest::RunTest(const FString& Parameters)
 {
+	// 先检查正式混合空间的采样数量，再验证各方向和追击使用的动画
 	auto* BS = LoadObject<UBlendSpace>(nullptr, TEXT("/Game/Combat/Player/BS_PlayerEightWay"));
 	if (!TestNotNull(TEXT("Eight-direction locomotion asset loads"), BS))
 		return false;

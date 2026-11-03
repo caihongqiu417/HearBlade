@@ -4,7 +4,7 @@
 #include "GameFramework/Actor.h"
 #include "SoundstageBeatController.generated.h"
 
-// Animates imported Blender prop actors; never constructs or deforms mesh geometry.
+// 控制已导入场景物件的运动，不创建或修改网格几何
 UCLASS()
 
 class HEARBLADE_API ASoundstageBeatController : public AActor
@@ -18,6 +18,7 @@ class HEARBLADE_API ASoundstageBeatController : public AActor
 		AscensionAccentBeat = Beat;
 	}
 
+	// 按音乐节拍更新舞台物件、灯光与材质
 	virtual void Tick(float DeltaSeconds) override;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Soundstage|Rhythm",
 	          meta = (ClampMin = "0", ClampMax = "2"))
@@ -35,7 +36,9 @@ class HEARBLADE_API ASoundstageBeatController : public AActor
 	float PendulumAngleDegrees = 14.f;
 
   protected:
+	// 查找场景装饰，记录初始变换和材质
 	virtual void BeginPlay() override;
+	// 退出时恢复场景装饰的原始状态
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
 
   private:

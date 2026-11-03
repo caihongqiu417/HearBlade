@@ -20,11 +20,13 @@ UBossCombatCameraComponent::UBossCombatCameraComponent()
 	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
 }
 
+// 优先使用配置资源，没有资源时使用默认配置
 const UBossCameraConfig* UBossCombatCameraComponent::Settings() const
 {
 	return Config ? Config.Get() : GetDefault<UBossCameraConfig>();
 }
 
+// 获取玩家镜头并准备战斗镜头修饰器
 void UBossCombatCameraComponent::BeginPlay()
 {
 	Super::BeginPlay();
@@ -38,6 +40,7 @@ void UBossCombatCameraComponent::BeginPlay()
 				    PC->PlayerCameraManager->AddNewCameraModifier(UBossCameraModifier::StaticClass()));
 }
 
+// 退出关卡时解除事件并清除镜头反馈
 void UBossCombatCameraComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	ClearCombatTarget();
@@ -48,6 +51,7 @@ void UBossCombatCameraComponent::EndPlay(const EEndPlayReason::Type Reason)
 	Super::EndPlay(Reason);
 }
 
+// 更换敌人事件绑定，接收预警、瞬移和交锋通知
 void UBossCombatCameraComponent::BindCombo(UBeatSyncedComboComponent* Combo)
 {
 	if (UBeatSyncedComboComponent* Old = BoundCombo.Get())
@@ -73,6 +77,7 @@ void UBossCombatCameraComponent::BindCombo(UBeatSyncedComboComponent* Combo)
 	}
 }
 
+// 切换锁定目标，并绑定新目标的战斗事件
 void UBossCombatCameraComponent::SetCombatTarget(AActor* NewTarget)
 {
 	if (!IsValid(NewTarget) || NewTarget == GetOwner())
@@ -87,6 +92,7 @@ void UBossCombatCameraComponent::SetCombatTarget(AActor* NewTarget)
 	UE_LOG(LogTemp, Display, TEXT("CombatCamera: locked %s"), *GetNameSafe(NewTarget));
 }
 
+// 清除当前镜头冲击和特写
 void UBossCombatCameraComponent::CancelFeedback()
 {
 	bWarning = false;
@@ -94,6 +100,7 @@ void UBossCombatCameraComponent::CancelFeedback()
 		M->Clear();
 }
 
+// 取消目标锁定并解除敌人事件绑定
 void UBossCombatCameraComponent::ClearCombatTarget()
 {
 	BindCombo(nullptr);
@@ -103,6 +110,7 @@ void UBossCombatCameraComponent::ClearCombatTarget()
 	CancelFeedback();
 }
 
+// 已有目标时取消锁定，否则寻找可锁定敌人
 void UBossCombatCameraComponent::ToggleLockOn()
 {
 	if (bPhasePresentation)
@@ -119,6 +127,7 @@ void UBossCombatCameraComponent::ToggleLockOn()
 			SetCombatTarget(D->BossActor);
 }
 
+// 把视角输入交给当前自由观察或锁定镜头流程
 void UBossCombatCameraComponent::AddLookInput(float Yaw, float Pitch)
 {
 	ManualYaw = FMath::Clamp(ManualYaw + Yaw, -22.f, 22.f);
@@ -126,6 +135,7 @@ void UBossCombatCameraComponent::AddLookInput(float Yaw, float Pitch)
 	LastLookInputTime = GetWorld()->GetTimeSeconds();
 }
 
+// 根据闪避结果和攻击方向设置镜头冲击参数
 void UBossCombatCameraComponent::TriggerPerfectDodgeFeedback(float FOVExpansionDegrees, float ShakeDegrees,
                                                              float Strength, FVector BladeWorldLocation,
                                                              FVector AttackDirection, bool bStrongBeat,
@@ -172,6 +182,7 @@ void UBossCombatCameraComponent::TriggerPerfectDodgeFeedback(float FOVExpansionD
 	       YawKickDegrees * FinalStrength);
 }
 
+// 为成功闪避选择镜头反馈强度
 void UBossCombatCameraComponent::TriggerDodgeSuccessFeedback(bool bPerfect, FVector BladeWorldLocation,
                                                              FVector AttackDirection, bool bStrongBeat)
 {
@@ -181,6 +192,7 @@ void UBossCombatCameraComponent::TriggerDodgeSuccessFeedback(bool bPerfect, FVec
 	                            bPerfect ? .65f : .35f, .08f, .12f);
 }
 
+// 为反击成功设置镜头反馈
 void UBossCombatCameraComponent::TriggerCounterSuccessFeedback(bool bPerfect, FVector BladeWorldLocation,
                                                                FVector AttackDirection, bool bStrongBeat)
 {
@@ -193,6 +205,7 @@ void UBossCombatCameraComponent::TriggerCounterSuccessFeedback(bool bPerfect, FV
 	                            bPerfect ? -.2f : -.1f, .18f);
 }
 
+// 触发踢击的拉近、侧倾与短暂震动
 void UBossCombatCameraComponent::TriggerKickAccent(float FOVKickDegrees, float RollDegrees,
                                                    float PitchDipDegrees, float ShakeDegrees,
                                                    FVector ContactWorld, float HoldSeconds)
@@ -217,6 +230,7 @@ void UBossCombatCameraComponent::TriggerKickAccent(float FOVKickDegrees, float R
 	CameraModifier->RollKick = FMath::Clamp(RollDegrees, 0.f, 4.f);
 }
 
+// 触发挑飞时的向上镜头反馈
 void UBossCombatCameraComponent::TriggerUppercutAccent(float Strength)
 {
 	UBossCameraModifier* CameraModifier = Modifier.Get();
@@ -230,6 +244,7 @@ void UBossCombatCameraComponent::TriggerUppercutAccent(float Strength)
 	       .32f + .28f * Power);
 }
 
+// 根据漏判或失误减弱、调整当前镜头反馈
 void UBossCombatCameraComponent::TriggerFailureFeedback(bool bMiss)
 {
 	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
@@ -258,6 +273,7 @@ void UBossCombatCameraComponent::TriggerFailureFeedback(bool bMiss)
 	       Shake, ObstructionScale);
 }
 
+// 收到攻击预警后更新镜头关注位置
 void UBossCombatCameraComponent::HandleWarning(FVector Landing, double)
 {
 	bWarning = true;
@@ -265,24 +281,28 @@ void UBossCombatCameraComponent::HandleWarning(FVector Landing, double)
 	UE_LOG(LogTemp, Display, TEXT("CombatCamera: warning Landing=%s"), *Landing.ToString());
 }
 
+// 开始持续格挡的轻微镜头震动
 void UBossCombatCameraComponent::StartHoldFeedback(float ShakeDegrees)
 {
 	if (UBossCameraModifier* M = Modifier.Get())
 		M->StartHoldShake(ShakeDegrees);
 }
 
+// 为持续格挡中的一次接触叠加短促震动
 void UBossCombatCameraComponent::TriggerHoldImpact(float ShakeDegrees, float DurationSeconds)
 {
 	if (UBossCameraModifier* M = Modifier.Get())
 		M->TriggerHoldImpact(ShakeDegrees, DurationSeconds);
 }
 
+// 逐渐停止持续格挡震动
 void UBossCombatCameraComponent::StopHoldFeedback(float FadeSeconds)
 {
 	if (UBossCameraModifier* M = Modifier.Get())
 		M->StopHoldShake(FadeSeconds);
 }
 
+// 响应 Boss 瞬移，更新镜头反馈
 void UBossCombatCameraComponent::HandleBlink(FVector, double)
 {
 	bWarning = false;
@@ -315,11 +335,13 @@ void UBossCombatCameraComponent::HandleBlink(FVector, double)
 	}
 }
 
+// 攻击取消时停止对应镜头表现
 void UBossCombatCameraComponent::HandleCancelled()
 {
 	CancelFeedback();
 }
 
+// 实际命中确认后触发镜头反馈
 void UBossCombatCameraComponent::HandleConfirmedHit()
 {
 	if (UBossCameraModifier* M = Modifier.Get())
@@ -330,6 +352,7 @@ void UBossCombatCameraComponent::HandleConfirmedHit()
 	}
 }
 
+// 进入交锋慢放时调整镜头表现
 void UBossCombatCameraComponent::HandleCinematicStarted(float Strength, bool bStrongBeat)
 {
 	if (UBossCameraModifier* M = Modifier.Get())
@@ -342,6 +365,7 @@ void UBossCombatCameraComponent::HandleCinematicStarted(float Strength, bool bSt
 	}
 }
 
+// 在实际交锋位置触发镜头冲击
 void UBossCombatCameraComponent::HandleCinematicImpact(float Strength, bool bStrongBeat,
                                                        FVector ClashLocation)
 {
@@ -357,11 +381,13 @@ void UBossCombatCameraComponent::HandleCinematicImpact(float Strength, bool bStr
 	}
 }
 
+// 交锋演出结束后恢复镜头反馈状态
 void UBossCombatCameraComponent::HandleCinematicEnded()
 {
 	UE_LOG(LogTemp, Verbose, TEXT("BeatCinematicCamera: recovery"));
 }
 
+// 记录挑飞目标和持续时间，开始侧面特写
 void UBossCombatCameraComponent::TriggerLaunchShot(AActor* Subject, float Seconds)
 {
 	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
@@ -390,6 +416,7 @@ void UBossCombatCameraComponent::TriggerLaunchShot(AActor* Subject, float Second
 	UE_LOG(LogTemp, Display, TEXT("LaunchShot: side=%.0f seconds=%.2f"), ShotSide, ShotSeconds);
 }
 
+// 跟随挑飞目标更新特写位置，并平滑回到普通镜头
 void UBossCombatCameraComponent::TickLaunchShot(float DeltaTime)
 {
 	UBossCameraModifier* M = Modifier.Get();
@@ -429,7 +456,7 @@ void UBossCombatCameraComponent::TickLaunchShot(float DeltaTime)
 	const float ChestZ = (PG.Key.Z + PG.Value * 1.3f + BG.Key.Z + BG.Value * 1.2f) * .5f;
 	const float Lift = 25.f * FMath::Sin(FMath::Clamp(Age / .9f, 0.f, 1.f) * PI);
 	const float Dist =
-	    FMath::Clamp(Sep * 1.2f + 480.f, 560.f, 1000.f) * FMath::Lerp(1.f, .93f, T); // wide enough for both
+	    FMath::Clamp(Sep * 1.2f + 480.f, 560.f, 1000.f) * FMath::Lerp(1.f, .93f, T); // 同时容纳玩家和 Boss
 	const FVector Look(MidGround.X, MidGround.Y, ChestZ + Lift);
 	// 镜头保持在胸部附近，略微俯视双方
 	FVector Desired = FVector(MidGround.X, MidGround.Y, ChestZ + 45.f) + Side * Dist - Axis * 30.f;
@@ -439,7 +466,7 @@ void UBossCombatCameraComponent::TickLaunchShot(float DeltaTime)
 	if (GetWorld()->LineTraceSingleByChannel(Hit, Look, Desired, ECC_Camera, Q))
 		Desired = Hit.Location + Hit.ImpactNormal * 25.f;
 	FRotator Rot = (Look - Desired).Rotation();
-	Rot.Roll = -3.f * ShotSide; // slight Dutch angle
+	Rot.Roll = -3.f * ShotSide; // 轻微侧倾
 	if (!bShotInit)
 	{
 		ShotSmoothedLoc = Desired;
@@ -454,6 +481,7 @@ void UBossCombatCameraComponent::TickLaunchShot(float DeltaTime)
 	M->ShotWeight = W;
 }
 
+// 更新锁定方向与距离，再推进镜头反馈和特写
 void UBossCombatCameraComponent::TickComponent(float DeltaTime, ELevelTick Type,
                                                FActorComponentTickFunction* Tick)
 {

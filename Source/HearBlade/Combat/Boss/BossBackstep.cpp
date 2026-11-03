@@ -76,6 +76,7 @@ void UBeatSyncedComboComponent::TryScheduleBackstep()
 	UE_LOG(LogTemp, Display, TEXT("BossBackstep: scheduled beat=%.0f"), StartBeat);
 }
 
+// 记录踢击造成的后退方向和距离，出刀期间减弱击退
 void UBeatSyncedComboComponent::StartKickKnockback(const AActor* Source, float Distance, float Seconds)
 {
 	if (!Source || BossHealth <= 0.f || bPhaseTransitionActive || bPlayerResonance || IsBackstepping())
@@ -93,6 +94,7 @@ void UBeatSyncedComboComponent::StartKickKnockback(const AActor* Source, float D
 	UE_LOG(LogTemp, Display, TEXT("BossKnockback: kick distance=%.0f"), KnockDistance);
 }
 
+// 按累计目标距离推进击退，碰到阻挡后停止
 void UBeatSyncedComboComponent::TickKnockback(float DeltaTime)
 {
 	if (KnockDistance <= 0.f || KnockTravelled >= KnockDistance)
@@ -100,14 +102,15 @@ void UBeatSyncedComboComponent::TickKnockback(float DeltaTime)
 	KnockElapsed += DeltaTime;
 	const float U = FMath::Clamp(KnockElapsed / KnockSeconds, 0.f, 1.f);
 	// 缓出曲线给出累计目标距离，每帧只应用与已移动距离的差
-	const float Want = KnockDistance * (1.f - FMath::Square(1.f - U)); // fast shove, soft stop
+	const float Want = KnockDistance * (1.f - FMath::Square(1.f - U)); // 先快后慢地击退
 	FHitResult Hit;
 	GetOwner()->AddActorWorldOffset(KnockDir * (Want - KnockTravelled), true, &Hit);
-	KnockTravelled = Hit.IsValidBlockingHit() ? KnockDistance : Want; // wall: stop
+	KnockTravelled = Hit.IsValidBlockingHit() ? KnockDistance : Want; // 遇到阻挡就结束击退
 	if (U >= 1.f)
 		KnockDistance = 0.f;
 }
 
+// 等待后跳拍点，推进带碰撞的位移，结束或中断时恢复行为树
 void UBeatSyncedComboComponent::TickBackstep(float DeltaTime)
 {
 	TickKnockback(DeltaTime);

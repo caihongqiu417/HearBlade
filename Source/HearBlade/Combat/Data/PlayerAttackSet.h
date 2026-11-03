@@ -32,6 +32,7 @@ USTRUCT(BlueprintType)
 struct FPlayerAttackNode
 {
 	GENERATED_BODY()
+	// 节点身份与使用的动画资源
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName Id;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) EPlayerAttackInput Input = EPlayerAttackInput::Light;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) TObjectPtr<class UAnimSequence> Animation;
@@ -61,6 +62,7 @@ struct FPlayerAttackNode
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) FName NextHeavy;
 };
 
+// 保存玩家攻击节点与轻重击分支，提供节点查询和配置检查
 UCLASS(BlueprintType)
 
 class HEARBLADE_API UPlayerAttackSet : public UDataAsset
@@ -68,7 +70,9 @@ class HEARBLADE_API UPlayerAttackSet : public UDataAsset
 	GENERATED_BODY()
   public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly) TArray<FPlayerAttackNode> Nodes;
+	// 按标识查找节点，找不到时返回空指针
 	const FPlayerAttackNode* Find(FName Id) const;
+	// 检查节点、动画片段和分支引用，错误原因写入 Error
 	bool Validate(FString& Error) const;
 };
 
@@ -78,12 +82,14 @@ namespace PlayerAttackTiming
 // 出招期间的第一条缓存输入可以更早进入，实际执行仍等待接续拍点
 inline constexpr double ComboQueueEarlySeconds = .30;
 inline constexpr double ComboQueueLateSeconds = .18;
+// 按输入时间误差返回攻击评级
 HEARBLADE_API EPlayerAttackGrade Judge(double ErrorSeconds);
 HEARBLADE_API double CadenceBeats(EPlayerAttackInput Input, bool Resonance);
 HEARBLADE_API double ScheduleImpact(double CandidateBeat, double PreviousImpactBeat, double Cadence);
 HEARBLADE_API bool CanQueue(double InputAudio, double ImpactAudio, bool AlreadyQueued);
 HEARBLADE_API float ClipPosition(double AudioNow, double ImpactAudio, float ClipStart, float ImpactTime,
                                  float ClipEnd, float PlayRate);
+// 把起手、命中和收招时间映射到动画片段，保证关键姿态按时到达
 HEARBLADE_API float ContinuousComboPosition(double AudioNow, double StartAudio, double ImpactAudio,
                                             double EndAudio, const FPlayerAttackNode& Node);
 HEARBLADE_API bool IsDefenseInputWindow(double SecondsUntilImpact, double IdealLeadSeconds);

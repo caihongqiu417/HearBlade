@@ -6,6 +6,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 
+// 切换演出状态，进入时清理未完成的攻击与防御操作
 void UPlayerRhythmCombatComponent::SetPhaseCinematic(bool bEnabled)
 {
 	if (bPhaseCinematic == bEnabled)

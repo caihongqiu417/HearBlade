@@ -26,8 +26,10 @@ void URhythmCombatWidget::SetWidgetController(URhythmWidgetController* InControl
 	}
 }
 
+// 缓存控制器提供的数据，再通知蓝图更新显示
 void URhythmCombatWidget::ReceiveModel(const FRhythmHUDViewModel& Model)
 {
+	// 先保存整份显示数据，再调用蓝图事件，让一次刷新读取同一份数据
 	ViewModel = Model;
 	OnViewModelUpdated();
 }
@@ -61,6 +63,7 @@ void URhythmCombatWidget::NativeTick(const FGeometry& Geometry, float Delta)
 		WidgetController->SetTutorialSkipScreenRect(FVector2D::ZeroVector, FVector2D::ZeroVector);
 }
 
+// 把显示数据写入对应的文本、进度条和图像控件
 void URhythmCombatWidget::RefreshViewFromModel()
 {
 	if (!WidgetTree)
@@ -70,6 +73,7 @@ void URhythmCombatWidget::RefreshViewFromModel()
 	{
 		return WidgetTree->FindWidget(Name);
 	};
+	// 按蓝图控件名称查找并更新，控件缺失时跳过，不在运行时重建布局
 	auto Text = [&](FName Name, const FText& Value)
 	{
 		if (auto* W = Cast<UTextBlock>(Find(Name)); W && !W->GetText().EqualTo(Value))
@@ -210,4 +214,5 @@ void URhythmCombatWidget::RefreshViewFromModel()
 	if (auto* W = Find(TEXT("ImpactText")))
 		W->SetRenderScale(FVector2D(M.ImpactScale));
 	Alpha(TEXT("ImpactFlash"), M.FlashOpacity);
+	RefreshOriginalStyle();
 }
