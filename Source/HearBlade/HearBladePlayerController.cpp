@@ -1,59 +1,35 @@
+// 管理玩家输入映射，提供触控界面配置
 // Copyright Epic Games, Inc. All Rights Reserved.
-
 
 #include "HearBladePlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
-#include "Blueprint/UserWidget.h"
 #include "HearBlade.h"
 #include "Widgets/Input/SVirtualJoystick.h"
-
-void AHearBladePlayerController::BeginPlay()
-{
-	Super::BeginPlay();
-
-	// only spawn touch controls on local player controllers
-	if (IsLocalPlayerController() && ShouldUseTouchControls())
-	{
-		// spawn the mobile controls widget
-		MobileControlsWidget = CreateWidget<UUserWidget>(this, MobileControlsWidgetClass);
-
-		if (MobileControlsWidget)
-		{
-			// add the controls to the player screen
-			MobileControlsWidget->AddToPlayerScreen(0);
-
-		} else {
-
-			UE_LOG(LogHearBlade, Error, TEXT("Could not spawn mobile controls widget."));
-
-		}
-
-	}
-}
 
 void AHearBladePlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	// only add IMCs for local player controllers
+	// 只为本机玩家启用输入映射
 	if (IsLocalPlayerController())
 	{
-		// Add Input Mapping Contexts
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
+		// 添加基础输入映射
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem =
+		        ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 		{
 			for (UInputMappingContext* CurrentContext : DefaultMappingContexts)
 			{
-				Subsystem->AddMappingContext(CurrentContext, 0);
+				if (CurrentContext) Subsystem->AddMappingContext(CurrentContext, 0);
 			}
 
-			// only add these IMCs if we're not using mobile touch input
+			// 非触控模式才启用额外的视角映射
 			if (!ShouldUseTouchControls())
 			{
 				for (UInputMappingContext* CurrentContext : MobileExcludedMappingContexts)
 				{
-					Subsystem->AddMappingContext(CurrentContext, 0);
+					if (CurrentContext) Subsystem->AddMappingContext(CurrentContext, 0);
 				}
 			}
 		}
@@ -62,6 +38,6 @@ void AHearBladePlayerController::SetupInputComponent()
 
 bool AHearBladePlayerController::ShouldUseTouchControls() const
 {
-	// are we on a mobile platform? Should we force touch?
+	// 移动平台或强制触控配置决定是否显示触控界面
 	return SVirtualJoystick::ShouldDisplayTouchInterface() || bForceTouchControls;
 }

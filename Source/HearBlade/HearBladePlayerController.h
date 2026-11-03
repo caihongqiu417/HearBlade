@@ -1,3 +1,4 @@
+// 管理玩家输入映射，提供触控界面配置
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
@@ -10,43 +11,38 @@ class UInputMappingContext;
 class UUserWidget;
 
 /**
- *  Basic PlayerController class for a third person game
- *  Manages input mappings
+ * 管理本机输入映射，提供触控配置
+ * 界面创建和销毁交给 HUD
  */
 UCLASS(abstract)
+
 class AHearBladePlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
-protected:
 
-	/** Input Mapping Contexts */
-	UPROPERTY(EditAnywhere, Category ="Input|Input Mappings")
+  protected:
+	/** 输入映射资源 */
+	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
 	TArray<UInputMappingContext*> DefaultMappingContexts;
 
-	/** Input Mapping Contexts */
-	UPROPERTY(EditAnywhere, Category="Input|Input Mappings")
+	/** 输入映射资源 */
+	UPROPERTY(EditAnywhere, Category = "Input|Input Mappings")
 	TArray<UInputMappingContext*> MobileExcludedMappingContexts;
 
-	/** Mobile controls widget to spawn */
-	UPROPERTY(EditAnywhere, Category="Input|Touch Controls")
+	/** 触控界面类，沿用现有蓝图配置 */
+	UPROPERTY(EditAnywhere, Category = "Input|Touch Controls")
 	TSubclassOf<UUserWidget> MobileControlsWidgetClass;
 
-	/** Pointer to the mobile controls widget */
-	UPROPERTY()
-	TObjectPtr<UUserWidget> MobileControlsWidget;
-
-	/** If true, the player will use UMG touch controls even if not playing on mobile platforms */
+	/** 强制显示触控界面，用于在桌面环境检查触控布局 */
 	UPROPERTY(EditAnywhere, Config, Category = "Input|Touch Controls")
 	bool bForceTouchControls = false;
 
-	/** Gameplay initialization */
-	virtual void BeginPlay() override;
 
-	/** Input mapping context setup */
+	/** 在本机设置输入映射 */
 	virtual void SetupInputComponent() override;
 
-	/** Returns true if the player should use UMG touch controls */
+  public:
+    TSubclassOf<UUserWidget> GetTouchControlsClass() const { return MobileControlsWidgetClass; }
+	/** 是否使用触控界面 */
 	bool ShouldUseTouchControls() const;
-
 };

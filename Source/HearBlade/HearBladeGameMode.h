@@ -1,3 +1,4 @@
+// 配置游戏模式默认对象
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 #pragma once
@@ -10,15 +11,12 @@
  *  Simple GameMode for a third person game
  */
 UCLASS(abstract)
+
 class AHearBladeGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
-public:
-	
+  public:
 	/** Constructor */
 	AHearBladeGameMode();
 };
-
-
-

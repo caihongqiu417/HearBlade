@@ -9,7 +9,7 @@ public class HearBladeBeatEditor : ModuleRules
         {
             "Core", "CoreUObject", "Engine", "HearBlade", "Slate", "SlateCore",
             "InputCore", "UnrealEd", "PropertyEditor", "AssetRegistry",
-            "ToolMenus", "DesktopPlatform", "Projects"
+            "ToolMenus", "DesktopPlatform", "Projects", "UMG", "UMGEditor", "BlueprintGraph", "KismetCompiler"
         });
     }
 }

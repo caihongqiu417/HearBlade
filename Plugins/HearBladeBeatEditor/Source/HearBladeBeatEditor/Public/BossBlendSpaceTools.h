@@ -1,3 +1,4 @@
+// 提供骨架关联与混合空间重建的编辑器工具
 #pragma once
 
 #include "Kismet/BlueprintFunctionLibrary.h"
@@ -6,16 +7,17 @@
 class UBlendSpace;
 
 UCLASS()
+
 class HEARBLADEBEATEDITOR_API UBossBlendSpaceTools : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
 
-public:
+  public:
 	// Rebuilds the triangulation after samples have been populated by an editor script.
-	UFUNCTION(BlueprintCallable, Category="HearBlade|Boss Animation")
+	UFUNCTION(BlueprintCallable, Category = "HearBlade|Boss Animation")
 	static int32 RebuildBlendSpace(UBlendSpace* BlendSpace);
-	UFUNCTION(BlueprintCallable, Category="HearBlade|Boss Animation")
+	UFUNCTION(BlueprintCallable, Category = "HearBlade|Boss Animation")
 	static bool AssignIdenticalSkeleton(class UAnimSequence* Sequence, class USkeleton* Target);
-	UFUNCTION(BlueprintCallable, Category="HearBlade|Player Animation")
+	UFUNCTION(BlueprintCallable, Category = "HearBlade|Player Animation")
 	static bool NormalizePlayerAttackBoneLengths(class UAnimSequence* Sequence);
 };

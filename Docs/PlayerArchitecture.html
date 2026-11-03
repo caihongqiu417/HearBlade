@@ -1,0 +1,632 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HearBlade 主角与输入</title><style>*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#f4f2ed;color:#25313b;font-family:'Microsoft YaHei','PingFang SC',sans-serif;line-height:1.95;font-size:17px}header{background:#163b46;color:#fff;padding:54px max(24px,calc((100vw - 1000px)/2))}header p{color:#d9e8e9;font-size:18px}h1{font-size:36px;line-height:1.5;margin:8px 0 20px}h2{font-size:27px;line-height:1.6;color:#194a56;margin:0 0 22px}h3{font-size:21px;color:#194a56}main{max-width:1040px;margin:auto;padding:30px 22px 80px}article,section.card{background:white;border:1px solid #e0e5e2;border-radius:14px;padding:38px 46px;margin:24px 0}p{margin:0 0 21px;text-align:justify;overflow-wrap:anywhere}a{color:#006c85;text-underline-offset:4px;overflow-wrap:anywhere}header a{color:white}nav{padding:20px 24px;background:#e6eeeb;border-radius:12px}nav a{display:block;margin:7px 0;text-decoration:none;font-size:15px}nav .group{font-weight:bold;font-size:19px;margin-top:18px}.meta{font-size:14px;color:#66777e;border-left:3px solid #ceaa67;padding-left:15px;margin-bottom:25px}.refs{background:#f2f6f5;padding:22px;border-radius:10px;margin-top:30px;font-size:15px}.file{border-top:1px solid #d8e0dd;padding:15px 0}.file:first-of-type{border:0}.path{font-family:Consolas,monospace;font-size:13px;word-break:break-all;color:#607078}details{margin:12px 0}summary{cursor:pointer;color:#146073;font-size:15px}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#172f3a;color:#e5f0ef;padding:20px;border-radius:8px;font:14px/1.8 Consolas,'Microsoft YaHei',monospace}.code{white-space:pre;overflow:auto;overflow-wrap:normal}.flow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:25px 0}.flow b{font-size:15px;font-weight:normal;background:#e5efed;border:1px solid #c5d6d1;border-radius:7px;padding:9px 14px}.note{border-left:4px solid #bd9452;background:#fbf6e9;padding:20px;margin:25px 0}.top{font-size:14px;text-align:right}button{border:0;background:#f3e3be;color:#153b46;padding:11px 18px;border-radius:7px;cursor:pointer;font-size:15px;margin-right:10px}input{width:100%;font-size:16px;padding:14px;border:1px solid #c0d0cb;border-radius:7px;margin-bottom:20px}.commit{border-top:1px solid #d9e1de;padding:16px 0}.history-files{font-size:12px;white-space:pre-wrap;max-height:500px;overflow:auto;background:#eef3f1;color:#25313b}.book{margin-top:65px;padding:28px;color:#fff;background:#285961;border-radius:14px}.book h2{color:white;margin:0}.book p{margin:8px 0 0}.small{font-size:14px;color:#63777a}@media(max-width:700px){h1{font-size:28px}h2{font-size:23px}article,section.card{padding:24px 20px}main{padding:18px 12px}body{font-size:16px}}@media print{body{background:white;font-size:12pt}header{background:white;color:#153b46;padding:0}header p{color:#25313b}nav,button,input,.top{display:none}main{max-width:none;padding:0}article,section.card{border:0;padding:15px 0;border-radius:0}h2,h3{break-after:avoid}.refs,.flow{break-inside:avoid}a{color:inherit}pre{background:#f2f3f3;color:#172f3a}.book{background:white;color:#153b46}.book h2{color:#153b46}}
+.evidence{margin-top:26px;border-top:1px solid #cbd5df;padding-top:16px}
+.evidence h3{font-size:21px;margin:24px 0 12px}.evidence h4{font-size:18px;margin:18px 0 10px}
+.source-note{font-size:14px;color:#43536a;overflow-wrap:anywhere;text-align:left!important}
+.evidence p{text-align:left!important}
+pre.source{background:#142332;color:#e8eff6;padding:18px;border-radius:8px;overflow:auto;max-height:580px;line-height:1.65;font-size:13px;tab-size:4;white-space:pre}
+pre.source code{background:none;color:inherit;padding:0;font-family:Consolas,monospace}
+.source-line{display:inline}.source-line:before{content:attr(data-line);display:inline-block;width:3.5em;color:#91a6bb;user-select:none}
+.code-note{border-left:3px solid #4c8796;padding:10px 16px;background:#edf5f6}
+figure.design{margin:20px 0;padding:20px;background:#f2f6fa;border:1px solid #cddae5;border-radius:10px}
+figure.design figcaption{font-weight:600;margin-bottom:16px}
+.diagram-flow{display:flex;align-items:stretch;gap:9px;flex-wrap:wrap}.diagram-node{flex:1;min-width:140px;background:white;border:1px solid #839db4;border-radius:6px;padding:12px;overflow-wrap:anywhere;font-size:14px;line-height:1.7}
+.diagram-node strong{display:block;border-bottom:1px solid #d9e1e8;padding-bottom:7px;margin-bottom:7px;color:#183e5d}.diagram-arrow{align-self:center;color:#526e87;font-size:20px}
+.class-parent{max-width:540px;margin:0 auto;text-align:center}.class-relation{text-align:center;padding:12px;color:#536b80;font-size:14px}
+.table-wrap{overflow:auto}table.design-table{width:100%;border-collapse:collapse;font-size:15px;margin:15px 0}table.design-table th,table.design-table td{padding:12px;text-align:left;border:1px solid #cad7e2;vertical-align:top;min-width:110px}table.design-table th{background:#edf3f8}
+.reading-order{background:#eef5f0;border-left:4px solid #698d72;padding:14px 18px}
+@media(max-width:600px){.diagram-flow{flex-direction:column}.diagram-arrow{transform:rotate(90deg)}.diagram-node{min-width:0}figure.design{padding:14px}pre.source{font-size:12px;padding:12px}.source-line:before{width:3em}}
+
+pre.source .tok-comment{color:#9ac590}pre.source .tok-keyword{color:#d8a9ff}
+pre.source .tok-string{color:#f5c58a}pre.source .tok-number{color:#9bd7ca}
+pre.source .tok-name{color:#8fd6f0}pre.source .doc-comment{display:block;color:#b9e49e;border-left:3px solid #8cbd70;padding-left:9px;white-space:pre-wrap}
+.blueprint-gallery{margin:22px 0}.blueprint-gallery h3{overflow-wrap:anywhere}.blueprint-gallery section{min-width:0;max-width:100%}.blueprint-gallery summary{overflow-wrap:anywhere;cursor:pointer}.blueprint-gallery figure{margin:16px 0;padding:12px;border:1px solid #bbccd4;border-radius:9px;background:#edf2f5}.blueprint-gallery figcaption{font-weight:bold;overflow-wrap:anywhere;margin-bottom:8px}.blueprint-gallery .graph-viewport{overflow:auto;max-height:720px;background:#18222c;border-radius:7px}.blueprint-gallery svg{display:block;width:100%;height:auto;min-width:650px}.blueprint-gallery button{padding:7px 12px;margin:6px 8px 10px 0;background:white;color:#175a70;border:1px solid #9fb8c6;border-radius:5px}.blueprint-gallery .asset-location{font-size:12px;color:#59707f;overflow-wrap:anywhere}.blueprint-gallery details{margin:10px 0;padding:10px;border:1px solid #cad7dc;border-radius:8px}.blueprint-gallery .graph-key{font-size:13px;color:#526a79}@media(max-width:600px){.blueprint-gallery figure{padding:8px}.blueprint-gallery .graph-viewport{max-height:500px}}.resource-row{display:flex;align-items:center;gap:14px;padding:14px;margin:10px 0;background:#eef3f7;border-radius:10px}.resource-node{padding:15px;background:#173b50;color:white;border-radius:8px;min-width:180px;max-width:38%}.resource-node a{color:#fff}.resource-row small{display:block;font-size:11px;overflow-wrap:anywhere}.resource-targets{display:grid;gap:8px;flex:1;min-width:0}.resource-target{display:block;padding:10px;background:white;border:1px solid #abc5d1;border-radius:7px}.resource-arrow{white-space:nowrap;color:#146a71}@media(max-width:600px){.resource-row{display:block}.resource-node{max-width:none}.resource-arrow{padding:6px}.resource-node,.resource-target{overflow-wrap:anywhere}}summary{overflow-wrap:anywhere}pre:not(.source){white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}table{width:100%;table-layout:fixed}td,th{overflow-wrap:anywhere}details{min-width:0;max-width:100%}
+.shot-viewport{overflow:auto;max-width:100%}.shot-wrap.zoomed{width:1740px}.image-zoom{padding:8px;margin:8px 0;background:white;border:1px solid #afc3d1;border-radius:5px;color:#176778}
+.editor-shot{margin:24px 0;padding:16px;background:#eef3f7;border:1px solid #c7d4df;border-radius:10px}.editor-shot figcaption{font-weight:bold;margin-bottom:12px}.shot-wrap{position:relative}.shot-wrap img{display:block;width:100%;height:auto}.shot-mark{position:absolute;display:grid;place-items:center;transform:translate(-50%,-50%);width:25px;height:25px;border-radius:50%;background:#ffdc65;color:#142332;font:bold 16px system-ui;border:2px solid white}.editor-shot p{overflow-wrap:anywhere}.architecture-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.architecture-grid section{padding:16px;background:white;border:1px solid #b8cddc;border-radius:8px}.architecture-grid h4{margin:0 0 6px}@media(max-width:600px){.editor-shot{padding:10px}.architecture-grid{grid-template-columns:1fr}.shot-mark{width:18px;height:18px;font-size:11px}}
+.resource-row{display:flex;align-items:center;gap:14px;padding:14px;margin:10px 0;background:#eef3f7;border-radius:10px}.resource-node{padding:15px;background:#173b50;color:white;border-radius:8px;min-width:180px;max-width:38%}.resource-node a{color:#fff}.resource-row small{display:block;font-size:11px;overflow-wrap:anywhere}.resource-targets{display:grid;gap:8px;flex:1;min-width:0}.resource-target{display:block;padding:10px;background:white;border:1px solid #abc5d1;border-radius:7px}.resource-arrow{white-space:nowrap;color:#146a71}@media(max-width:600px){.resource-row{display:block}.resource-node{max-width:none}.resource-arrow{padding:6px}.resource-node,.resource-target{overflow-wrap:anywhere}}summary{overflow-wrap:anywhere}pre:not(.source){white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%}table{width:100%;table-layout:fixed}td,th{overflow-wrap:anywhere}details{min-width:0;max-width:100%}</style><style>pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.current-code .hll { background-color: #ffffcc }
+.current-code { background: #f8f8f8; }
+.current-code .c { color: #3D7B7B; font-style: italic } /* Comment */
+.current-code .err { border: 1px solid #F00 } /* Error */
+.current-code .k { color: #008000; font-weight: bold } /* Keyword */
+.current-code .o { color: #666 } /* Operator */
+.current-code .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.current-code .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.current-code .cp { color: #9C6500 } /* Comment.Preproc */
+.current-code .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.current-code .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.current-code .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.current-code .gd { color: #A00000 } /* Generic.Deleted */
+.current-code .ge { font-style: italic } /* Generic.Emph */
+.current-code .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.current-code .gr { color: #E40000 } /* Generic.Error */
+.current-code .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.current-code .gi { color: #008400 } /* Generic.Inserted */
+.current-code .go { color: #717171 } /* Generic.Output */
+.current-code .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.current-code .gs { font-weight: bold } /* Generic.Strong */
+.current-code .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.current-code .gt { color: #04D } /* Generic.Traceback */
+.current-code .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.current-code .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.current-code .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.current-code .kp { color: #008000 } /* Keyword.Pseudo */
+.current-code .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.current-code .kt { color: #B00040 } /* Keyword.Type */
+.current-code .m { color: #666 } /* Literal.Number */
+.current-code .s { color: #BA2121 } /* Literal.String */
+.current-code .na { color: #687822 } /* Name.Attribute */
+.current-code .nb { color: #008000 } /* Name.Builtin */
+.current-code .nc { color: #00F; font-weight: bold } /* Name.Class */
+.current-code .no { color: #800 } /* Name.Constant */
+.current-code .nd { color: #A2F } /* Name.Decorator */
+.current-code .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.current-code .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.current-code .nf { color: #00F } /* Name.Function */
+.current-code .nl { color: #767600 } /* Name.Label */
+.current-code .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.current-code .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.current-code .nv { color: #19177C } /* Name.Variable */
+.current-code .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.current-code .w { color: #BBB } /* Text.Whitespace */
+.current-code .mb { color: #666 } /* Literal.Number.Bin */
+.current-code .mf { color: #666 } /* Literal.Number.Float */
+.current-code .mh { color: #666 } /* Literal.Number.Hex */
+.current-code .mi { color: #666 } /* Literal.Number.Integer */
+.current-code .mo { color: #666 } /* Literal.Number.Oct */
+.current-code .sa { color: #BA2121 } /* Literal.String.Affix */
+.current-code .sb { color: #BA2121 } /* Literal.String.Backtick */
+.current-code .sc { color: #BA2121 } /* Literal.String.Char */
+.current-code .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.current-code .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.current-code .s2 { color: #BA2121 } /* Literal.String.Double */
+.current-code .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.current-code .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.current-code .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.current-code .sx { color: #008000 } /* Literal.String.Other */
+.current-code .sr { color: #A45A77 } /* Literal.String.Regex */
+.current-code .s1 { color: #BA2121 } /* Literal.String.Single */
+.current-code .ss { color: #19177C } /* Literal.String.Symbol */
+.current-code .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.current-code .fm { color: #00F } /* Name.Function.Magic */
+.current-code .vc { color: #19177C } /* Name.Variable.Class */
+.current-code .vg { color: #19177C } /* Name.Variable.Global */
+.current-code .vi { color: #19177C } /* Name.Variable.Instance */
+.current-code .vm { color: #19177C } /* Name.Variable.Magic */
+.current-code .il { color: #666 } /* Literal.Number.Integer.Long */
+.current-code{background:#f5f7fa;border:1px solid #d8e1e6;border-radius:10px;margin:16px 0}
+.current-code pre{background:transparent;color:#24333d;white-space:pre;overflow-x:auto;font-size:14px;line-height:1.8}
+.system-diagram{width:100%;height:auto;font-family:'Microsoft YaHei',sans-serif;display:block}
+.table-scroll{overflow-x:auto}.table-scroll table{min-width:620px;border-collapse:collapse}.table-scroll td,.table-scroll th{padding:10px;border:1px solid #d7e3df;text-align:left}
+@media(max-width:600px){article,section.card{padding:20px 14px}main{padding:12px 8px}h1{font-size:27px}h2{font-size:23px}.current-code pre{padding:12px}.system-diagram{min-width:600px}figure{overflow-x:auto;margin:20px 0}}
+</style><style id="system-style">pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.current-code .hll { background-color: #ffffcc }
+.current-code { background: #f8f8f8; }
+.current-code .c { color: #3D7B7B; font-style: italic } /* Comment */
+.current-code .err { border: 1px solid #F00 } /* Error */
+.current-code .k { color: #008000; font-weight: bold } /* Keyword */
+.current-code .o { color: #666 } /* Operator */
+.current-code .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.current-code .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.current-code .cp { color: #9C6500 } /* Comment.Preproc */
+.current-code .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.current-code .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.current-code .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.current-code .gd { color: #A00000 } /* Generic.Deleted */
+.current-code .ge { font-style: italic } /* Generic.Emph */
+.current-code .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.current-code .gr { color: #E40000 } /* Generic.Error */
+.current-code .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.current-code .gi { color: #008400 } /* Generic.Inserted */
+.current-code .go { color: #717171 } /* Generic.Output */
+.current-code .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.current-code .gs { font-weight: bold } /* Generic.Strong */
+.current-code .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.current-code .gt { color: #04D } /* Generic.Traceback */
+.current-code .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.current-code .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.current-code .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.current-code .kp { color: #008000 } /* Keyword.Pseudo */
+.current-code .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.current-code .kt { color: #B00040 } /* Keyword.Type */
+.current-code .m { color: #666 } /* Literal.Number */
+.current-code .s { color: #BA2121 } /* Literal.String */
+.current-code .na { color: #687822 } /* Name.Attribute */
+.current-code .nb { color: #008000 } /* Name.Builtin */
+.current-code .nc { color: #00F; font-weight: bold } /* Name.Class */
+.current-code .no { color: #800 } /* Name.Constant */
+.current-code .nd { color: #A2F } /* Name.Decorator */
+.current-code .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.current-code .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.current-code .nf { color: #00F } /* Name.Function */
+.current-code .nl { color: #767600 } /* Name.Label */
+.current-code .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.current-code .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.current-code .nv { color: #19177C } /* Name.Variable */
+.current-code .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.current-code .w { color: #BBB } /* Text.Whitespace */
+.current-code .mb { color: #666 } /* Literal.Number.Bin */
+.current-code .mf { color: #666 } /* Literal.Number.Float */
+.current-code .mh { color: #666 } /* Literal.Number.Hex */
+.current-code .mi { color: #666 } /* Literal.Number.Integer */
+.current-code .mo { color: #666 } /* Literal.Number.Oct */
+.current-code .sa { color: #BA2121 } /* Literal.String.Affix */
+.current-code .sb { color: #BA2121 } /* Literal.String.Backtick */
+.current-code .sc { color: #BA2121 } /* Literal.String.Char */
+.current-code .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.current-code .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.current-code .s2 { color: #BA2121 } /* Literal.String.Double */
+.current-code .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.current-code .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.current-code .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.current-code .sx { color: #008000 } /* Literal.String.Other */
+.current-code .sr { color: #A45A77 } /* Literal.String.Regex */
+.current-code .s1 { color: #BA2121 } /* Literal.String.Single */
+.current-code .ss { color: #19177C } /* Literal.String.Symbol */
+.current-code .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.current-code .fm { color: #00F } /* Name.Function.Magic */
+.current-code .vc { color: #19177C } /* Name.Variable.Class */
+.current-code .vg { color: #19177C } /* Name.Variable.Global */
+.current-code .vi { color: #19177C } /* Name.Variable.Instance */
+.current-code .vm { color: #19177C } /* Name.Variable.Magic */
+.current-code .il { color: #666 } /* Literal.Number.Integer.Long */
+.current-code{background:#f5f7fa;border:1px solid #d8e1e6;border-radius:10px;margin:16px 0}
+.current-code pre{background:transparent;color:#24333d;white-space:pre;overflow-x:auto;font-size:14px;line-height:1.8}
+.system-diagram{width:100%;height:auto;font-family:'Microsoft YaHei',sans-serif;display:block}
+.table-scroll{overflow-x:auto}.table-scroll table{min-width:620px;border-collapse:collapse}.table-scroll td,.table-scroll th{padding:10px;border:1px solid #d7e3df;text-align:left}
+@media(max-width:600px){p{text-align:left}article,section.card{padding:20px 14px}main{padding:12px 8px}h1{font-size:27px}h2{font-size:23px}.current-code pre{padding:12px}.system-diagram{min-width:600px}figure{overflow-x:auto;margin:20px 0}}
+</style><style>.input-flow{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:24px 0}.input-flow b{background:#e3f1ef;border:1px solid #a7ccc4;padding:14px;border-radius:9px;font-size:15px}#delivery-input-hints table{display:block;overflow-x:auto}#delivery-input-hints pre{overflow-x:auto;white-space:pre;font-size:14px}#delivery-input-hints td,#delivery-input-hints th{padding:9px;border-bottom:1px solid #ccd8d6}pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.current-code .hll { background-color: #ffffcc }
+.current-code { background: #f8f8f8; }
+.current-code .c { color: #3D7B7B; font-style: italic } /* Comment */
+.current-code .err { border: 1px solid #F00 } /* Error */
+.current-code .k { color: #008000; font-weight: bold } /* Keyword */
+.current-code .o { color: #666 } /* Operator */
+.current-code .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.current-code .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.current-code .cp { color: #9C6500 } /* Comment.Preproc */
+.current-code .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.current-code .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.current-code .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.current-code .gd { color: #A00000 } /* Generic.Deleted */
+.current-code .ge { font-style: italic } /* Generic.Emph */
+.current-code .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.current-code .gr { color: #E40000 } /* Generic.Error */
+.current-code .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.current-code .gi { color: #008400 } /* Generic.Inserted */
+.current-code .go { color: #717171 } /* Generic.Output */
+.current-code .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.current-code .gs { font-weight: bold } /* Generic.Strong */
+.current-code .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.current-code .gt { color: #04D } /* Generic.Traceback */
+.current-code .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.current-code .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.current-code .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.current-code .kp { color: #008000 } /* Keyword.Pseudo */
+.current-code .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.current-code .kt { color: #B00040 } /* Keyword.Type */
+.current-code .m { color: #666 } /* Literal.Number */
+.current-code .s { color: #BA2121 } /* Literal.String */
+.current-code .na { color: #687822 } /* Name.Attribute */
+.current-code .nb { color: #008000 } /* Name.Builtin */
+.current-code .nc { color: #00F; font-weight: bold } /* Name.Class */
+.current-code .no { color: #800 } /* Name.Constant */
+.current-code .nd { color: #A2F } /* Name.Decorator */
+.current-code .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.current-code .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.current-code .nf { color: #00F } /* Name.Function */
+.current-code .nl { color: #767600 } /* Name.Label */
+.current-code .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.current-code .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.current-code .nv { color: #19177C } /* Name.Variable */
+.current-code .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.current-code .w { color: #BBB } /* Text.Whitespace */
+.current-code .mb { color: #666 } /* Literal.Number.Bin */
+.current-code .mf { color: #666 } /* Literal.Number.Float */
+.current-code .mh { color: #666 } /* Literal.Number.Hex */
+.current-code .mi { color: #666 } /* Literal.Number.Integer */
+.current-code .mo { color: #666 } /* Literal.Number.Oct */
+.current-code .sa { color: #BA2121 } /* Literal.String.Affix */
+.current-code .sb { color: #BA2121 } /* Literal.String.Backtick */
+.current-code .sc { color: #BA2121 } /* Literal.String.Char */
+.current-code .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.current-code .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.current-code .s2 { color: #BA2121 } /* Literal.String.Double */
+.current-code .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.current-code .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.current-code .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.current-code .sx { color: #008000 } /* Literal.String.Other */
+.current-code .sr { color: #A45A77 } /* Literal.String.Regex */
+.current-code .s1 { color: #BA2121 } /* Literal.String.Single */
+.current-code .ss { color: #19177C } /* Literal.String.Symbol */
+.current-code .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.current-code .fm { color: #00F } /* Name.Function.Magic */
+.current-code .vc { color: #19177C } /* Name.Variable.Class */
+.current-code .vg { color: #19177C } /* Name.Variable.Global */
+.current-code .vi { color: #19177C } /* Name.Variable.Instance */
+.current-code .vm { color: #19177C } /* Name.Variable.Magic */
+.current-code .il { color: #666 } /* Literal.Number.Integer.Long */</style><style>@media(max-width:700px){.input-flow{flex-direction:column;align-items:stretch}.input-flow>span{align-self:center;transform:rotate(90deg)}.input-flow>b{text-align:center}}</style><style>.mvc-flow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:20px 0}.mvc-flow b{background:#e3f1ef;border:1px solid #a7ccc4;border-radius:9px;padding:14px;font-size:15px}#delivery-phone-mvc table{display:block;overflow:auto}#delivery-phone-mvc td,#delivery-phone-mvc th{padding:8px;border-bottom:1px solid #ccd8d6}#delivery-phone-mvc pre{white-space:pre;overflow-x:auto;font-size:14px}@media(max-width:700px){.mvc-flow{flex-direction:column;align-items:stretch}.mvc-flow>span{align-self:center;transform:rotate(90deg)}.mvc-flow b{text-align:center}}</style><style id="hearblade-player-style">pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.hb-source .hll { background-color: #49483e }
+.hb-source { background: #272822; color: #F8F8F2 }
+.hb-source .c { color: #959077 } /* Comment */
+.hb-source .err { color: #ED007E; background-color: #1E0010 } /* Error */
+.hb-source .esc { color: #F8F8F2 } /* Escape */
+.hb-source .g { color: #F8F8F2 } /* Generic */
+.hb-source .k { color: #66D9EF } /* Keyword */
+.hb-source .l { color: #AE81FF } /* Literal */
+.hb-source .n { color: #F8F8F2 } /* Name */
+.hb-source .o { color: #FF4689 } /* Operator */
+.hb-source .x { color: #F8F8F2 } /* Other */
+.hb-source .p { color: #F8F8F2 } /* Punctuation */
+.hb-source .ch { color: #959077 } /* Comment.Hashbang */
+.hb-source .cm { color: #959077 } /* Comment.Multiline */
+.hb-source .cp { color: #959077 } /* Comment.Preproc */
+.hb-source .cpf { color: #959077 } /* Comment.PreprocFile */
+.hb-source .c1 { color: #959077 } /* Comment.Single */
+.hb-source .cs { color: #959077 } /* Comment.Special */
+.hb-source .gd { color: #FF4689 } /* Generic.Deleted */
+.hb-source .ge { color: #F8F8F2; font-style: italic } /* Generic.Emph */
+.hb-source .ges { color: #F8F8F2; font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hb-source .gr { color: #FF4689 } /* Generic.Error */
+.hb-source .gh { color: #F8F8F2 } /* Generic.Heading */
+.hb-source .gi { color: #A6E22E } /* Generic.Inserted */
+.hb-source .go { color: #66D9EF } /* Generic.Output */
+.hb-source .gp { color: #FF4689; font-weight: bold } /* Generic.Prompt */
+.hb-source .gs { color: #F8F8F2; font-weight: bold } /* Generic.Strong */
+.hb-source .gu { color: #959077 } /* Generic.Subheading */
+.hb-source .gt { color: #66D9EF } /* Generic.Traceback */
+.hb-source .kc { color: #66D9EF } /* Keyword.Constant */
+.hb-source .kd { color: #66D9EF } /* Keyword.Declaration */
+.hb-source .kn { color: #FF4689 } /* Keyword.Namespace */
+.hb-source .kp { color: #66D9EF } /* Keyword.Pseudo */
+.hb-source .kr { color: #66D9EF } /* Keyword.Reserved */
+.hb-source .kt { color: #66D9EF } /* Keyword.Type */
+.hb-source .ld { color: #E6DB74 } /* Literal.Date */
+.hb-source .m { color: #AE81FF } /* Literal.Number */
+.hb-source .s { color: #E6DB74 } /* Literal.String */
+.hb-source .na { color: #A6E22E } /* Name.Attribute */
+.hb-source .nb { color: #A6E22E } /* Name.Builtin */
+.hb-source .nc { color: #A6E22E } /* Name.Class */
+.hb-source .no { color: #66D9EF } /* Name.Constant */
+.hb-source .nd { color: #A6E22E } /* Name.Decorator */
+.hb-source .ni { color: #F8F8F2 } /* Name.Entity */
+.hb-source .ne { color: #A6E22E } /* Name.Exception */
+.hb-source .nf { color: #A6E22E } /* Name.Function */
+.hb-source .nl { color: #F8F8F2 } /* Name.Label */
+.hb-source .nn { color: #F8F8F2 } /* Name.Namespace */
+.hb-source .nx { color: #A6E22E } /* Name.Other */
+.hb-source .py { color: #F8F8F2 } /* Name.Property */
+.hb-source .nt { color: #FF4689 } /* Name.Tag */
+.hb-source .nv { color: #F8F8F2 } /* Name.Variable */
+.hb-source .ow { color: #FF4689 } /* Operator.Word */
+.hb-source .pm { color: #F8F8F2 } /* Punctuation.Marker */
+.hb-source .w { color: #F8F8F2 } /* Text.Whitespace */
+.hb-source .mb { color: #AE81FF } /* Literal.Number.Bin */
+.hb-source .mf { color: #AE81FF } /* Literal.Number.Float */
+.hb-source .mh { color: #AE81FF } /* Literal.Number.Hex */
+.hb-source .mi { color: #AE81FF } /* Literal.Number.Integer */
+.hb-source .mo { color: #AE81FF } /* Literal.Number.Oct */
+.hb-source .sa { color: #E6DB74 } /* Literal.String.Affix */
+.hb-source .sb { color: #E6DB74 } /* Literal.String.Backtick */
+.hb-source .sc { color: #E6DB74 } /* Literal.String.Char */
+.hb-source .dl { color: #E6DB74 } /* Literal.String.Delimiter */
+.hb-source .sd { color: #E6DB74 } /* Literal.String.Doc */
+.hb-source .s2 { color: #E6DB74 } /* Literal.String.Double */
+.hb-source .se { color: #AE81FF } /* Literal.String.Escape */
+.hb-source .sh { color: #E6DB74 } /* Literal.String.Heredoc */
+.hb-source .si { color: #E6DB74 } /* Literal.String.Interpol */
+.hb-source .sx { color: #E6DB74 } /* Literal.String.Other */
+.hb-source .sr { color: #E6DB74 } /* Literal.String.Regex */
+.hb-source .s1 { color: #E6DB74 } /* Literal.String.Single */
+.hb-source .ss { color: #E6DB74 } /* Literal.String.Symbol */
+.hb-source .bp { color: #A6E22E } /* Name.Builtin.Pseudo */
+.hb-source .fm { color: #A6E22E } /* Name.Function.Magic */
+.hb-source .vc { color: #F8F8F2 } /* Name.Variable.Class */
+.hb-source .vg { color: #F8F8F2 } /* Name.Variable.Global */
+.hb-source .vi { color: #F8F8F2 } /* Name.Variable.Instance */
+.hb-source .vm { color: #F8F8F2 } /* Name.Variable.Magic */
+.hb-source .il { color: #AE81FF } /* Literal.Number.Integer.Long */
+.hb-source pre{white-space:pre;overflow:auto;overflow-wrap:normal;max-height:620px;font-size:13px;line-height:1.8}.hb-source{border-radius:8px;overflow:hidden}.hb-table-scroll{overflow-x:auto;max-width:100%}#hearblade-player-components table{font-size:14px}#hearblade-player-components code{overflow-wrap:anywhere}@media(max-width:600px){#hearblade-player-components{padding:20px 14px}.hb-source pre{font-size:12px;padding:12px}}</style></head><body><main><article id="hearblade-player-components"><h2>HearBlade：主角组件、输入与蓝图界面</h2><figure class="design"><figcaption>角色内部的职责分工</figcaption><div class="diagram-flow"><div class="diagram-node"><strong>HearBladeCharacter</strong>创建组件，保存蓝图配置<br/>安排身体更新顺序</div><div class="diagram-arrow">→</div><div class="diagram-node"><strong>HearBladeInputComponent</strong>绑定 IA，选择鼠标攻防操作<br/>清理按住状态和映射</div><div class="diagram-arrow">→</div><div class="diagram-node"><strong>战斗组件</strong>检查动作条件和连招窗口<br/>处理防御、位移与伤害</div></div></figure><figure class="design"><figcaption>身体更新顺序</figcaption><div class="diagram-flow"><div class="diagram-node"><strong>输入组件</strong>持续右键与防御窗口</div><div class="diagram-arrow">→</div><div class="diagram-node"><strong>角色</strong>死亡检查与握剑校准<br/>更新身体朝向</div><div class="diagram-arrow">→</div><div class="diagram-node"><strong>武器组件</strong>更新剑的朝向</div><div class="diagram-arrow">→</div><div class="diagram-node"><strong>移动动画组件</strong>读取实际速度<br/>更新混合空间和播放速度</div></div></figure><figure class="design"><figcaption>界面创建与数据显示</figcaption><div class="diagram-flow"><div class="diagram-node"><strong>RhythmCombatHUD</strong>创建蓝图控件和处理器<br/>创建、销毁触控界面</div><div class="diagram-arrow">→</div><div class="diagram-node"><strong>RhythmWidgetController</strong>读取玩法状态<br/>整理 ViewModel</div><div class="diagram-arrow">→</div><div class="diagram-node"><strong>WBP_RhythmCombatHUD</strong>接收更新，显示控件<br/>布局继续在 UMG 中编辑</div></div></figure>
+<p>主角的入口是 <code>AHearBladeCharacter</code>。它创建身体、镜头和玩法组件，保留蓝图能够调用的移动、视角与闪避函数。按键绑定、握剑校准和移动动画计算分别由独立组件处理。先看角色创建了哪些组件，再沿着一次输入进入战斗组件，比从头阅读所有动画计算更容易理解整个项目。</p>
+<h2>主角的组成</h2>
+<table>
+<thead>
+<tr>
+<th>类</th>
+<th>负责的内容</th>
+<th>主要函数</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>AHearBladeCharacter</td>
+<td>创建组件、提供移动入口、安排身体更新顺序</td>
+<td>SetupPlayerInputComponent、DoMove、Tick</td>
+</tr>
+<tr>
+<td>UHearBladeInputComponent</td>
+<td>绑定输入、选择鼠标的攻击或防御操作、失去控制时清理输入</td>
+<td>Bind、MousePrimaryCombatPressed、UpdateHeldActions、Unbind</td>
+</tr>
+<tr>
+<td>UPlayerBeatAttackComponent</td>
+<td>轻重攻击、连招缓冲、攻击位移和命中结算</td>
+<td>TryAttack、TryActivateResonance</td>
+</tr>
+<tr>
+<td>UPlayerRhythmCombatComponent</td>
+<td>防御窗口、格挡、弹反、闪避与受击状态</td>
+<td>IsMouseDefenseWindow、TryBlockStart、TryCounter、TryDodge</td>
+</tr>
+<tr>
+<td>UPlayerWeaponComponent</td>
+<td>校准握持角度，更新剑的朝向</td>
+<td>Initialize、Calibrate、UpdateDirection</td>
+</tr>
+<tr>
+<td>UPlayerLocomotionComponent</td>
+<td>根据实际速度选择步行、跑步和追击姿态</td>
+<td>Initialize、MeasureSpeeds、Update</td>
+</tr>
+<tr>
+<td>UBossCombatCameraComponent</td>
+<td>锁定目标与战斗镜头</td>
+<td>ToggleLockOn、GetCombatTarget</td>
+</tr>
+</tbody>
+</table>
+<p>这些组件属于同一个角色，各自保存完成职责所需的状态。输入组件保存按住了哪个键，武器组件保存校准后的握持角度，移动动画组件保存平滑后的采样位置。攻击是否允许、是否进入连招窗口，仍由战斗组件决定。</p>
+<h2>按一次鼠标左键</h2>
+<p>玩家取得角色控制权后，UE 调用角色的 <code>SetupPlayerInputComponent</code>。角色把引擎创建的输入组件交给 <code>PlayerInput-&gt;Bind</code>。<code>Bind</code> 登记 IA 的回调，并把战斗按键映射加入本地玩家的 Enhanced Input 子系统。</p>
+<p>鼠标左键触发 <code>MousePrimaryCombatPressed</code>。它先向节奏战斗组件询问当前是否处于鼠标防御窗口：窗口内调用 <code>TryCounter</code>，窗口外调用 <code>TryAttack(Light)</code>。输入组件只选择入口，攻击组件再决定立即开始攻击、保存到连招缓冲，还是拒绝这次操作。</p>
+<p>右键同样区分窗口内格挡和窗口外重击。<code>bMouseSecondaryHeld</code> 表示右键仍按着，<code>bMouseSecondaryOwnsBlock</code> 表示这次右键已经启动了格挡。玩家提前按住右键时，<code>UpdateHeldActions</code> 会在窗口出现后尝试格挡；松开时只结束右键自己启动的格挡。</p>
+<p>失去角色控制权时，<code>UnPossessed</code> 调用 <code>Unbind</code>。它结束按住操作，清掉自己的回调和临时映射。回调使用登记时保存的句柄逐个删除，因此不会清空其他组件或蓝图添加的输入。再次控制角色时重新绑定，原有临时 IA 对象继续使用。</p>
+<p>基础移动和视角动作仍保存在角色蓝图的原字段中，避免丢失已经配置的资源引用。战斗 IA 沿用原来的运行时创建方式，按键读取 <code>URhythmCombatInputSettings</code>；这次没有把它们全部改成内容浏览器中的资源。</p>
+<h2>移动、朝向和握剑</h2>
+<p><code>DoMove</code> 先保存玩家希望移动的方向，再检查当前动作是否限制移动。允许移动时，以镜头的水平朝向计算前方和右方，交给 CharacterMovement。攻击期间的速度比例仍从攻击组件读取。</p>
+<p>每帧身体更新保持以下顺序：检查持续按住的右键、检查角色是否死亡、校准握剑、更新角色朝向、更新剑的朝向、更新移动动画。新的武器和移动动画组件没有独立 Tick，而是由角色在原来的位置调用，避免拆分后改变执行先后。</p>
+<p>攻击和防御时，剑跟随右手动画，并加上初始化时记录的握持偏移。普通移动时，剑保持朝向角色前方。<code>SyncAttackWeapon</code> 仍是攻击组件可调用的入口，在命中检测前及时同步剑的朝向。武器组件不结算伤害，也不修改攻击窗口。</p>
+<p>移动动画组件读取实际速度，并把速度换算成混合空间的采样半径。步行、跑步和快跑的参考速度来自动画根节点的位移；原地动画无法测量时使用已有默认值。锁定目标后，只有玩家确实朝远处目标移动，才进入追击姿态。进入和退出追击使用不同阈值，避免在临界距离反复切换。</p>
+<p>角色蓝图中的 <code>FreeRunSpeed</code>、<code>LockedCombatWalkSpeed</code>、握剑偏移和插值速度仍保留原名和原位置。移动计算也保留原规则：锁定步行速度不低于 280，追击速度是自由移动速度的 1.3 倍。仅在拆分职责时顺便改变这些数值，会让原有动画和手感发生变化。</p>
+<h2>蓝图界面与 MVC</h2>
+<p><code>ARhythmCombatHUD</code> 创建 <code>/Game/UI/MVC/WBP_RhythmCombatHUD</code>，把它和 <code>URhythmWidgetController</code> 连接起来。处理器读取角色和 Boss 的状态，整理成 <code>FRhythmHUDViewModel</code>，再通知界面。UMG 蓝图继续负责布局和显示，不需要迁移到 C++ 绘制。</p>
+<p>触控控件也由 HUD 创建和销毁。PlayerController 保留原蓝图中的触控控件类型和平台配置，HUD 读取这些配置；控制器不再亲自创建控件。死亡后按回车通过 Restart IA 进入界面处理器的 <code>RestartLevel</code>，处理器确认本机角色已经死亡后才重开当前关卡，不再由角色 Tick 轮询回车键。</p>
+<p>节拍轨道的位置每帧都在变化，因此原来的显示更新仍然保留。MVC 的作用是让读取玩法数据和修改控件各有归属，不是把所有连续变化都强行改成事件。</p>
+<h2>文件与资源位置</h2>
+<p>以下源码路径均相对于 <code>Source/HearBlade</code>：</p>
+<table>
+<thead>
+<tr>
+<th>路径</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>HearBladeCharacter.h / .cpp</td>
+<td>角色组装、蓝图配置与更新入口</td>
+</tr>
+<tr>
+<td>Input/HearBladeInputComponent.h / .cpp</td>
+<td>输入绑定、鼠标攻防选择与解绑</td>
+</tr>
+<tr>
+<td>Combat/Player/PlayerWeaponComponent.h / .cpp</td>
+<td>握剑校准和武器朝向</td>
+</tr>
+<tr>
+<td>Combat/Player/PlayerLocomotionComponent.h / .cpp</td>
+<td>步速测量与移动动画</td>
+</tr>
+<tr>
+<td>Combat/Player/PlayerBeatAttackComponent.h / .cpp</td>
+<td>主角攻击与连招</td>
+</tr>
+<tr>
+<td>Combat/Player/PlayerRhythmCombatComponent.h / .cpp</td>
+<td>节奏防御和角色战斗状态</td>
+</tr>
+<tr>
+<td>Combat/Data/RhythmCombatInputSettings.h / .cpp</td>
+<td>战斗按键设置</td>
+</tr>
+<tr>
+<td>UI/Controller/RhythmWidgetController.h / .cpp</td>
+<td>显示数据与死亡重开</td>
+</tr>
+<tr>
+<td>UI/HUD/RhythmCombatHUD.h / .cpp</td>
+<td>界面创建和连接</td>
+</tr>
+<tr>
+<td>UI/Legacy/RhythmCombatHUDLegacy.cpp</td>
+<td>旧绘制方式与 HUD 结束清理</td>
+</tr>
+</tbody>
+</table>
+<p>角色资源在 <code>/Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter</code>，主角连招配置在 <code>/Game/Combat/Player/DA_PlayerAttackSet</code>。普通移动使用 <code>/Game/Characters/Dark_Knight/Dark_Knight_Male/Animations/BS_DKM_CombatLocomotion</code>，追击使用 <code>/Game/Combat/Player/BS_PlayerEightWay</code>。</p>
+<p>节拍编辑器仍位于 <code>Plugins/HearBladeBeatEditor</code>。编辑器修改攻击数据资产，运行时战斗组件读取数据，界面处理器读取执行结果。这三处分别对应编辑配置、执行玩法和显示结果，不互相代替。</p>
+<h2>验证结果</h2>
+<p>UE 5.8 编辑器目标完整编译通过，9 项自动化检查通过。其中输入生命周期检查有一条测试世界尚未配置骨骼网格的警告，没有失败。</p>
+<p>在 <code>Lvl_ThirdPerson</code> 中验证了蓝图界面的数据绑定、左右键的格挡与弹反、八方向移动、追击与停步、握剑校准。五条连招路线通过，20 Hz 连续输入在 10 拍内产生 9 次挥击。</p>
+<p>连招诊断按攻击数据资产的实际分支检查节点，并在诊断期间暂停教程陪练，避免敌人打断连招干扰结果。移动诊断读取当前角色速度配置。正常游戏中的教程、伤害与连招规则未为这些诊断修改。</p>
+<p>这些检查没有覆盖实体手机的触控操作、完整 Boss 全阶段通关或所有关卡组合。启动日志中还存在引擎实验性 Python 工具插件的注册错误，不属于本次角色代码修改。</p><h3>顺着实际代码看</h3><p>角色只接收引擎提供的输入组件，把已有动作配置交给输入组件</p><p class="source-note">源码：HearBladeCharacter.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">AHearBladeCharacter::SetupPlayerInputComponent</span><span class="p">(</span><span class="n">UInputComponent</span><span class="o">*</span><span class="w"> </span><span class="n">PlayerInputComponent</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">Super</span><span class="o">::</span><span class="n">SetupPlayerInputComponent</span><span class="p">(</span><span class="n">PlayerInputComponent</span><span class="p">);</span>
+<span class="w">    </span><span class="n">PlayerInput</span><span class="o">-&gt;</span><span class="n">Bind</span><span class="p">(</span><span class="n">PlayerInputComponent</span><span class="p">,</span><span class="w"> </span><span class="n">JumpAction</span><span class="p">,</span><span class="w"> </span><span class="n">MoveAction</span><span class="p">,</span><span class="w"> </span><span class="n">LookAction</span><span class="p">,</span><span class="w"> </span><span class="n">MouseLookAction</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p>长绑定函数按准备组件、基础操作、鼠标攻防、独立战斗按键和启用映射分段，内部注释解释每一步的目的</p><p class="source-note">源码：Input/HearBladeInputComponent.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">UHearBladeInputComponent::Bind</span><span class="p">(</span><span class="n">UInputComponent</span><span class="o">*</span><span class="w"> </span><span class="n">Input</span><span class="p">,</span><span class="w"> </span><span class="n">UInputAction</span><span class="o">*</span><span class="w"> </span><span class="n">Jump</span><span class="p">,</span><span class="w"> </span><span class="n">UInputAction</span><span class="o">*</span><span class="w"> </span><span class="n">Move</span><span class="p">,</span>
+<span class="w">                                  </span><span class="n">UInputAction</span><span class="o">*</span><span class="w"> </span><span class="n">Look</span><span class="p">,</span><span class="w"> </span><span class="n">UInputAction</span><span class="o">*</span><span class="w"> </span><span class="n">MouseLook</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">Input</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">BoundInput</span><span class="p">.</span><span class="n">Get</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">Input</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="c1">// 更换输入组件前先清理旧绑定和按住状态</span>
+<span class="w">    </span><span class="n">Unbind</span><span class="p">();</span>
+<span class="w">    </span><span class="n">Character</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cast</span><span class="o">&lt;</span><span class="n">AHearBladeCharacter</span><span class="o">&gt;</span><span class="p">(</span><span class="n">GetOwner</span><span class="p">());</span>
+<span class="w">    </span><span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">Enhanced</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cast</span><span class="o">&lt;</span><span class="n">UEnhancedInputComponent</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Input</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">Character</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">Enhanced</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">UE_LOG</span><span class="p">(</span><span class="n">LogHearBlade</span><span class="p">,</span><span class="w"> </span><span class="n">Error</span><span class="p">,</span><span class="w"> </span><span class="n">TEXT</span><span class="p">(</span><span class="s">"%s：角色输入需要 EnhancedInputComponent"</span><span class="p">),</span><span class="w"> </span><span class="o">*</span><span class="n">GetNameSafe</span><span class="p">(</span><span class="n">GetOwner</span><span class="p">()));</span>
+<span class="w">        </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// 保存操作要调用的组件，按键触发时直接转交</span>
+<span class="w">    </span><span class="n">RhythmCombat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">FindComponentByClass</span><span class="o">&lt;</span><span class="n">UPlayerRhythmCombatComponent</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">BeatAttack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">FindComponentByClass</span><span class="o">&lt;</span><span class="n">UPlayerBeatAttackComponent</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">CombatCamera</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">FindComponentByClass</span><span class="o">&lt;</span><span class="n">UBossCombatCameraComponent</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">BoundInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Input</span><span class="p">;</span>
+<span class="w">    </span><span class="n">CreateCombatActions</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// 记录每次绑定的句柄，失去控制时只删除自己的回调</span>
+<span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">BindAction</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">Enhanced</span><span class="p">](</span><span class="n">UInputAction</span><span class="o">*</span><span class="w"> </span><span class="n">Action</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="w"> </span><span class="n">Event</span><span class="p">,</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">Callback</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Action</span><span class="p">)</span><span class="w"> </span><span class="n">BindingHandles</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">Enhanced</span><span class="o">-&gt;</span><span class="n">BindAction</span><span class="p">(</span><span class="n">Action</span><span class="p">,</span><span class="w"> </span><span class="n">Event</span><span class="p">,</span><span class="w"> </span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">Callback</span><span class="p">).</span><span class="n">GetHandle</span><span class="p">());</span>
+<span class="w">    </span><span class="p">};</span>
+<span class="w">    </span><span class="c1">// 基础操作沿用角色蓝图的 IA，跳跃区分按下和松开</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">Jump</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">JumpStarted</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">Jump</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Completed</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">JumpEnded</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// 移动松开或取消时也发送零输入，避免保留上一次方向</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">Move</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Triggered</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">Move</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">Move</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Completed</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">Move</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">Move</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Canceled</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">Move</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">MouseLook</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Triggered</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">Look</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">Look</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Triggered</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">Look</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 战斗按键只转交意图，动作条件和输入缓冲仍由战斗组件处理</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">LockOnAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">ToggleCombatLock</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">DodgeAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">Dodge</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// 鼠标需要区分攻防窗口，右键还需要记录按住和松开</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">MousePrimaryCombatAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">MousePrimaryCombatPressed</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">MouseSecondaryCombatAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Completed</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">MouseSecondaryCombatReleased</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">MouseSecondaryCombatAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Canceled</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">MouseSecondaryCombatReleased</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">MouseSecondaryCombatAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">MouseSecondaryCombatPressed</span><span class="p">);</span>
+<span class="w">    </span><span class="c1">// 手柄和独立按键直接发起对应动作，格挡松开时结束防御</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">LightAttackAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">LightAttack</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">HeavyAttackAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">HeavyAttack</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">ResonanceAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">ActivateResonance</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">BlockAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">BlockStarted</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">BlockAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Completed</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">BlockEnded</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">BlockAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Canceled</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">BlockEnded</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">CounterAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">Counter</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindAction</span><span class="p">(</span><span class="n">RestartAction</span><span class="p">,</span><span class="w"> </span><span class="n">ETriggerEvent</span><span class="o">::</span><span class="n">Started</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">UHearBladeInputComponent</span><span class="o">::</span><span class="n">RestartPressed</span><span class="p">);</span>
+
+<span class="w">    </span><span class="c1">// 回调绑定完成后，再启用本机玩家的按键映射</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">Player</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cast</span><span class="o">&lt;</span><span class="n">APlayerController</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">GetController</span><span class="p">()))</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">InputSubsystem</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ULocalPlayer</span><span class="o">::</span><span class="n">GetSubsystem</span><span class="o">&lt;</span><span class="n">UEnhancedInputLocalPlayerSubsystem</span><span class="o">&gt;</span><span class="p">(</span><span class="n">Player</span><span class="o">-&gt;</span><span class="n">GetLocalPlayer</span><span class="p">());</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">InputSubsystem</span><span class="p">.</span><span class="n">IsValid</span><span class="p">())</span>
+<span class="w">        </span><span class="p">{</span>
+<span class="w">            </span><span class="n">InputSubsystem</span><span class="o">-&gt;</span><span class="n">AddMappingContext</span><span class="p">(</span><span class="n">LockOnMapping</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">);</span>
+<span class="w">            </span><span class="n">InputSubsystem</span><span class="o">-&gt;</span><span class="n">AddMappingContext</span><span class="p">(</span><span class="n">DodgeMapping</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">            </span><span class="n">InputSubsystem</span><span class="o">-&gt;</span><span class="n">AddMappingContext</span><span class="p">(</span><span class="n">DefenseMapping</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">);</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>左键先判断当前窗口，再选择弹反或轻攻击，动作能否执行由战斗组件检查</p><p class="source-note">源码：Input/HearBladeInputComponent.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">UHearBladeInputComponent::MousePrimaryCombatPressed</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">Defense</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="o">-&gt;</span><span class="n">IsMouseDefenseWindow</span><span class="p">();</span>
+<span class="w">	</span><span class="n">UE_LOG</span><span class="p">(</span><span class="n">LogTemp</span><span class="p">,</span><span class="w"> </span><span class="n">Display</span><span class="p">,</span><span class="w"> </span><span class="n">TEXT</span><span class="p">(</span><span class="s">"MouseCombat: LMB -&gt; %s"</span><span class="p">),</span><span class="w"> </span><span class="n">Defense</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">TEXT</span><span class="p">(</span><span class="s">"COUNTER"</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">TEXT</span><span class="p">(</span><span class="s">"LIGHT"</span><span class="p">));</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Defense</span><span class="p">)</span>
+<span class="w">		</span><span class="n">Counter</span><span class="p">();</span>
+<span class="w">	</span><span class="k">else</span>
+<span class="w">		</span><span class="n">LightAttack</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+<p>离开角色时按原绑定记录清理，只移除自己的回调和映射</p><p class="source-note">源码：Input/HearBladeInputComponent.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">UHearBladeInputComponent::Unbind</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">	</span><span class="c1">// 先结束按住操作，避免重新控制角色后仍保持格挡或跳跃</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">bBlockHeld</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">bMouseSecondaryOwnsBlock</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="p">)</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="o">-&gt;</span><span class="n">EndBlock</span><span class="p">();</span>
+<span class="w">    </span><span class="n">bBlockHeld</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bMouseSecondaryOwnsBlock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bMouseSecondaryHeld</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Character</span><span class="p">)</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">DoMove</span><span class="p">(</span><span class="mf">0.f</span><span class="p">,</span><span class="w"> </span><span class="mf">0.f</span><span class="p">);</span>
+<span class="w">        </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">StopJumping</span><span class="p">();</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="c1">// 只清除本组件登记的回调，保留其他系统的输入</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">auto</span><span class="o">*</span><span class="w"> </span><span class="n">Enhanced</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Cast</span><span class="o">&lt;</span><span class="n">UEnhancedInputComponent</span><span class="o">&gt;</span><span class="p">(</span><span class="n">BoundInput</span><span class="p">.</span><span class="n">Get</span><span class="p">()))</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">uint32</span><span class="w"> </span><span class="n">Handle</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">BindingHandles</span><span class="p">)</span><span class="w"> </span><span class="n">Enhanced</span><span class="o">-&gt;</span><span class="n">RemoveBindingByHandle</span><span class="p">(</span><span class="n">Handle</span><span class="p">);</span>
+<span class="w">    </span><span class="n">BindingHandles</span><span class="p">.</span><span class="n">Reset</span><span class="p">();</span>
+<span class="w">    </span><span class="n">BoundInput</span><span class="p">.</span><span class="n">Reset</span><span class="p">();</span>
+<span class="w">    </span><span class="c1">// 使用绑定时保存的子系统，角色失去控制后也能移除原来的映射</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">InputSubsystem</span><span class="p">.</span><span class="n">IsValid</span><span class="p">())</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">        </span><span class="n">InputSubsystem</span><span class="o">-&gt;</span><span class="n">RemoveMappingContext</span><span class="p">(</span><span class="n">LockOnMapping</span><span class="p">);</span>
+<span class="w">        </span><span class="n">InputSubsystem</span><span class="o">-&gt;</span><span class="n">RemoveMappingContext</span><span class="p">(</span><span class="n">DodgeMapping</span><span class="p">);</span>
+<span class="w">        </span><span class="n">InputSubsystem</span><span class="o">-&gt;</span><span class="n">RemoveMappingContext</span><span class="p">(</span><span class="n">DefenseMapping</span><span class="p">);</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">InputSubsystem</span><span class="p">.</span><span class="n">Reset</span><span class="p">();</span>
+<span class="p">}</span>
+</pre></div>
+<p>角色仍明确安排更新顺序，组件拆分不会引入额外的独立 Tick</p><p class="source-note">源码：HearBladeCharacter.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">AHearBladeCharacter::Tick</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">DeltaSeconds</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">	</span><span class="n">Super</span><span class="o">::</span><span class="n">Tick</span><span class="p">(</span><span class="n">DeltaSeconds</span><span class="p">);</span>
+<span class="w">    </span><span class="n">PlayerInput</span><span class="o">-&gt;</span><span class="n">UpdateHeldActions</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">RhythmCombat</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="o">-&gt;</span><span class="n">Health</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mf">0.f</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">	</span><span class="n">CalibrateSwordGrip</span><span class="p">();</span>
+<span class="w">	</span><span class="n">UpdateCombatFacing</span><span class="p">(</span><span class="n">DeltaSeconds</span><span class="p">);</span>
+<span class="w">	</span><span class="n">UpdateSwordDirection</span><span class="p">(</span><span class="n">DeltaSeconds</span><span class="p">);</span>
+<span class="w">	</span><span class="n">UpdateKnightLocomotion</span><span class="p">(</span><span class="n">DeltaSeconds</span><span class="p">);</span>
+<span class="p">}</span>
+</pre></div>
+<p>握剑校准记录剑与右手的相对旋转，后续攻击动画继续使用这个关系</p><p class="source-note">源码：Combat/Player/PlayerWeaponComponent.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">UPlayerWeaponComponent::Calibrate</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">SwordGripVerticalOffsetCm</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">	</span><span class="c1">// 等待前两次骨骼更新，再校准一次握持角度</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">Character</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">bSwordGripCalibrated</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">EquippedSword</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">++</span><span class="n">SwordCalibrationFrames</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">3</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="n">FVector</span><span class="w"> </span><span class="n">CurrentBladeDirection</span><span class="w"> </span><span class="o">=</span>
+<span class="w">	    </span><span class="n">EquippedSword</span><span class="o">-&gt;</span><span class="n">GetComponentTransform</span><span class="p">().</span><span class="n">TransformVectorNoScale</span><span class="p">(</span><span class="n">FVector</span><span class="o">::</span><span class="n">YAxisVector</span><span class="p">).</span><span class="n">GetSafeNormal</span><span class="p">();</span>
+<span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="n">FVector</span><span class="w"> </span><span class="n">DesiredBladeDirection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">GetActorForwardVector</span><span class="p">().</span><span class="n">GetSafeNormal</span><span class="p">();</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">CurrentBladeDirection</span><span class="p">.</span><span class="n">IsNearlyZero</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">DesiredBladeDirection</span><span class="p">.</span><span class="n">IsNearlyZero</span><span class="p">())</span>
+<span class="w">		</span><span class="k">return</span><span class="p">;</span>
+
+<span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="n">FQuat</span><span class="w"> </span><span class="n">WorldCorrection</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">FQuat</span><span class="o">::</span><span class="n">FindBetweenNormals</span><span class="p">(</span><span class="n">CurrentBladeDirection</span><span class="p">,</span><span class="w"> </span><span class="n">DesiredBladeDirection</span><span class="p">);</span>
+<span class="w">	</span><span class="n">EquippedSword</span><span class="o">-&gt;</span><span class="n">SetWorldRotation</span><span class="p">(</span><span class="n">WorldCorrection</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">EquippedSword</span><span class="o">-&gt;</span><span class="n">GetComponentQuat</span><span class="p">());</span>
+<span class="w">	</span><span class="n">EquippedSword</span><span class="o">-&gt;</span><span class="n">SetWorldLocation</span><span class="p">(</span><span class="n">EquippedSword</span><span class="o">-&gt;</span><span class="n">GetComponentLocation</span><span class="p">()</span><span class="w"> </span><span class="o">+</span>
+<span class="w">	                                </span><span class="n">FVector</span><span class="o">::</span><span class="n">UpVector</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">SwordGripVerticalOffsetCm</span><span class="p">);</span>
+<span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="n">FQuat</span><span class="w"> </span><span class="n">HandRotation</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">GetMesh</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">GetSocketTransform</span><span class="p">(</span><span class="n">TEXT</span><span class="p">(</span><span class="s">"hand_r"</span><span class="p">),</span><span class="w"> </span><span class="n">RTS_World</span><span class="p">).</span><span class="n">GetRotation</span><span class="p">();</span>
+<span class="w">	</span><span class="c1">// 保存剑相对右手的角度，后续换动画时仍保持这个握持关系</span>
+<span class="w">	</span><span class="n">SwordGripRotationOffset</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">HandRotation</span><span class="p">.</span><span class="n">Inverse</span><span class="p">()</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">EquippedSword</span><span class="o">-&gt;</span><span class="n">GetComponentQuat</span><span class="p">()).</span><span class="n">GetNormalized</span><span class="p">();</span>
+<span class="w">	</span><span class="n">bSwordGripCalibrated</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+
+<span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="n">FVector</span><span class="w"> </span><span class="n">CorrectedDirection</span><span class="w"> </span><span class="o">=</span>
+<span class="w">	    </span><span class="n">EquippedSword</span><span class="o">-&gt;</span><span class="n">GetComponentTransform</span><span class="p">().</span><span class="n">TransformVectorNoScale</span><span class="p">(</span><span class="n">FVector</span><span class="o">::</span><span class="n">YAxisVector</span><span class="p">).</span><span class="n">GetSafeNormal</span><span class="p">();</span>
+<span class="w">	</span><span class="n">UE_LOG</span><span class="p">(</span><span class="n">LogTemp</span><span class="p">,</span><span class="w"> </span><span class="n">Display</span><span class="p">,</span><span class="w"> </span><span class="n">TEXT</span><span class="p">(</span><span class="s">"SwordGrip: forward alignment dot=%.4f"</span><span class="p">),</span>
+<span class="w">	       </span><span class="n">FVector</span><span class="o">::</span><span class="n">DotProduct</span><span class="p">(</span><span class="n">CorrectedDirection</span><span class="p">,</span><span class="w"> </span><span class="n">DesiredBladeDirection</span><span class="p">));</span>
+<span class="p">}</span>
+</pre></div>
+<p>速度先对应步行圈，再过渡到跑步和快跑圈，采样范围始终限制在已有动画内</p><p class="source-note">源码：Combat/Player/PlayerLocomotionComponent.cpp</p><div class="hb-source"><pre><span></span><span class="kt">float</span><span class="w"> </span><span class="nf">UPlayerLocomotionComponent::RadiusForSpeed</span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">Speed</span><span class="p">)</span><span class="w"> </span><span class="k">const</span>
+<span class="p">{</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Speed</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">WalkAnimSpeed</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="n">WalkRadius</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">Speed</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">FMath</span><span class="o">::</span><span class="n">Max</span><span class="p">(</span><span class="n">WalkAnimSpeed</span><span class="p">,</span><span class="w"> </span><span class="mf">1.f</span><span class="p">);</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Speed</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">RunAnimSpeed</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="n">WalkRadius</span><span class="w"> </span><span class="o">+</span>
+<span class="w">		       </span><span class="p">(</span><span class="n">RunRadius</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">WalkRadius</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">Speed</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">WalkAnimSpeed</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="p">(</span><span class="n">RunAnimSpeed</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">WalkAnimSpeed</span><span class="p">);</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">FastRadius</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">RunRadius</span><span class="p">)</span>
+<span class="w">		</span><span class="k">return</span><span class="w"> </span><span class="n">RunRadius</span><span class="p">;</span>
+<span class="w">	</span><span class="k">return</span><span class="w"> </span><span class="n">FMath</span><span class="o">::</span><span class="n">Min</span><span class="p">(</span><span class="n">FastRadius</span><span class="p">,</span><span class="w"> </span><span class="n">RunRadius</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="p">(</span><span class="n">FastRadius</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">RunRadius</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="p">(</span><span class="n">Speed</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">RunAnimSpeed</span><span class="p">)</span><span class="w"> </span><span class="o">/</span>
+<span class="w">	                                              </span><span class="p">(</span><span class="n">FastAnimSpeed</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">RunAnimSpeed</span><span class="p">));</span>
+<span class="p">}</span>
+</pre></div>
+<p>回车只发送重开意图，处理器确认角色已经死亡后才切换关卡</p><p class="source-note">源码：UI/Controller/RhythmWidgetController.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">URhythmWidgetController::RestartLevel</span><span class="p">()</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">Rebind</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">Player</span><span class="p">.</span><span class="n">IsValid</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">Player</span><span class="o">-&gt;</span><span class="n">IsLocalController</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">!</span><span class="n">Combat</span><span class="p">.</span><span class="n">IsValid</span><span class="p">()</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">Combat</span><span class="o">-&gt;</span><span class="n">Health</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mf">0.f</span><span class="p">)</span><span class="w"> </span><span class="k">return</span><span class="p">;</span>
+<span class="w">    </span><span class="n">UGameplayStatics</span><span class="o">::</span><span class="n">OpenLevel</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="n">FName</span><span class="p">(</span><span class="o">*</span><span class="n">UGameplayStatics</span><span class="o">::</span><span class="n">GetCurrentLevelName</span><span class="p">(</span><span class="k">this</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">)));</span>
+<span class="p">}</span>
+</pre></div>
+</article></main></body></html>
