@@ -5,7 +5,7 @@
 #include "RhythmWidgetController.generated.h"
 
 class APlayerController;
-class UPlayerRhythmCombatComponent;
+class UPlayerDefenseComponent;
 class UBeatSyncedComboComponent;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FRhythmHUDModelChanged, const FRhythmHUDViewModel&, Model);
@@ -38,7 +38,7 @@ class HEARBLADE_API URhythmWidgetController : public UObject
   private:
 	// 玩法对象引用：只读取已有状态，不拥有这些角色
 	TWeakObjectPtr<APlayerController> Player;
-	TWeakObjectPtr<UPlayerRhythmCombatComponent> Combat;
+	TWeakObjectPtr<UPlayerDefenseComponent> Combat;
 	TWeakObjectPtr<UBeatSyncedComboComponent> Boss;
 	TArray<FText> History;
 	// 上次收录的判定时间，防止每帧把同一结果加入历史

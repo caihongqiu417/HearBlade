@@ -19,7 +19,7 @@
 #include "Animation/AnimSequence.h"
 #include "Animation/Skeleton.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "Components/MeshComponent.h"
@@ -1439,8 +1439,8 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 		if (Marker.RequiredResponse == ERhythmResponseType::HoldBlock &&
 		    Marker.HoldMarker == ERhythmHoldMarkerType::End)
 		{
-			if (const UPlayerRhythmCombatComponent* Player =
-			        AttackTarget->FindComponentByClass<UPlayerRhythmCombatComponent>())
+			if (const UPlayerDefenseComponent* Player =
+			        AttackTarget->FindComponentByClass<UPlayerDefenseComponent>())
 				WindowAfter = FMath::Max(WindowAfter, Player->GetGoodWindowSeconds());
 		}
 		if (AudioNow <= MarkerTime + WindowAfter)
@@ -1558,8 +1558,8 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	    WindowMarker.HoldMarker == ERhythmHoldMarkerType::End)
 	{
 		// 保留拍点后的松键窗口，不能在玩家仍按住时提前结束评级
-		if (const UPlayerRhythmCombatComponent* Player =
-		        Target->FindComponentByClass<UPlayerRhythmCombatComponent>();
+		if (const UPlayerDefenseComponent* Player =
+		        Target->FindComponentByClass<UPlayerDefenseComponent>();
 		    Player && Player->IsBlocking() && AudioNow < MarkerAudioTime + Player->GetGoodWindowSeconds())
 			return;
 	}
@@ -1574,10 +1574,10 @@ void UBeatSyncedComboComponent::UpdateDamageSweep(double AudioNow)
 	const bool bWholeBeat = FMath::Abs(TargetBeat - NearestBeat) < 0.05;
 	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	const bool bStrong = Clock && bWholeBeat && NearestBeat % FMath::Max(1, Clock->GetBeatsPerBar()) == 0;
-	if (UPlayerRhythmCombatComponent* PlayerState =
-	        Target->FindComponentByClass<UPlayerRhythmCombatComponent>())
+	if (UPlayerDefenseComponent* PlayerState =
+	        Target->FindComponentByClass<UPlayerDefenseComponent>())
 	{
-		const bool bAvoided = PlayerState->ResolveBossContact(
+		const bool bAvoided = PlayerState->ResolveEnemyHit(
 		    MarkerAudioTime, TargetBeat, Marker.Damage, Marker.IdealDodgeLeadSeconds, bStrong,
 		    ClosestBladeFeedbackLocation, ClosestBladeAttackDirection, Marker.RequiredResponse,
 		    Marker.HoldMarker, Marker.HoldGroup, GetOwner()->GetActorLocation());
@@ -1657,8 +1657,8 @@ void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex
 	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
 	const bool bStrong = Clock && bWholeBeat && NearestBeat % FMath::Max(1, Clock->GetBeatsPerBar()) == 0;
 	bool bHandledByDodge = false;
-	if (UPlayerRhythmCombatComponent* PlayerState =
-	        AttackTarget->FindComponentByClass<UPlayerRhythmCombatComponent>())
+	if (UPlayerDefenseComponent* PlayerState =
+	        AttackTarget->FindComponentByClass<UPlayerDefenseComponent>())
 	{
 		// 走出刀刃范围不会受伤，只有最近按过闪避才继续计算节奏评级
 		// 没有发生刀刃接触时，仅对近期闪避输入继续评判时机
@@ -1688,7 +1688,7 @@ void UBeatSyncedComboComponent::ResolveUncontactedDamageWindow(int32 ImpactIndex
 			AttackDirection =
 			    (AttackTarget->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal();
 		// 把未接触结果交给玩家防御组件，这里不补造一次命中伤害
-		bHandledByDodge = PlayerState->ResolveBossAvoidance(
+		bHandledByDodge = PlayerState->ResolveEnemyMiss(
 		    MarkerAudioTime, TargetBeat, Marker.IdealDodgeLeadSeconds, bStrong, FeedbackLocation,
 		    AttackDirection, Marker.RequiredResponse, Marker.HoldMarker, Marker.HoldGroup);
 	}

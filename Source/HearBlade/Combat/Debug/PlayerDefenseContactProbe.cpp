@@ -1,6 +1,6 @@
 // 检查攻击接触与玩家防御状态的衔接
-#include "Combat/Player/PlayerBeatAttackComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Combat/Boss/BeatSyncedComboComponent.h"
 #include "Combat/Boss/BossBeatDirector.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
@@ -11,10 +11,10 @@
 #include "Kismet/KismetSystemLibrary.h"
 
 // 通过实际刀刃接触验证闪避、格挡和反击，以及失败后的恢复
-void UPlayerBeatAttackComponent::TickDefenseContactProbe()
+void UPlayerAttackComponent::TickDefenseContactProbe()
 {
 #if !UE_BUILD_SHIPPING
-	if (!Clock() || !Clock()->IsRunning() || !Combat.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
+	if (!Clock() || !Clock()->IsRunning() || !DefenseComponent.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
 		return;
 	auto* PC = Cast<APlayerController>(Cast<APawn>(GetOwner())->GetController());
 	if (!PC)
@@ -28,8 +28,8 @@ void UPlayerBeatAttackComponent::TickDefenseContactProbe()
 	{
 		bProbeStarted = true;
 		ProbeStartWorld = GetWorld()->GetTimeSeconds();
-		Combat->ResetCombatState();
-		Combat->Health = 1000.f;
+		DefenseComponent->ResetCombatState();
+		DefenseComponent->Health = 1000.f;
 		for (TActorIterator<ABossBeatDirector> It(GetWorld()); It; ++It)
 			if (It->BehaviorTreeComponent)
 				It->BehaviorTreeComponent->StopTree(EBTStopMode::Forced);
@@ -94,18 +94,18 @@ void UPlayerBeatAttackComponent::TickDefenseContactProbe()
 			}
 		}
 	}
-	if (Combat->GetLastJudgmentWorldSeconds() > DefenseProbeLastJudgment)
+	if (DefenseComponent->GetLastJudgmentWorldSeconds() > DefenseProbeLastJudgment)
 	{
-		DefenseProbeLastJudgment = Combat->GetLastJudgmentWorldSeconds();
-		if (Combat->LastJudgment == ERhythmDodgeJudgment::Miss ||
-		    Combat->LastJudgment == ERhythmDodgeJudgment::Bad)
+		DefenseProbeLastJudgment = DefenseComponent->GetLastJudgmentWorldSeconds();
+		if (DefenseComponent->LastJudgment == ERhythmDodgeJudgment::Miss ||
+		    DefenseComponent->LastJudgment == ERhythmDodgeJudgment::Bad)
 			DefenseProbeMask |= 4;
-		if (Combat->LastJudgment == ERhythmDodgeJudgment::Perfect ||
-		    Combat->LastJudgment == ERhythmDodgeJudgment::Good)
+		if (DefenseComponent->LastJudgment == ERhythmDodgeJudgment::Perfect ||
+		    DefenseComponent->LastJudgment == ERhythmDodgeJudgment::Good)
 		{
-			if (Combat->LastResponse == ERhythmResponseType::Block)
+			if (DefenseComponent->LastResponse == ERhythmResponseType::Block)
 				DefenseProbeMask |= 1;
-			if (Combat->LastResponse == ERhythmResponseType::Counter)
+			if (DefenseComponent->LastResponse == ERhythmResponseType::Counter)
 				DefenseProbeMask |= 2;
 		}
 	}

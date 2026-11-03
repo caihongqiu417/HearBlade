@@ -1,5 +1,5 @@
 // 处理阶段过场期间的输入、移动和战斗状态锁定
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Combat/Player/PlayerCombatAnimInstance.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
 #include "GameFramework/Character.h"
@@ -7,7 +7,7 @@
 #include "Components/SkeletalMeshComponent.h"
 
 // 切换演出状态，进入时清理未完成的攻击与防御操作
-void UPlayerRhythmCombatComponent::SetPhaseCinematic(bool bEnabled)
+void UPlayerDefenseComponent::SetPhaseCinematic(bool bEnabled)
 {
 	if (bPhaseCinematic == bEnabled)
 		return;
@@ -19,7 +19,7 @@ void UPlayerRhythmCombatComponent::SetPhaseCinematic(bool bEnabled)
 		bPoiseBroken = false;
 		bBlocking = bCountering = bBlockRecovering = bBlockReleasePending = false;
 		bRecoveryStrikePending = false;
-		BufferedAction = EBufferedRhythmAction::None;
+		BufferedAction = EBufferedDefenseAction::None;
 		ActiveHoldGroup = NAME_None;
 		bActiveHoldBroken = false;
 		BlockInputHistory.Reset();

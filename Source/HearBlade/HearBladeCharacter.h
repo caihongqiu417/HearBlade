@@ -15,7 +15,7 @@ class UHearBladeInputComponent;
 class UPlayerWeaponComponent;
 class UPlayerLocomotionComponent;
 class UBossCombatCameraComponent;
-class UPlayerRhythmCombatComponent;
+class UPlayerDefenseComponent;
 class UPerfectDodgeFeedbackComponent;
 class UStaticMeshComponent;
 class UBlendSpace;
@@ -50,10 +50,10 @@ class AHearBladeCharacter : public ACharacter
 	TObjectPtr<UBossCombatCameraComponent> CombatCamera;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components",
 	          meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UPlayerRhythmCombatComponent> RhythmCombat;
+	TObjectPtr<UPlayerDefenseComponent> DefenseComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components",
 	          meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<class UPlayerBeatAttackComponent> BeatAttack;
+	TObjectPtr<class UPlayerAttackComponent> AttackComponent;
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components",
 	          meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UPerfectDodgeFeedbackComponent> PerfectDodgeFeedback;

@@ -2,7 +2,7 @@
 #include "CoreMinimal.h"
 #if WITH_DEV_AUTOMATION_TESTS
 #include "Misc/AutomationTest.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Combat/Boss/BeatSyncedComboComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Actor.h"
@@ -23,7 +23,7 @@ bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
 	// 在独立世界中逐项切换防御状态，检查缓存、松键和中断后的恢复
 	UWorld* World = UWorld::CreateWorld(EWorldType::Game, false);
 	AActor* Owner = World->SpawnActor<AActor>();
-	UPlayerRhythmCombatComponent* Combat = NewObject<UPlayerRhythmCombatComponent>(Owner);
+	UPlayerDefenseComponent* Combat = NewObject<UPlayerDefenseComponent>(Owner);
 	Owner->AddInstanceComponent(Combat);
 	Combat->RegisterComponent();
 	TestNotNull(TEXT("Player light blood effect loaded"), Combat->BloodHitEffect.Get());
@@ -35,69 +35,69 @@ bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
 	Combat->TickComponent(0.5f, LEVELTICK_All, nullptr);
 	TestEqual(TEXT("Resonance decays continuously after its grace period"), Combat->Resonance, 7.0f);
 	Combat->Resonance = 0.0f;
-	using EAction = UPlayerRhythmCombatComponent::EBufferedRhythmAction;
+	using EAction = UPlayerDefenseComponent::EBufferedDefenseAction;
 
-	TestTrue(TEXT("Initial dodge accepted"), Combat->TryDodge(FVector::ForwardVector));
-	TestTrue(TEXT("Counter accepted during dodge startup"), Combat->TryCounter());
+	TestTrue(TEXT("Initial dodge accepted"), Combat->RequestDodge(FVector::ForwardVector));
+	TestTrue(TEXT("Counter accepted during dodge startup"), Combat->RequestParry());
 	TestTrue(TEXT("Counter queued rather than discarded"), Combat->BufferedAction == EAction::Counter);
 	const double OriginalCounterTime = Combat->BufferedInputAudioSeconds;
-	Combat->ProcessBufferedInput();
+	Combat->ProcessDefenseBuffer();
 	TestFalse(TEXT("Startup protection remains active"), Combat->bCountering);
 	Combat->DodgeStartWorldSeconds -= .13;
-	Combat->ProcessBufferedInput();
+	Combat->ProcessDefenseBuffer();
 	TestTrue(TEXT("Counter replaces roll before roll animation finishes"),
 	         Combat->bCountering && !Combat->bDodging);
 	TestEqual(TEXT("Counter retains button timestamp"), Combat->LastCounterInputAudioSeconds,
 	          OriginalCounterTime);
 
-	TestTrue(TEXT("Block queues during counter"), Combat->TryBlockStart());
+	TestTrue(TEXT("Block queues during counter"), Combat->RequestBlock());
 	const double OriginalBlockTime = Combat->BufferedInputAudioSeconds;
 	Combat->CounterStartWorldSeconds -= .13;
-	Combat->ProcessBufferedInput();
+	Combat->ProcessDefenseBuffer();
 	TestTrue(TEXT("Block replaces counter"), Combat->bBlocking && !Combat->bCountering);
 	TestEqual(TEXT("Block retains button timestamp"), Combat->LastBlockStartAudioSeconds, OriginalBlockTime);
-	TestTrue(TEXT("Counter directly exits held guard"), Combat->TryCounter());
+	TestTrue(TEXT("Counter directly exits held guard"), Combat->RequestParry());
 	TestTrue(TEXT("Guard does not swallow counter"), Combat->bCountering && !Combat->bBlocking);
 
-	Combat->TryBlockStart();
-	Combat->EndBlock();
+	Combat->RequestBlock();
+	Combat->ReleaseBlock();
 	Combat->CounterStartWorldSeconds -= .13;
-	Combat->ProcessBufferedInput();
+	Combat->ProcessDefenseBuffer();
 	TestFalse(TEXT("Released buffered guard cannot start a stuck hold"), Combat->bBlocking);
 	TestTrue(TEXT("Released buffered guard still displays the tap action"), Combat->bBlockReleasePending);
 
-	Combat->TryCounter();
+	Combat->RequestParry();
 	Combat->CounterStartWorldSeconds = World->GetTimeSeconds();
-	Combat->TryDodge(FVector::RightVector);
+	Combat->RequestDodge(FVector::RightVector);
 	Combat->BufferedInputWorldSeconds -= .30;
 	Combat->CounterStartWorldSeconds -= .30;
-	Combat->ProcessBufferedInput();
+	Combat->ProcessDefenseBuffer();
 	TestFalse(TEXT("Expired buffer cannot trigger an automatic roll"), Combat->bDodging);
 
 	Combat->bCountering = false;
-	Combat->TryDodge(FVector::ForwardVector);
-	Combat->TryCounter();
+	Combat->RequestDodge(FVector::ForwardVector);
+	Combat->RequestParry();
 	Combat->DodgeStartWorldSeconds -= .13;
-	Combat->TryBlockStart();
-	Combat->ProcessBufferedInput();
+	Combat->RequestBlock();
+	Combat->ProcessDefenseBuffer();
 	TestTrue(TEXT("New immediate block supersedes old queued counter"),
 	         Combat->bBlocking && !Combat->bCountering);
 
 	TestTrue(TEXT("Counter uses same Perfect window as dodge"),
-	         Combat->JudgeCounterInput(10.07, 10.0) == ERhythmDodgeJudgment::Perfect);
+	         Combat->JudgeParryInput(10.07, 10.0) == ERhythmDodgeJudgment::Perfect);
 	TestTrue(TEXT("Counter uses same Good window as dodge"),
-	         Combat->JudgeCounterInput(10.14, 10.0) == ERhythmDodgeJudgment::Good);
+	         Combat->JudgeParryInput(10.14, 10.0) == ERhythmDodgeJudgment::Good);
 	TestTrue(TEXT("Off-beat input remains Bad"),
-	         Combat->JudgeCounterInput(10.20, 10.0) == ERhythmDodgeJudgment::Bad);
+	         Combat->JudgeParryInput(10.20, 10.0) == ERhythmDodgeJudgment::Bad);
 	Combat->BlockInputHistory = {10.0};
 	Combat->bBlocking = false;
-	Combat->ResolveBossAvoidance(10.14, 4., .14f, false, FVector::ZeroVector, FVector::ForwardVector,
+	Combat->ResolveEnemyMiss(10.14, 4., .14f, false, FVector::ZeroVector, FVector::ForwardVector,
 	                             ERhythmResponseType::Block, ERhythmHoldMarkerType::None, NAME_None);
 	TestTrue(TEXT("A released single block tap earns Perfect"),
 	         Combat->LastJudgment == ERhythmDodgeJudgment::Perfect);
 	TArray<double> Clicks = {20.0, 20.19};
 	TestEqual(TEXT("Extra late click does not overwrite the accurate click"),
-	          Combat->ConsumeClosestInput(Clicks, 20.0), 20.0);
+	          Combat->ConsumeClosestDefenseInput(Clicks, 20.0), 20.0);
 	TestEqual(TEXT("A consumed click cannot grade a second note"), Clicks.Num(), 1);
 	Combat->bCountering = true;
 	Combat->PlayResponseFeedback(ERhythmResponseType::Counter, ERhythmDodgeJudgment::Bad, FVector::ZeroVector,
@@ -113,17 +113,17 @@ bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
 	Combat->ApplyPoiseDamage(Combat->BadPoiseDamage, FVector(100, 0, 0), -FVector::ForwardVector);
 	TestTrue(TEXT("Repeated BAD judgments break poise"), Combat->bPoiseBroken);
 	TestEqual(TEXT("Broken poise remains empty during hit stun"), Combat->Poise, 0.0f);
-	TestTrue(TEXT("Input during hit lock is accepted into the buffer"), Combat->TryCounter());
+	TestTrue(TEXT("Input during hit lock is accepted into the buffer"), Combat->RequestParry());
 	TestTrue(TEXT("Buffered counter waits during hit lock"),
 	         Combat->BufferedAction == EAction::Counter && !Combat->bCountering);
 	Combat->PoiseBreakStartWorldSeconds -= Combat->PoiseBreakInputLockSeconds + .01;
-	Combat->ProcessBufferedInput();
+	Combat->ProcessDefenseBuffer();
 	TestTrue(TEXT("Buffered counter exits hit stun after the lock"),
 	         Combat->bCountering && !Combat->bPoiseBroken);
 	TestEqual(TEXT("Poise resets after hit stun"), Combat->Poise, Combat->MaxPoise);
 
 	ACharacter* HitCharacter = World->SpawnActor<ACharacter>();
-	UPlayerRhythmCombatComponent* HitCombat = NewObject<UPlayerRhythmCombatComponent>(HitCharacter);
+	UPlayerDefenseComponent* HitCombat = NewObject<UPlayerDefenseComponent>(HitCharacter);
 	HitCharacter->AddInstanceComponent(HitCombat);
 	HitCombat->RegisterComponent();
 	HitCharacter->SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
@@ -140,31 +140,31 @@ bool FRhythmInputTransitionsTest::RunTest(const FString& Parameters)
 	         FMath::Abs(FMath::FindDeltaAngleDegrees(HitCharacter->GetActorRotation().Yaw, 180.0f)) < 1.0f);
 	HitCombat->StartPoiseBreak(FVector(100, 0, 85), FVector::ForwardVector, FVector(-100, 0, 0));
 	TestTrue(TEXT("Counter buffers immediately after a failed defense breaks poise"),
-	         HitCombat->TryCounter());
+	         HitCombat->RequestParry());
 	const double BufferedCounterTime = HitCombat->BufferedInputAudioSeconds;
 	HitCombat->BufferedInputWorldSeconds -= .29;
 	HitCombat->PoiseBreakStartWorldSeconds -= .29;
 	HitCombat->HitInputUnlockWorldSeconds -= .29;
-	HitCombat->ProcessBufferedInput();
+	HitCombat->ProcessDefenseBuffer();
 	TestTrue(TEXT("Counter resumes after 280 ms lock despite 260 ms normal buffer"),
 	         HitCombat->bCountering && !HitCombat->bHitReacting && !HitCombat->bPoiseBroken);
 	TestEqual(TEXT("Recovered counter preserves original rhythm timestamp"),
 	          HitCombat->LastCounterInputAudioSeconds, BufferedCounterTime);
 	HitCombat->CounterStartWorldSeconds -= .13;
-	TestTrue(TEXT("Next guard works after the recovered counter"), HitCombat->TryBlockStart());
-	HitCombat->EndBlock();
+	TestTrue(TEXT("Next guard works after the recovered counter"), HitCombat->RequestBlock());
+	HitCombat->ReleaseBlock();
 	TestFalse(TEXT("Recovered guard tap does not stick"), HitCombat->bBlocking);
-	HitCombat->TryBlockStart();
+	HitCombat->RequestBlock();
 	HitCombat->BlockStartWorldSeconds = World->GetTimeSeconds() - 2.;
 	HitCombat->DefenseAnimationStartWorldSeconds = BIG_NUMBER;
-	HitCombat->EndBlock();
+	HitCombat->ReleaseBlock();
 	TestFalse(TEXT("Releasing looping guard never waits on the animation sentinel"),
 	          HitCombat->bBlockReleasePending);
 	HitCombat->Health = 0.f;
 	TestFalse(TEXT("Defeated player cannot silently keep dodging"),
-	          HitCombat->TryDodge(FVector::ForwardVector));
-	TestFalse(TEXT("Defeated player cannot counter"), HitCombat->TryCounter());
-	TestFalse(TEXT("Defeated player cannot guard"), HitCombat->TryBlockStart());
+	          HitCombat->RequestDodge(FVector::ForwardVector));
+	TestFalse(TEXT("Defeated player cannot counter"), HitCombat->RequestParry());
+	TestFalse(TEXT("Defeated player cannot guard"), HitCombat->RequestBlock());
 	World->DestroyWorld(false);
 	return true;
 }

@@ -4,7 +4,7 @@
 #include "Misc/ScopeExit.h"
 #include "Input/HearBladeInputComponent.h"
 #include "HearBladeCharacter.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
 #include "InputMappingContext.h"

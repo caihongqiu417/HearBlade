@@ -1,7 +1,7 @@
 // 管理敌人阶段切换条件、过场启动和第二阶段攻击轮换
 #include "Combat/Boss/BeatSyncedComboComponent.h"
 #include "Combat/Boss/BossAscensionComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "GameFramework/Character.h"
 #include "Kismet/GameplayStatics.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
@@ -80,7 +80,7 @@ bool UBeatSyncedComboComponent::TryBeginPhaseAscension(AActor* Player, FVector C
 	if (!bPhaseChangePending || bPhaseTransitionActive || BossPhase != 1 || BossHealth <= 0.f)
 		return false;
 	auto* Character = Cast<ACharacter>(Player);
-	const auto* State = Player ? Player->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr;
+	const auto* State = Player ? Player->FindComponentByClass<UPlayerDefenseComponent>() : nullptr;
 	if (!Character || !State || State->Health <= 0.f)
 		return false;
 	auto* Ascension = GetOwner()->FindComponentByClass<UBossAscensionComponent>();

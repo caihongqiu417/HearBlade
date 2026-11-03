@@ -19,7 +19,7 @@ def tick(dt):
         elif phase==1 and editor.is_in_play_in_editor() and elapsed>3:
             world=unreal.EditorLevelLibrary.get_game_world()
             pc=unreal.GameplayStatics.get_player_controller(world,0)
-            pawn=unreal.GameplayStatics.get_player_character(world,0);combat=pawn.get_component_by_class(unreal.PlayerRhythmCombatComponent)
+            pawn=unreal.GameplayStatics.get_player_character(world,0);combat=pawn.get_component_by_class(unreal.PlayerDefenseComponent)
             for ai in unreal.GameplayStatics.get_all_actors_of_class(world,unreal.AIController):
                 brain=ai.get_editor_property('brain_component')
                 if brain: brain.stop_logic('Temporary dodge input audit')
@@ -35,7 +35,7 @@ def tick(dt):
             pc.set_control_rotation(unreal.Rotator(pitch=0,yaw=yaw,roll=0))
             pawn.set_actor_rotation(unreal.Rotator(pitch=0,yaw=yaw,roll=0),False)
             back=unreal.Vector(-math.cos(math.radians(yaw)),-math.sin(math.radians(yaw)),0)
-            if case==1: combat.try_block_start()
+            if case==1: combat.request_block()
             inputs.inject_input_vector_for_action(action,unreal.Vector(0,-1,0),[],[])
             sent=False;chained=False;phase=3;start=time.monotonic()
         elif phase==3:
@@ -50,7 +50,7 @@ def tick(dt):
                 projection=delta.x*back.x+delta.y*back.y
                 result={'case':['neutral S','block to S dodge','S chained dodge'][case],'yaw':[0,90,180][case],'backward_distance_cm':projection,'passed':projection>30}
                 results.append(result);unreal.log_warning('BACKWARD_DODGE_AUDIT '+str(result))
-                combat.end_block();phase=4;start=time.monotonic()
+                combat.release_block();phase=4;start=time.monotonic()
         elif phase==4 and elapsed>1.2:
             case+=1
             if case==3: finish()

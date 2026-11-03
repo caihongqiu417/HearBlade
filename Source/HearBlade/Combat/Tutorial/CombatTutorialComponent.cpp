@@ -4,8 +4,8 @@
 #include "Combat/Boss/BossBeatDirector.h"
 #include "Combat/Boss/BossLocomotionAnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "EngineUtils.h"
@@ -129,9 +129,9 @@ void UCombatTutorialComponent::SetCursorMode(bool bOn)
 void UCombatTutorialComponent::Bind()
 {
 	if (!Combat.IsValid())
-		Combat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>();
+		Combat = GetOwner()->FindComponentByClass<UPlayerDefenseComponent>();
 	if (!Attacks.IsValid())
-		Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
+		Attacks = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
 	if (!Boss.IsValid())
 		for (TActorIterator<AActor> It(GetWorld()); It; ++It)
 			if (auto* Combo = It->FindComponentByClass<UBeatSyncedComboComponent>())

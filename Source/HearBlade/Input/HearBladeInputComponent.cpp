@@ -1,8 +1,8 @@
 #include "Input/HearBladeInputComponent.h"
 #include "HearBladeCharacter.h"
 #include "HearBlade.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
 #include "Combat/Data/RhythmCombatInputSettings.h"
 #include "UI/HUD/RhythmCombatHUD.h"
@@ -89,8 +89,8 @@ void UHearBladeInputComponent::Bind(UInputComponent* Input, UInputAction* Jump, 
         return;
     }
     // 保存操作要调用的组件，按键触发时直接转交
-    RhythmCombat = Character->FindComponentByClass<UPlayerRhythmCombatComponent>();
-    BeatAttack = Character->FindComponentByClass<UPlayerBeatAttackComponent>();
+    DefenseComponent = Character->FindComponentByClass<UPlayerDefenseComponent>();
+    AttackComponent = Character->FindComponentByClass<UPlayerAttackComponent>();
     CombatCamera = Character->FindComponentByClass<UBossCombatCameraComponent>();
     BoundInput = Input;
     CreateCombatActions();
@@ -178,22 +178,22 @@ void UHearBladeInputComponent::Dodge()
 // 记录格挡按下，并请求战斗组件举盾
 void UHearBladeInputComponent::BlockStarted()
 {
-	if (RhythmCombat) bBlockHeld = RhythmCombat->TryBlockStart();
+	if (DefenseComponent) bBlockHeld = DefenseComponent->RequestBlock();
 }
 
 // 清除按住状态并请求结束格挡
 void UHearBladeInputComponent::BlockEnded()
 {
     bBlockHeld = false;
-	if (RhythmCombat)
-		RhythmCombat->EndBlock();
+	if (DefenseComponent)
+		DefenseComponent->ReleaseBlock();
 }
 
 // 将反击输入交给防御组件检查
 void UHearBladeInputComponent::Counter()
 {
-	if (RhythmCombat)
-		RhythmCombat->TryCounter();
+	if (DefenseComponent)
+		DefenseComponent->RequestParry();
 }
 
 // 攻击输入与鼠标分流
@@ -201,14 +201,14 @@ void UHearBladeInputComponent::Counter()
 // 将轻击输入交给攻击组件检查
 void UHearBladeInputComponent::LightAttack()
 {
-	if (BeatAttack)
-		BeatAttack->TryAttack(EPlayerAttackInput::Light);
+	if (AttackComponent)
+		AttackComponent->RequestAttack(EPlayerAttackInput::Light);
 }
 
 // 根据当前攻击预警，把左键分发为反击或轻击
 void UHearBladeInputComponent::MousePrimaryCombatPressed()
 {
-	const bool Defense = RhythmCombat && RhythmCombat->IsMouseDefenseWindow();
+	const bool Defense = DefenseComponent && DefenseComponent->IsDefenseInputWindowOpen();
 	UE_LOG(LogTemp, Display, TEXT("MouseCombat: LMB -> %s"), Defense ? TEXT("COUNTER") : TEXT("LIGHT"));
 	if (Defense)
 		Counter();
@@ -220,8 +220,8 @@ void UHearBladeInputComponent::MousePrimaryCombatPressed()
 void UHearBladeInputComponent::MouseSecondaryCombatReleased()
 {
 	// 只有右键确实启动过格挡，松开时才结束格挡
-	if (bMouseSecondaryOwnsBlock && RhythmCombat)
-		RhythmCombat->EndBlock();
+	if (bMouseSecondaryOwnsBlock && DefenseComponent)
+		DefenseComponent->ReleaseBlock();
 	bMouseSecondaryOwnsBlock = false;
 	bMouseSecondaryHeld = false;
 }
@@ -229,12 +229,12 @@ void UHearBladeInputComponent::MouseSecondaryCombatReleased()
 // 根据防御窗口，把右键分发为格挡或重击
 void UHearBladeInputComponent::MouseSecondaryCombatPressed()
 {
-	const bool Defense = RhythmCombat && RhythmCombat->IsMouseDefenseWindow();
+	const bool Defense = DefenseComponent && DefenseComponent->IsDefenseInputWindowOpen();
 	UE_LOG(LogTemp, Display, TEXT("MouseCombat: RMB -> %s"), Defense ? TEXT("BLOCK") : TEXT("HEAVY"));
 	bMouseSecondaryOwnsBlock = false;
 	bMouseSecondaryHeld = true;
 	if (Defense)
-		bMouseSecondaryOwnsBlock = RhythmCombat->TryBlockStart();
+		bMouseSecondaryOwnsBlock = DefenseComponent->RequestBlock();
 	else
 		HeavyAttack();
 }
@@ -242,15 +242,15 @@ void UHearBladeInputComponent::MouseSecondaryCombatPressed()
 // 将重击输入交给攻击组件检查
 void UHearBladeInputComponent::HeavyAttack()
 {
-	if (BeatAttack)
-		BeatAttack->TryAttack(EPlayerAttackInput::Heavy);
+	if (AttackComponent)
+		AttackComponent->RequestAttack(EPlayerAttackInput::Heavy);
 }
 
 // 请求攻击组件启动共鸣
 void UHearBladeInputComponent::ActivateResonance()
 {
-	if (BeatAttack)
-		BeatAttack->TryActivateResonance();
+	if (AttackComponent)
+		AttackComponent->RequestResonance();
 }
 
 // 持续按键与状态切换
@@ -258,8 +258,8 @@ void UHearBladeInputComponent::ActivateResonance()
 // 提前按住右键时，防御窗口出现后接续格挡
 void UHearBladeInputComponent::UpdateHeldActions()
 {
-    if (bMouseSecondaryHeld && !bMouseSecondaryOwnsBlock && RhythmCombat && RhythmCombat->IsMouseDefenseWindow())
-        bMouseSecondaryOwnsBlock = RhythmCombat->TryBlockStart();
+    if (bMouseSecondaryHeld && !bMouseSecondaryOwnsBlock && DefenseComponent && DefenseComponent->IsDefenseInputWindowOpen())
+        bMouseSecondaryOwnsBlock = DefenseComponent->RequestBlock();
 }
 
 // 把重新开始操作交给界面控制器
@@ -278,7 +278,7 @@ void UHearBladeInputComponent::RestartPressed()
 void UHearBladeInputComponent::Unbind()
 {
 	// 先结束按住操作，避免重新控制角色后仍保持格挡或跳跃
-    if ((bBlockHeld || bMouseSecondaryOwnsBlock) && RhythmCombat) RhythmCombat->EndBlock();
+    if ((bBlockHeld || bMouseSecondaryOwnsBlock) && DefenseComponent) DefenseComponent->ReleaseBlock();
     bBlockHeld = bMouseSecondaryOwnsBlock = bMouseSecondaryHeld = false;
     if (Character)
     {

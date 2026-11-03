@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Combat/Data/PlayerAttackSet.h"
-#include "PlayerBeatAttackComponent.generated.h"
+#include "PlayerAttackComponent.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_ThreeParams(FPlayerAttackJudged, EPlayerAttackGrade, Grade, float, ErrorMs,
                                                FName, Attack);
@@ -19,15 +19,18 @@ struct FOpeningHitMark
 	bool bGap = false;
 };
 
-// 接收轻重击输入，保存连招缓存并按音乐时间推进动作
-// 根据实际武器接触结算命中，再通知声音、镜头和界面
-UCLASS(ClassGroup = (Combat), meta = (BlueprintSpawnableComponent))
+/**
+ * 玩家攻击：轻重击、连招、攻击位移、命中和共鸣
+ * RequestAttack 接收按键，StartAttack 安排拍点，TickAttack 推进动作，SweepBlade 检查命中
+ * 连招缓存保留第一次选择，普通起手缓存等待恢复；防御请求由玩家防御组件处理
+ */
+UCLASS(ClassGroup = (Combat), meta = (BlueprintSpawnableComponent, DisplayName = "玩家攻击"))
 
-class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
+class HEARBLADE_API UPlayerAttackComponent : public UActorComponent
 {
 	GENERATED_BODY()
   public:
-	UPlayerBeatAttackComponent();
+	UPlayerAttackComponent();
 
 	// 攻击配置
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Player Attack")
@@ -36,8 +39,7 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	// 控制普通重击是否可用，右键在防御窗口内仍用于格挡
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Attack") bool bHeavyAttacksEnabled = true;
 
-	// 提供给界面的攻击状态
-	// 当前攻击与评级，供界面读取
+	// 界面状态：当前招式、评级与共鸣
 	UPROPERTY(BlueprintReadOnly) EPlayerResonanceState ResonanceState = EPlayerResonanceState::Filling;
 	UPROPERTY(BlueprintReadOnly) EPlayerAttackGrade LastGrade = EPlayerAttackGrade::Bad;
 	UPROPERTY(BlueprintReadOnly) float LastErrorMs = 0.f;
@@ -67,19 +69,21 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	FVector TipBurstWorld = FVector::ZeroVector;
 	double TipBurstWorldTime = -1000.;
 
-	// 对外事件
-	// 攻击事件与外部操作
+	// 对外事件：评级、命中与共鸣变化
 	UPROPERTY(BlueprintAssignable) FPlayerAttackJudged OnAttackJudged;
 	UPROPERTY(BlueprintAssignable) FPlayerAttackHit OnAttackHit;
 	UPROPERTY(BlueprintAssignable) FPlayerResonanceChanged OnResonanceChanged;
 
 	// 攻击与共鸣操作
-	// 接收轻重击输入，可立即出招时起手，否则按当前状态记录缓存
-	UFUNCTION(BlueprintCallable) bool TryAttack(EPlayerAttackInput Input);
-	// 共鸣条件满足后，等待指定拍点启动
-	UFUNCTION(BlueprintCallable) bool TryActivateResonance();
+	// 请求轻击或重击，返回 true 表示已出招或已缓存，不代表已经命中
+	UFUNCTION(BlueprintCallable, Category = "玩家攻击|输入", meta = (DisplayName = "请求攻击"))
+	bool RequestAttack(EPlayerAttackInput Input);
+	// 请求共鸣，条件满足后等待指定拍点启动，返回 true 不代表此刻已生效
+	UFUNCTION(BlueprintCallable, Category = "玩家攻击|共鸣", meta = (DisplayName = "请求共鸣"))
+	bool RequestResonance();
 
-	UFUNCTION(BlueprintPure) bool IsAttacking() const
+	UFUNCTION(BlueprintPure)
+	bool IsAttacking() const
 	{
 		return !CurrentAttack.IsNone();
 	}
@@ -89,27 +93,29 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 		return IsAttacking() && !bAttackVisualEnded;
 	}
 
-	UFUNCTION(BlueprintPure) bool IsResonanceActive() const
+	UFUNCTION(BlueprintPure)
+	bool IsResonanceActive() const
 	{
 		return ResonanceState == EPlayerResonanceState::Active;
 	}
 
 	// 返回当前共鸣剩余拍数
-	UFUNCTION(BlueprintPure) float GetRemainingBeats() const;
+	UFUNCTION(BlueprintPure)
+	float GetResonanceRemainingBeats() const;
 	// 返回攻击期间允许的移动比例
-	float GetMovementScale() const;
+	float GetAttackMovementScale() const;
 	// 根据当前连招节点生成下一步按键提示
 	FString GetComboPrompt() const;
-	// 检查防御能否打断当前攻击，允许时结束攻击动作
-	bool CancelForDefense(bool bDodge);
+	// 防御窗口内可取消攻击；窗口外按招式阶段和是否闪避判断，返回 false 时保留攻击
+	bool TryCancelAttackForDefense(bool bDodge);
 	// 停止本次攻击的动画、轨迹和输入缓存
 	void CancelAttack();
 	// 重置攻击、缓存和共鸣状态
 	void Reset();
 	// 受击等外部中断发生时清理攻击状态
-	void NotifyInterrupted();
+	void InterruptAttack();
 	// 记录攻击收益，更新共鸣与命中反馈状态
-	void ReceiveReward(EPlayerAttackGrade Grade, float Amount, bool bHit);
+	void ApplyAttackReward(EPlayerAttackGrade Grade, float Amount, bool bHit);
 
 	// 组件生命周期
 	// 缓存战斗组件，加载音效并校验攻击配置
@@ -121,7 +127,7 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 
   private:
 	// 关联组件与动作资源
-	TWeakObjectPtr<class UPlayerRhythmCombatComponent> Combat;
+	TWeakObjectPtr<class UPlayerDefenseComponent> DefenseComponent;
 	TWeakObjectPtr<class UBeatSyncedComboComponent> ResonanceBoss;
 
 	UPROPERTY(Transient) TObjectPtr<class UAnimMontage> AttackMontage;
@@ -170,11 +176,11 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	// 每次出招清空，只记录这一击已结算过的目标
 	TSet<TWeakObjectPtr<AActor>> HitActors;
 
-	// 连招输入缓存
+	// 连招缓存：出招期间使用，保存第一次按键和原始音乐时间
 	// 连招缓存保留本轮第一次按键，后续按键只计数，不覆盖方向选择
 	EPlayerAttackInput BufferedInput = EPlayerAttackInput::Light;
 	bool bHasBufferedInput = false;
-	// 普通起手缓存用于恢复期或暂时无法出招的情况，也保留第一次按键
+	// 普通起手缓存：空闲但尚未解锁时使用，保留第一次按键，最多等待 1 秒游戏时间
 	bool bHasPendingAttack = false;
 	EPlayerAttackInput PendingAttack = EPlayerAttackInput::Light;
 	// 前者是原始音乐时间，用于评级；后者是游戏时间截止点，用于过期清理
@@ -185,8 +191,8 @@ class HEARBLADE_API UPlayerBeatAttackComponent : public UActorComponent
 	// 动画淡出与连招窗口关闭分别记录，不能用动画是否播放判断能否接招
 	bool bAttackVisualEnded = false;
 	double ComboInputAudio = 0.;
-	// 当前与 ComboInputAudio 相同，只保留一个接续拍点
-	// 最后允许按键的时刻还要加上 ChainLateSeconds 返回的迟到宽限
+	// 连招接收截止基准，最终截止时刻为 LatestCueAudio + ChainLateSeconds()
+	// 这是按键窗口，与 SweepBlade 使用的命中窗口分开
 	double LatestCueAudio = 0.;
 	double NextStartAllowedAudio = -1000.;
 	double BufferedInputTime = 0.;

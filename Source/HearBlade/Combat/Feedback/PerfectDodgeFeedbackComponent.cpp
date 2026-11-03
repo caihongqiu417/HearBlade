@@ -48,8 +48,8 @@ void UPerfectDodgeFeedbackComponent::BeginPlay()
 	CounterHitSound = LoadHit(TEXT("SW_HitRush_Counter"));
 	HoldHitSound = LoadHit(TEXT("SW_HitRush_HoldHit"));
 	TierUpHitSound = LoadHit(TEXT("SW_HitRush_Finisher"));
-	if (UPlayerRhythmCombatComponent* Combat =
-	        GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>())
+	if (UPlayerDefenseComponent* Combat =
+	        GetOwner()->FindComponentByClass<UPlayerDefenseComponent>())
 		Combat->OnRhythmSuccessFeedback.AddDynamic(this,
 		                                           &UPerfectDodgeFeedbackComponent::HandleRhythmFeedback);
 	AHearBladeCharacter* Player = Cast<AHearBladeCharacter>(GetOwner());
@@ -90,8 +90,8 @@ void UPerfectDodgeFeedbackComponent::EnsureGhostPool()
 // 解除反馈事件，恢复屏幕状态并清理临时效果
 void UPerfectDodgeFeedbackComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	if (UPlayerRhythmCombatComponent* Combat =
-	        GetOwner() ? GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr)
+	if (UPlayerDefenseComponent* Combat =
+	        GetOwner() ? GetOwner()->FindComponentByClass<UPlayerDefenseComponent>() : nullptr)
 		Combat->OnRhythmSuccessFeedback.RemoveDynamic(this,
 		                                              &UPerfectDodgeFeedbackComponent::HandleRhythmFeedback);
 	RestoreImpactFrame();
@@ -118,7 +118,7 @@ void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFe
 	if (Feedback.bSuccess)
 	{
 		const bool bTierUp = Feedback.FeedbackTier >
-		                     UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(Feedback.PreviousCombo);
+		                     UPlayerDefenseComponent::GetFeedbackTierForCombo(Feedback.PreviousCombo);
 		// 按防御方式选择声音，评级控制强度，连击升级时叠加重音
 		USoundBase* Punch = nullptr;
 		switch (Feedback.Response)
@@ -199,8 +199,8 @@ void UPerfectDodgeFeedbackComponent::HandleRhythmFeedback(const FRhythmSuccessFe
 	Perfect.AttackDirection = Feedback.AttackDirection;
 	Perfect.ComboCount = Feedback.ComboCount;
 	Perfect.bStrongBeat = Feedback.bStrongBeat;
-	if (const UPlayerRhythmCombatComponent* Combat =
-	        GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>())
+	if (const UPlayerDefenseComponent* Combat =
+	        GetOwner()->FindComponentByClass<UPlayerDefenseComponent>())
 		Perfect.ResonanceFraction = Combat->GetResonanceFraction();
 	const int32 Tier = FMath::Clamp(Feedback.FeedbackTier, 0, 3);
 	const float TierScale = Tier == 0   ? Config->TierStrengths.X
@@ -375,7 +375,7 @@ void UPerfectDodgeFeedbackComponent::SpawnGhosts(float Strength)
 	if (!Config->GhostMaterial || !GetOwner() || !GetWorld())
 		return;
 	USkeletalMeshComponent* Source = GetOwner()->FindComponentByClass<USkeletalMeshComponent>();
-	UPlayerRhythmCombatComponent* Combat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>();
+	UPlayerDefenseComponent* Combat = GetOwner()->FindComponentByClass<UPlayerDefenseComponent>();
 	if (!Source || !Source->GetSkeletalMeshAsset() || !Combat)
 		return;
 	EnsureGhostPool();
@@ -530,8 +530,8 @@ void UPerfectDodgeFeedbackComponent::DestroyHoldArmorVisual()
 // 跟随角色姿态更新外壳，并按拍点和接触调整亮度
 void UPerfectDodgeFeedbackComponent::UpdateHoldArmorVisual(float DeltaTime)
 {
-	const UPlayerRhythmCombatComponent* Combat =
-	    GetOwner() ? GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr;
+	const UPlayerDefenseComponent* Combat =
+	    GetOwner() ? GetOwner()->FindComponentByClass<UPlayerDefenseComponent>() : nullptr;
 	const bool bShouldBeActive = Combat && Combat->IsSustainedHoldActive();
 	// 持续格挡结束就销毁外壳，不能只靠按键曾经按下过来维持显示
 	if (!bShouldBeActive)

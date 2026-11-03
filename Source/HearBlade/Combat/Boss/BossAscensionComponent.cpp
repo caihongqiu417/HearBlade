@@ -3,7 +3,7 @@
 #include "Combat/Boss/BeatSyncedComboComponent.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
 #include "Combat/Boss/BossLocomotionAnimInstance.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Combat/Player/PlayerCombatAnimInstance.h"
 #include "Combat/Feedback/TransientCombatFX.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
@@ -76,7 +76,7 @@ bool UBossAscensionComponent::BeginAscension(ACharacter* Player, FVector Contact
 		        Q))
 			AllowedScale = BodyScaleMultiplier;
 	}
-	if (auto* Combat = Player->FindComponentByClass<UPlayerRhythmCombatComponent>())
+	if (auto* Combat = Player->FindComponentByClass<UPlayerDefenseComponent>())
 		Combat->SetPhaseCinematic(true);
 	if (auto* CombatCamera = Player->FindComponentByClass<UBossCombatCameraComponent>())
 		CombatCamera->SetPhasePresentation(true);
@@ -279,7 +279,7 @@ void UBossAscensionComponent::TickComponent(float DeltaTime, ELevelTick Type,
 		return;
 	}
 	auto* Player = PlayerActor.Get();
-	const auto* Combat = Player ? Player->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr;
+	const auto* Combat = Player ? Player->FindComponentByClass<UPlayerDefenseComponent>() : nullptr;
 	// 音乐停止、玩家失效或演出超时都走中断清理，避免操作一直被锁住
 	if (!Clock || !Clock->IsRunning() || !Player || !Combat || Combat->Health <= 0.f ||
 	    GetWorld()->GetTimeSeconds() - StartWorld > 12.f)
@@ -386,7 +386,7 @@ void UBossAscensionComponent::FinishPresentation(bool bCompleted)
 	PresentationMontages.Reset();
 	if (auto* Player = PlayerActor.Get())
 	{
-		if (auto* Combat = Player->FindComponentByClass<UPlayerRhythmCombatComponent>())
+		if (auto* Combat = Player->FindComponentByClass<UPlayerDefenseComponent>())
 			Combat->SetPhaseCinematic(false);
 		if (auto* CombatCamera = Player->FindComponentByClass<UBossCombatCameraComponent>())
 			CombatCamera->SetPhasePresentation(false);

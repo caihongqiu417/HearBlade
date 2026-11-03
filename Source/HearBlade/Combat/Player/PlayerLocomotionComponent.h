@@ -7,8 +7,8 @@
 class ACharacter;
 class UBlendSpace;
 class UBossCombatCameraComponent;
-class UPlayerRhythmCombatComponent;
-class UPlayerBeatAttackComponent;
+class UPlayerDefenseComponent;
+class UPlayerAttackComponent;
 
 /** 根据实际速度选择移动动画，处理锁定步行与追击切换，不修改攻击动画和判定时间 */
 UCLASS(ClassGroup=(HearBlade), meta=(BlueprintSpawnableComponent))
@@ -34,8 +34,8 @@ private:
     UPROPERTY(Transient) TObjectPtr<UBlendSpace> KnightLocomotionBlendSpace;
     UPROPERTY(Transient) TObjectPtr<UBlendSpace> PursuitBlendSpace;
     UPROPERTY(Transient) TObjectPtr<UBossCombatCameraComponent> CombatCamera;
-    UPROPERTY(Transient) TObjectPtr<UPlayerRhythmCombatComponent> RhythmCombat;
-    UPROPERTY(Transient) TObjectPtr<UPlayerBeatAttackComponent> BeatAttack;
+    UPROPERTY(Transient) TObjectPtr<UPlayerDefenseComponent> DefenseComponent;
+    UPROPERTY(Transient) TObjectPtr<UPlayerAttackComponent> AttackComponent;
     // 平滑后的移动方向与追击状态
     FVector2D SmoothedLocomotionInput = FVector2D::ZeroVector;
     bool bPursuitGait = false;

@@ -10,7 +10,7 @@
 #include "Audio/BeatClock/BeatClockSubsystem.h"
 #include "AudioMixerBlueprintLibrary.h"
 #include "Combat/Boss/BeatSyncedComboComponent.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "Combat/Boss/BossBeatDirector.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
 #include "Combat/Data/RhythmResponseVisualData.h"
@@ -205,8 +205,8 @@ void ARhythmCombatHUD::DrawHUD()
 	if (!Canvas || !PlayerOwner)
 		return;
 	const APawn* Pawn = PlayerOwner->GetPawn();
-	const UPlayerRhythmCombatComponent* State =
-	    Pawn ? Pawn->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr;
+	const UPlayerDefenseComponent* State =
+	    Pawn ? Pawn->FindComponentByClass<UPlayerDefenseComponent>() : nullptr;
 	if (!State)
 		return;
 	if (State->Health <= 0.f)
@@ -258,8 +258,8 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 	// 直接用画布绘制命中闪白、速度线和文字，不依赖额外贴图
 
 	const APawn* Pawn = PlayerOwner ? PlayerOwner->GetPawn() : nullptr;
-	const UPlayerBeatAttackComponent* A =
-	    Pawn ? Pawn->FindComponentByClass<UPlayerBeatAttackComponent>() : nullptr;
+	const UPlayerAttackComponent* A =
+	    Pawn ? Pawn->FindComponentByClass<UPlayerAttackComponent>() : nullptr;
 	if (!A || !Canvas)
 		return;
 	const float Age = float(Now - A->ImpactFxWorldTime);
@@ -438,11 +438,11 @@ void ARhythmCombatHUD::DrawImpactComic(float Scale, double Now)
 }
 
 // 按音乐拍点绘制玩家攻击节奏提示
-void ARhythmCombatHUD::DrawPlayerAttackPulse(const UPlayerRhythmCombatComponent* State, float Scale,
+void ARhythmCombatHUD::DrawPlayerAttackPulse(const UPlayerDefenseComponent* State, float Scale,
                                              double Now)
 {
 	const auto* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
-	const auto* Attacks = State->GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
+	const auto* Attacks = State->GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
 	if (!Clock || !Clock->IsRunning() || !Attacks || State->Health <= 0.f)
 		return;
 	Scale = FMath::Max(1.f, Scale);
@@ -790,7 +790,7 @@ void ARhythmCombatHUD::DrawBossHealth(float Scale)
 // 节拍轨道与攻击提示
 
 // 根据输入偏差绘制判定框反馈
-void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State, float JudgeX, float MidY,
+void ARhythmCombatHUD::DrawTimingGate(const UPlayerDefenseComponent* State, float JudgeX, float MidY,
                                       float Scale, float FadeIn, float AbsInputError)
 {
 	const float PerfectWindow = FMath::Max(.001f, State->GetPerfectWindowSeconds());
@@ -907,7 +907,7 @@ void ARhythmCombatHUD::DrawTimingGate(const UPlayerRhythmCombatComponent* State,
 }
 
 // 绘制二阶段指令轨道与持续格挡范围
-void ARhythmCombatHUD::DrawPhaseTwoTimingRail(const UPlayerRhythmCombatComponent* State,
+void ARhythmCombatHUD::DrawPhaseTwoTimingRail(const UPlayerDefenseComponent* State,
                                               UBeatSyncedComboComponent* Boss, float Scale)
 {
 	const auto* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
@@ -1172,7 +1172,7 @@ UBeatSyncedComboComponent* ARhythmCombatHUD::FindCueCombo()
 }
 
 // 把即将发生的攻击转换为轨道上的指令位置
-void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* State, float Scale)
+void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerDefenseComponent* State, float Scale)
 {
 	bBladeScoreDrawn = false;
 	if (!State || !Canvas || !GetWorld())
@@ -1600,7 +1600,7 @@ void ARhythmCombatHUD::DrawAttackTimingCue(const UPlayerRhythmCombatComponent* S
 // 玩家状态与评级侧栏
 
 // 绘制玩家生命、共鸣和攻击状态
-void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State, float Scale, double Now)
+void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerDefenseComponent* State, float Scale, double Now)
 {
 	// 贴图自带透明留白，用位置偏移让可见内容靠近屏幕左上角
 
@@ -1673,9 +1673,9 @@ void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State
 	Resonance.Scale = FVector2D(.78f * Scale);
 	Resonance.EnableShadow(FLinearColor::Black);
 	Canvas->DrawItem(Resonance);
-	if (const auto* Attacks = State->GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>())
+	if (const auto* Attacks = State->GetOwner()->FindComponentByClass<UPlayerAttackComponent>())
 	{
-		FString Status = State->IsMouseDefenseWindow() ? TEXT("DEFEND: LMB COUNTER  RMB BLOCK")
+		FString Status = State->IsDefenseInputWindowOpen() ? TEXT("DEFEND: LMB COUNTER  RMB BLOCK")
 		                                               : TEXT("ATTACK: LMB LIGHT  RMB HEAVY");
 		if (Attacks->ResonanceState == EPlayerResonanceState::Ready)
 			Status = TEXT("RESONANCE READY  [R / LT]");
@@ -1683,7 +1683,7 @@ void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State
 			Status = TEXT("GET READY ... NEXT DOWNBEAT");
 		if (Attacks->IsResonanceActive())
 			Status = FString::Printf(TEXT("RESONANCE  %02d BEATS"),
-			                         FMath::CeilToInt(Attacks->GetRemainingBeats()));
+			                         FMath::CeilToInt(Attacks->GetResonanceRemainingBeats()));
 		FCanvasTextItem Mode(FVector2D(HealthX, HealthY + 112 * Scale), FText::FromString(Status),
 		                     GEngine->GetMediumFont(), FLinearColor(1.f, .78f, .15f));
 		Mode.Scale = FVector2D(.72f * Scale);
@@ -1719,7 +1719,7 @@ void ARhythmCombatHUD::DrawPlayerPanel(const UPlayerRhythmCombatComponent* State
 }
 
 // 绘制最近一次评级与时间偏差
-void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, float Scale, double Now)
+void ARhythmCombatHUD::DrawJudgment(const UPlayerDefenseComponent* State, float Scale, double Now)
 {
 	constexpr float QueueMoveSeconds = 0.14f;
 	const double JudgmentTime = State->GetLastJudgmentWorldSeconds();
@@ -1769,7 +1769,7 @@ void ARhythmCombatHUD::DrawJudgment(const UPlayerRhythmCombatComponent* State, f
 	}
 	if (State->ComboCount != LastComboCount)
 	{
-		const int32 NewTier = UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(State->ComboCount);
+		const int32 NewTier = UPlayerDefenseComponent::GetFeedbackTierForCombo(State->ComboCount);
 		if (LastComboCount != INDEX_NONE && NewTier > LastComboTier)
 			ComboTierUpWorldSeconds = Now;
 		LastComboTier = NewTier;
@@ -2108,13 +2108,13 @@ bool ARhythmCombatHUD::LoadBladeScoreArt()
 // 红色音符表示敌人攻击的防御要求，金色音符表示破绽内的攻击机会
 
 
-void ARhythmCombatHUD::DrawBladeScore(const UPlayerRhythmCombatComponent* State,
+void ARhythmCombatHUD::DrawBladeScore(const UPlayerDefenseComponent* State,
                                       UBeatSyncedComboComponent* Combo,
                                       const TArray<FUpcomingImpactCue>& Cues, float Scale)
 {
 	const UBeatClockSubsystem* Clock = GetWorld()->GetSubsystem<UBeatClockSubsystem>();
-	const UPlayerBeatAttackComponent* Attacks =
-	    State->GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
+	const UPlayerAttackComponent* Attacks =
+	    State->GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
 	const double Now = Clock->GetAudioNowSeconds(), SPB = Clock->GetSecondsPerBeat();
 	const double WorldNow = GetWorld()->GetTimeSeconds();
 	const float Impulse = FMath::Exp(-static_cast<float>(FMath::Frac(Clock->GetCurrentBeat())) * 7.f);

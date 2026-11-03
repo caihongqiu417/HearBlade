@@ -6,8 +6,8 @@
 
 class ACharacter;
 class UStaticMeshComponent;
-class UPlayerRhythmCombatComponent;
-class UPlayerBeatAttackComponent;
+class UPlayerDefenseComponent;
+class UPlayerAttackComponent;
 
 /** 校准握剑角度，按攻击、防御和移动状态更新剑的朝向，不处理伤害判定 */
 UCLASS(ClassGroup=(HearBlade), meta=(BlueprintSpawnableComponent))
@@ -25,8 +25,8 @@ public:
 private:
     UPROPERTY(Transient) TObjectPtr<ACharacter> Character;
     UPROPERTY(Transient) TObjectPtr<UStaticMeshComponent> EquippedSword;
-    UPROPERTY(Transient) TObjectPtr<UPlayerRhythmCombatComponent> RhythmCombat;
-    UPROPERTY(Transient) TObjectPtr<UPlayerBeatAttackComponent> BeatAttack;
+    UPROPERTY(Transient) TObjectPtr<UPlayerDefenseComponent> DefenseComponent;
+    UPROPERTY(Transient) TObjectPtr<UPlayerAttackComponent> AttackComponent;
     // 等骨骼动画更新后再校准，记录剑相对右手的旋转
     int32 SwordCalibrationFrames = 0;
     bool bSwordGripCalibrated = false;

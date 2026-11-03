@@ -1,9 +1,9 @@
 // 把轻重攻击输入安排到音乐节拍，并推进动画、移动与刀刃接触
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "HearBladeCharacter.h"
 #include "Combat/Feedback/TransientCombatFX.h"
 #include "Combat/Feedback/PerfectDodgeFeedbackComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Combat/Player/PlayerCombatAnimInstance.h"
 #include "Combat/Boss/BeatSyncedComboComponent.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
@@ -27,7 +27,7 @@
 #include "Misc/Paths.h"
 #include "UnrealClient.h"
 
-UPlayerBeatAttackComponent::UPlayerBeatAttackComponent()
+UPlayerAttackComponent::UPlayerAttackComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PostUpdateWork;
@@ -59,7 +59,7 @@ UPlayerBeatAttackComponent::UPlayerBeatAttackComponent()
 }
 
 // 加载各连段的命中音效，排除缺失资源
-void UPlayerBeatAttackComponent::LoadHitRushSounds()
+void UPlayerAttackComponent::LoadHitRushSounds()
 {
 	if (LightHitSounds.Num())
 		return;
@@ -96,16 +96,16 @@ void UPlayerBeatAttackComponent::LoadHitRushSounds()
 }
 
 // 取得当前世界的节拍时钟
-UBeatClockSubsystem* UPlayerBeatAttackComponent::Clock() const
+UBeatClockSubsystem* UPlayerAttackComponent::Clock() const
 {
 	return GetWorld() ? GetWorld()->GetSubsystem<UBeatClockSubsystem>() : nullptr;
 }
 
 // 缓存战斗组件，加载音效并校验攻击配置
-void UPlayerBeatAttackComponent::BeginPlay()
+void UPlayerAttackComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	Combat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>();
+	DefenseComponent = GetOwner()->FindComponentByClass<UPlayerDefenseComponent>();
 	LoadHitRushSounds(); // 开局加载，方便编辑器中新导入的音效直接生效
 	FString Error;
 	if (!AttackSet || !AttackSet->Validate(Error))
@@ -113,14 +113,14 @@ void UPlayerBeatAttackComponent::BeginPlay()
 }
 
 // 退出关卡时清空攻击与共鸣状态
-void UPlayerBeatAttackComponent::EndPlay(const EEndPlayReason::Type Reason)
+void UPlayerAttackComponent::EndPlay(const EEndPlayReason::Type Reason)
 {
 	Reset();
 	Super::EndPlay(Reason);
 }
 
 // 优先使用镜头锁定目标，否则寻找前方附近的存活 Boss
-AActor* UPlayerBeatAttackComponent::FindTarget() const
+AActor* UPlayerAttackComponent::FindTarget() const
 {
 	if (const auto* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
 		if (auto* Target = Camera->GetCombatTarget())
@@ -145,20 +145,20 @@ AActor* UPlayerBeatAttackComponent::FindTarget() const
 // 攻击输入与两类缓存
 
 // 接收攻击输入，决定立即出招还是等待连招时机
-bool UPlayerBeatAttackComponent::TryAttack(EPlayerAttackInput Input)
+bool UPlayerAttackComponent::RequestAttack(EPlayerAttackInput Input)
 {
-	if (!Combat.IsValid() || Combat->Health <= 0.f || Combat->IsPhaseCinematic() || !Clock() ||
+	if (!DefenseComponent.IsValid() || DefenseComponent->Health <= 0.f || DefenseComponent->IsPhaseCinematic() || !Clock() ||
 	    !Clock()->IsRunning())
 		return false;
 	if (Input == EPlayerAttackInput::Heavy && !bHeavyAttacksEnabled)
 		return false; // 当前配置禁用重攻击时，忽略该输入
-	// 统一读取音乐时间，后续缓存和节奏评级都使用这次按键的原始时间
-	// 记录按键原始时间，等待执行时不重写它，避免评级变成评价等待时间
+	// 保存实际按键的音乐时间，缓存等待不改变节奏评级
 	const double Now = Clock()->GetAudioNowSeconds();
 	if (IsAttacking())
 	{
 		// 保存本轮第一次连招输入及按键时间，后续按键不覆盖它
 		// 重复按键仍会计数，供连招判定检查是否连续乱按
+		// 超过接招截止点就拒绝本次输入，不把过期按键留给下一招
 		if (Now > LatestCueAudio + ChainLateSeconds())
 			return false;
 		++PressCountSinceCommit;
@@ -179,6 +179,7 @@ bool UPlayerBeatAttackComponent::TryAttack(EPlayerAttackInput Input)
 			return true; // 已有等待中的攻击，保留第一次按键时间
 		PendingAttack = Input;
 		PendingAttackAudio = Now;
+		// 只在第一次入缓存时设置期限，重复按键不续期
 		PendingAttackDeadline = GetWorld()->GetTimeSeconds() + 1.0;
 		bHasPendingAttack = true; // 暂时不能出招时，保存输入供后续重试
 		UE_LOG(LogTemp, Display, TEXT("PlayerAttack: queued ordinary input during recovery"));
@@ -187,7 +188,7 @@ bool UPlayerBeatAttackComponent::TryAttack(EPlayerAttackInput Input)
 	if (bHasPendingAttack || Now < RecoveryUntilAudio || Now < NextStartAllowedAudio)
 		return QueuePending();
 	PressCountSinceCommit = 0; // 新一轮攻击不累计上一轮的按键次数
-	if (Combat->PrepareForOrdinaryAttack() && StartAttack(Input, Now))
+	if (DefenseComponent->PrepareForOrdinaryAttack() && StartAttack(Input, Now))
 	{
 		bHasPendingAttack = false;
 		return true;
@@ -198,7 +199,7 @@ bool UPlayerBeatAttackComponent::TryAttack(EPlayerAttackInput Input)
 // 接招与动画时间计算
 
 // 返回连招允许迟按的时间宽限
-double UPlayerBeatAttackComponent::ChainLateSeconds() const
+double UPlayerAttackComponent::ChainLateSeconds() const
 {
 	// 较长的重击允许更晚接续，其余动作使用普通连招迟到窗口
 	const auto* Node = AttackSet ? AttackSet->Find(CurrentAttack) : nullptr;
@@ -206,13 +207,13 @@ double UPlayerBeatAttackComponent::ChainLateSeconds() const
 }
 
 // 计算出手到接触姿态需要预留的时间
-double UPlayerBeatAttackComponent::StrikeLead(const FPlayerAttackNode& Node)
+double UPlayerAttackComponent::StrikeLead(const FPlayerAttackNode& Node)
 {
 	return FMath::Clamp(double(Node.ImpactTime - Node.StrikeStart) / 1.2, .05, .12);
 }
 
 // 返回蓄力拍数，当前实现关闭该分支并返回零
-double UPlayerBeatAttackComponent::WindupBeats(const FPlayerAttackNode& Node, bool bResonance)
+double UPlayerAttackComponent::WindupBeats(const FPlayerAttackNode& Node, bool bResonance)
 {
 	// 当前关闭重攻击蓄力，轻重攻击都按普通命中流程执行
 	static const bool bHeavyCharge = false;
@@ -223,7 +224,7 @@ double UPlayerBeatAttackComponent::WindupBeats(const FPlayerAttackNode& Node, bo
 }
 
 // 根据蓄力进度计算应该显示的动画位置
-float UPlayerBeatAttackComponent::WindupPosition(double Now, double SampleNow) const
+float UPlayerAttackComponent::WindupPosition(double Now, double SampleNow) const
 {
 	// 备用蓄力曲线分为抬剑、保持、挥击和收招
 	// 当前 WindupBeats 返回 0，普通战斗不会进入这条分支
@@ -261,12 +262,12 @@ float UPlayerBeatAttackComponent::WindupPosition(double Now, double SampleNow) c
 
 // 安排一击：先沿轻重分支选择动作，再确定命中音乐时间，最后准备动画片段与连招窗口
 // 命中时间由节拍安排，靠近目标的距离和方向由位移逻辑处理
-bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double InputAudio, bool bChained,
+bool UPlayerAttackComponent::StartAttack(EPlayerAttackInput Input, double InputAudio, bool bChained,
                                              double TargetImpactAudio)
 {
 	if (!AttackSet || !Clock())
 		return false;
-	if (!Combat.IsValid() || !Combat->PrepareForOrdinaryAttack())
+	if (!DefenseComponent.IsValid() || !DefenseComponent->PrepareForOrdinaryAttack())
 		return false;
 	const double Now = Clock()->GetAudioNowSeconds(), SPB = Clock()->GetSecondsPerBeat();
 	// 已安排命中拍点的连招可以提前起手，普通起手仍受最早出招时间限制
@@ -476,7 +477,7 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 		InputSequence.Empty();
 	InputSequence += Input == EPlayerAttackInput::Light ? TEXT("L ") : TEXT("H ");
 	if (LastGrade == EPlayerAttackGrade::Bad)
-		Combat->ComboCount = 0;
+		DefenseComponent->ComboCount = 0;
 	OnAttackJudged.Broadcast(LastGrade, LastErrorMs, Next);
 	AttackTarget = FindTarget();
 	if (AttackTarget.IsValid())
@@ -515,7 +516,7 @@ bool UPlayerBeatAttackComponent::StartAttack(EPlayerAttackInput Input, double In
 // 攻击状态查询
 
 // 返回攻击期间允许的移动比例
-float UPlayerBeatAttackComponent::GetMovementScale() const
+float UPlayerAttackComponent::GetAttackMovementScale() const
 {
 	const auto* Node = AttackSet ? AttackSet->Find(CurrentAttack) : nullptr;
 	if (bAttackVisualEnded)
@@ -524,7 +525,7 @@ float UPlayerBeatAttackComponent::GetMovementScale() const
 }
 
 // 根据当前连招节点生成下一步按键提示
-FString UPlayerBeatAttackComponent::GetComboPrompt() const
+FString UPlayerAttackComponent::GetComboPrompt() const
 {
 	if (!Clock() || !AttackSet)
 		return FString();
@@ -561,13 +562,13 @@ FString UPlayerBeatAttackComponent::GetComboPrompt() const
 // 防御打断与攻击清理
 
 // 检查防御能否打断当前攻击，允许时结束攻击动作
-bool UPlayerBeatAttackComponent::CancelForDefense(bool bDodge)
+bool UPlayerAttackComponent::TryCancelAttackForDefense(bool bDodge)
 {
 	// 先取消待执行的普通攻击，防御结束后不会补出之前排队的攻击
 	bHasPendingAttack = false;
 	if (!IsAttacking())
 		return true;
-	if (Combat.IsValid() && Combat->IsMouseDefenseWindow())
+	if (DefenseComponent.IsValid() && DefenseComponent->IsDefenseInputWindowOpen())
 	{
 		CancelAttack();
 		return true;
@@ -582,7 +583,7 @@ bool UPlayerBeatAttackComponent::CancelForDefense(bool bDodge)
 }
 
 // 停止本次攻击的动画、轨迹和输入缓存
-void UPlayerBeatAttackComponent::CancelAttack()
+void UPlayerAttackComponent::CancelAttack()
 {
 	if (IsAttacking())
 		UE_LOG(LogTemp, Display, TEXT("PlayerAttack: end id=%llu node=%s audio=%.3f expectedEnd=%.3f"),
@@ -607,7 +608,7 @@ void UPlayerBeatAttackComponent::CancelAttack()
 }
 
 // 受击等外部中断发生时清理攻击状态
-void UPlayerBeatAttackComponent::NotifyInterrupted()
+void UPlayerAttackComponent::InterruptAttack()
 {
 	bHasPendingAttack = false;
 	CancelAttack();
@@ -615,7 +616,7 @@ void UPlayerBeatAttackComponent::NotifyInterrupted()
 }
 
 // 重置攻击、缓存和共鸣状态
-void UPlayerBeatAttackComponent::Reset()
+void UPlayerAttackComponent::Reset()
 {
 	bHasPendingAttack = false;
 	CancelAttack();
@@ -630,7 +631,7 @@ void UPlayerBeatAttackComponent::Reset()
 // 动画推进与连招接续
 
 // 按音乐时间推进动作、接触检测与连招接续
-void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
+void UPlayerAttackComponent::TickAttack(double Now, float Delta)
 {
 	const auto* Node = AttackSet->Find(CurrentAttack);
 	if (!Node)
@@ -776,6 +777,7 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 	// 早按的输入只等待固定接续拍点，不立即开始下一次挥击
 	const double Slot = ComboInputAudio; // 下一击仍安排在既定拍点，不因连续按键加快
 	const double FireAt = UpWindup > 0. ? HeavyPressAudio : (Upcoming ? Slot - StrikeLead(*Upcoming) : 0.);
+	// 输入已缓存也要等到起手时刻，不能靠连续点击提前播放下一击
 	if (bHasBufferedInput && Upcoming && Now >= FireAt)
 	{
 		const auto Input = BufferedInput;
@@ -827,7 +829,7 @@ void UPlayerBeatAttackComponent::TickAttack(double Now, float Delta)
 // 破绽命中奖励
 
 // 记录破绽中的有效命中，并检查是否达到填满条件
-void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening, bool bGap)
+void UPlayerAttackComponent::RegisterOpeningHit(const FBossOpening& Opening, bool bGap)
 {
 	OpeningHitMarks.Add({ImpactAudio, bGap});
 	if (OpeningHitMarks.Num() > 24)
@@ -851,7 +853,7 @@ void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening,
 		FillWorldTime = LastOpeningHitWorldTime;
 		FillAudio = ImpactAudio;
 		bFillGap = bGap;
-		ReceiveReward(EPlayerAttackGrade::Perfect, bGap ? 8.f : 5.f, true);
+		ApplyAttackReward(EPlayerAttackGrade::Perfect, bGap ? 8.f : 5.f, true);
 		// 填满破绽时不额外播放升级提示音
 		UE_LOG(LogTemp, Display, TEXT("PlayerAttack: FILL gap=%d hits=%d"), bGap ? 1 : 0, OpeningHits);
 	}
@@ -860,7 +862,7 @@ void UPlayerBeatAttackComponent::RegisterOpeningHit(const FBossOpening& Opening,
 // 武器与腿部轨迹检测
 
 // 取得双腿检测端点，供踢击接触检测使用
-void UPlayerBeatAttackComponent::SampleLegs(FVector OutA[2], FVector OutB[2]) const
+void UPlayerAttackComponent::SampleLegs(FVector OutA[2], FVector OutB[2]) const
 {
 	const auto* C = Cast<ACharacter>(GetOwner());
 	const USkeletalMeshComponent* Mesh = C ? C->GetMesh() : nullptr;
@@ -872,7 +874,7 @@ void UPlayerBeatAttackComponent::SampleLegs(FVector OutA[2], FVector OutB[2]) co
 }
 
 // 接触检测：沿刀刃的运动检查碰撞，并记录本次已命中的对象，避免一击逐帧重复结算
-void UPlayerBeatAttackComponent::SweepBlade(double Now)
+void UPlayerAttackComponent::SweepBlade(double Now)
 {
 	const auto* Node = AttackSet->Find(CurrentAttack);
 	auto* Sword = GetOwner()->FindComponentByClass<UStaticMeshComponent>();
@@ -882,8 +884,9 @@ void UPlayerBeatAttackComponent::SweepBlade(double Now)
 	const FVector Base = Sword->GetComponentLocation();
 	const FVector Tip =
 	    Base + Sword->GetComponentTransform().TransformVectorNoScale(FVector::YAxisVector) * 150.f;
-	// 只处理经过命中前后 40 毫秒的帧区间，LastAudio 让跨过窗口的低帧率帧仍能检查
-	// 这是音乐时间窗口加轨迹检测，不是动画通知开启的碰撞体
+	// 命中窗口：目标音乐时刻前后各 40 毫秒，窗口内才允许武器接触造成伤害
+	// 检查上一帧到本帧是否经过窗口，避免一帧跨过整个窗口时漏检
+	// 这里只开放检测，仍需刀刃接触目标并通过遮挡检查才算命中
 	if (Now >= ImpactAudio - .04 && LastAudio <= ImpactAudio + .04)
 	{
 		FCollisionQueryParams Query(SCENE_QUERY_STAT(PlayerBlade), false, GetOwner());
@@ -989,14 +992,14 @@ void UPlayerBeatAttackComponent::SweepBlade(double Now)
 					Gain *= .5f;
 				if (Node->bFinisher && LastGrade == EPlayerAttackGrade::Perfect)
 					Gain += 4.f;
-				ReceiveReward(LastGrade, Gain * OpenMul, true);
+				ApplyAttackReward(LastGrade, Gain * OpenMul, true);
 			}
 			if (bOpen)
 				RegisterOpeningHit(Opening, bGap);
 			PresentImpact(true, Hit.ImpactPoint, Target);
 			OnAttackHit.Broadcast(Target, Damage, LastGrade);
 			UE_LOG(LogTemp, Display, TEXT("PlayerAttack: HIT id=%llu target=%s damage=%.1f resonance=%.1f"),
-			       AttackSerial, *Target->GetName(), Damage, Combat->Resonance);
+			       AttackSerial, *Target->GetName(), Damage, DefenseComponent->Resonance);
 		}
 	}
 	LastBladeBase = Base;
@@ -1007,19 +1010,19 @@ void UPlayerBeatAttackComponent::SweepBlade(double Now)
 // 命中奖励与表现
 
 // 记录攻击收益，更新共鸣与命中反馈状态
-void UPlayerBeatAttackComponent::ReceiveReward(EPlayerAttackGrade Grade, float Amount, bool bHit)
+void UPlayerAttackComponent::ApplyAttackReward(EPlayerAttackGrade Grade, float Amount, bool bHit)
 {
-	if (!Combat.IsValid() || !bHit || Grade == EPlayerAttackGrade::Bad)
+	if (!DefenseComponent.IsValid() || !bHit || Grade == EPlayerAttackGrade::Bad)
 		return;
-	const float Previous = Combat->Resonance;
-	Combat->AwardPlayerAttack(Grade == EPlayerAttackGrade::Perfect, IsResonanceActive() ? 0.f : Amount);
-	LastResonanceGain = Combat->Resonance - Previous;
+	const float Previous = DefenseComponent->Resonance;
+	DefenseComponent->AwardPlayerAttack(Grade == EPlayerAttackGrade::Perfect, IsResonanceActive() ? 0.f : Amount);
+	LastResonanceGain = DefenseComponent->Resonance - Previous;
 	LastHitWorldSeconds = GetWorld()->GetTimeSeconds();
-	Combat->LastJudgmentErrorMs = LastErrorMs;
+	DefenseComponent->LastJudgmentErrorMs = LastErrorMs;
 }
 
 // 按命中结果和评级组合动作停顿、声音、特效与镜头
-void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AActor* Target)
+void UPlayerAttackComponent::PresentImpact(bool bHit, FVector Location, AActor* Target)
 {
 	if (!bHit)
 		return;
@@ -1185,7 +1188,7 @@ void UPlayerBeatAttackComponent::PresentImpact(bool bHit, FVector Location, AAct
 }
 
 // 衰减命中造成的色散与暗角，结束后恢复原值
-void UPlayerBeatAttackComponent::TickScreenPunch()
+void UPlayerAttackComponent::TickScreenPunch()
 {
 	auto* Player = Cast<AHearBladeCharacter>(GetOwner());
 	UCameraComponent* Camera = Player ? Player->GetFollowCamera() : nullptr;
@@ -1210,7 +1213,7 @@ void UPlayerBeatAttackComponent::TickScreenPunch()
 // 共鸣状态
 
 // 切换共鸣状态并通知监听者
-void UPlayerBeatAttackComponent::SetResonanceState(EPlayerResonanceState State)
+void UPlayerAttackComponent::SetResonanceState(EPlayerResonanceState State)
 {
 	if (State == ResonanceState)
 		return;
@@ -1221,12 +1224,12 @@ void UPlayerBeatAttackComponent::SetResonanceState(EPlayerResonanceState State)
 }
 
 // 检查共鸣条件，通过后等待指定拍点启动
-bool UPlayerBeatAttackComponent::TryActivateResonance()
+bool UPlayerAttackComponent::RequestResonance()
 {
-	if (!Combat.IsValid() || Combat->Health <= 0 || Combat->IsPhaseCinematic() || !Clock() ||
+	if (!DefenseComponent.IsValid() || DefenseComponent->Health <= 0 || DefenseComponent->IsPhaseCinematic() || !Clock() ||
 	    !Clock()->IsRunning())
 		return false;
-	if (Combat->Resonance >= Combat->MaxResonance && ResonanceState == EPlayerResonanceState::Filling)
+	if (DefenseComponent->Resonance >= DefenseComponent->MaxResonance && ResonanceState == EPlayerResonanceState::Filling)
 		SetResonanceState(EPlayerResonanceState::Ready);
 	if (ResonanceState != EPlayerResonanceState::Ready)
 		return false;
@@ -1243,7 +1246,7 @@ bool UPlayerBeatAttackComponent::TryActivateResonance()
 }
 
 // 返回当前共鸣剩余拍数
-float UPlayerBeatAttackComponent::GetRemainingBeats() const
+float UPlayerAttackComponent::GetResonanceRemainingBeats() const
 {
 	return IsResonanceActive() && Clock()
 	           ? float(FMath::Clamp(ActiveStartBeat + 16. - Clock()->GetCurrentBeat(), 0., 16.))
@@ -1251,7 +1254,7 @@ float UPlayerBeatAttackComponent::GetRemainingBeats() const
 }
 
 // 结束共鸣并通知配合的 Boss 恢复状态
-void UPlayerBeatAttackComponent::EndResonance()
+void UPlayerAttackComponent::EndResonance()
 {
 	if (ResonanceState != EPlayerResonanceState::Active && ResonanceState != EPlayerResonanceState::Armed)
 		return;
@@ -1260,8 +1263,8 @@ void UPlayerBeatAttackComponent::EndResonance()
 		ResonanceBoss->EndPlayerResonance();
 	ResonanceBoss.Reset();
 	// 只在共鸣已经启动后清空能量，预约阶段取消则保留就绪状态
-	if (WasActive && Combat.IsValid())
-		Combat->Resonance = 0.f;
+	if (WasActive && DefenseComponent.IsValid())
+		DefenseComponent->Resonance = 0.f;
 	SetResonanceState(WasActive ? EPlayerResonanceState::Filling : EPlayerResonanceState::Ready);
 }
 
@@ -1269,15 +1272,15 @@ void UPlayerBeatAttackComponent::EndResonance()
 
 // 逐帧推进：把当前音乐时间换算为动画位置，再处理根位移、接触与攻击结束
 // StartAudio 和 ImpactAudio 确定攻击的时间范围；动画位置用于提取本帧位移
-void UPlayerBeatAttackComponent::TickComponent(float Delta, ELevelTick TickType,
+void UPlayerAttackComponent::TickComponent(float Delta, ELevelTick TickType,
                                                FActorComponentTickFunction* TickFunction)
 {
 	Super::TickComponent(Delta, TickType, TickFunction);
 	TickRuntimeProbe();
 	TickScreenPunch();
-	if (!Combat.IsValid() || !Clock())
+	if (!DefenseComponent.IsValid() || !Clock())
 		return;
-	if (Combat->Health <= 0 || Combat->IsPhaseCinematic() || !Clock()->IsRunning())
+	if (DefenseComponent->Health <= 0 || DefenseComponent->IsPhaseCinematic() || !Clock()->IsRunning())
 	{
 		Reset();
 		return;
@@ -1289,14 +1292,14 @@ void UPlayerBeatAttackComponent::TickComponent(float Delta, ELevelTick TickType,
 		if (GetWorld()->GetTimeSeconds() > PendingAttackDeadline)
 			bHasPendingAttack = false;
 		else if (AudioNow >= RecoveryUntilAudio && AudioNow >= NextStartAllowedAudio &&
-		         Combat->PrepareForOrdinaryAttack() && StartAttack(PendingAttack, PendingAttackAudio))
+		         DefenseComponent->PrepareForOrdinaryAttack() && StartAttack(PendingAttack, PendingAttackAudio))
 			bHasPendingAttack = false;
 	}
-	if (Combat->IsPerformingAction() && IsAttacking())
+	if (DefenseComponent->IsMovementLocked() && IsAttacking())
 		CancelAttack();
 	if (IsAttacking())
 		TickAttack(Clock()->GetAudioNowSeconds(), Delta);
-	if (ResonanceState == EPlayerResonanceState::Filling && Combat->Resonance >= Combat->MaxResonance)
+	if (ResonanceState == EPlayerResonanceState::Filling && DefenseComponent->Resonance >= DefenseComponent->MaxResonance)
 		SetResonanceState(EPlayerResonanceState::Ready);
 	if (ResonanceState == EPlayerResonanceState::Armed || IsResonanceActive())
 	{
@@ -1323,8 +1326,8 @@ void UPlayerBeatAttackComponent::TickComponent(float Delta, ELevelTick TickType,
 		if (IsResonanceActive())
 		{
 			// 能量显示按剩余拍数递减，音乐速度变化时仍保持十六拍持续时间
-			Combat->Resonance = Combat->MaxResonance * GetRemainingBeats() / 16.f;
-			if (GetRemainingBeats() <= 0.f)
+			DefenseComponent->Resonance = DefenseComponent->MaxResonance * GetResonanceRemainingBeats() / 16.f;
+			if (GetResonanceRemainingBeats() <= 0.f)
 				EndResonance();
 		}
 	}

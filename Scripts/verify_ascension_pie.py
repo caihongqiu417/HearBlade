@@ -29,12 +29,12 @@ def tick(dt):
             if boss.get_editor_property('boss_phase')==2 and not boss.is_phase_transition_active():
                 if not phase_seen:phase_seen=True;start=time.monotonic();return
                 if elapsed>1.0:
-                    combat=pawn.get_component_by_class(unreal.PlayerRhythmCombatComponent)
+                    combat=pawn.get_component_by_class(unreal.PlayerDefenseComponent)
                     camera_ok=pc.get_view_target()==pawn
                     for ai in unreal.GameplayStatics.get_all_actors_of_class(world,unreal.AIController):
                         brain=ai.get_editor_property('brain_component')
                         if brain:brain.stop_logic('PIE recovery probe')
-                    action_ok=combat.try_dodge(pawn.get_actor_right_vector())
+                    action_ok=combat.request_dodge(pawn.get_actor_right_vector())
                     row={'round':round_index,'transition_seen':transition_seen,'phase':2,'camera_returned':camera_ok,'dodge_accepted':action_ok}
                     results.append(row);unreal.log_warning('ASCENSION_PIE_RESULT '+str(row))
                     assert transition_seen and camera_ok and action_ok,row

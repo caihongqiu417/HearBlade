@@ -5,12 +5,12 @@
 #include "Components/ActorComponent.h"
 #include "Combat/Data/PlayerAttackSet.h"
 #include "Combat/Data/AttackData.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "CombatTutorialComponent.generated.h"
 
 class UBeatSyncedComboComponent;
-class UPlayerRhythmCombatComponent;
-class UPlayerBeatAttackComponent;
+class UPlayerDefenseComponent;
+class UPlayerAttackComponent;
 struct FRhythmSuccessFeedbackData;
 
 UENUM()
@@ -105,8 +105,8 @@ class HEARBLADE_API UCombatTutorialComponent : public UActorComponent
 	// 切换教程需要的鼠标光标和输入模式
 	void SetCursorMode(bool bOn);
 
-	TWeakObjectPtr<UPlayerRhythmCombatComponent> Combat;
-	TWeakObjectPtr<UPlayerBeatAttackComponent> Attacks;
+	TWeakObjectPtr<UPlayerDefenseComponent> Combat;
+	TWeakObjectPtr<UPlayerAttackComponent> Attacks;
 	TWeakObjectPtr<UBeatSyncedComboComponent> Boss;
 	bool bBound = false, bBossHeld = false, bPracticePending = false;
 	double NextPracticeWorld = 0., AdvanceAtWorld = -1.;

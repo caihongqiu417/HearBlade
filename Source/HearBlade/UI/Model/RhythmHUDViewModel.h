@@ -1,6 +1,6 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "RhythmHUDViewModel.generated.h"
 
 // 评级卡片只保存显示数据，排列与动画由蓝图界面处理

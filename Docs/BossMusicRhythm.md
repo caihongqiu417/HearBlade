@@ -28,7 +28,7 @@ Boss 刀声现在使用项目内 `/Game/Enemies/DF_DRAGON_KNIGHT/SOUND/SW_Dragon
 默认强拍刀声音量为 1.0，弱拍为 0.9；出刀瞬间歌曲分别降到原音量的 0.38 / 0.58，之后平滑恢复。若觉得音乐被压得太明显，先将两个 `Music Gain` 调高；若刀声本身仍不喜欢，可替换 `SW_BossBladeStrong`、`SW_BossBladeWeak`，无需改动连招时间。
 # 玩家节奏闪避闭环（第一轮）
 
-- 玩家角色自动带有 `PlayerRhythmCombatComponent`：100 生命、100 共鸣、Combo 与最近一次闪避判定。
+- 玩家角色自动带有 `PlayerDefenseComponent`：100 生命、100 共鸣、Combo 与最近一次闪避判定。
 - 左 Shift／手柄 B 启动方向闪避，持续 0.62 秒；动画 Root Motion 以 0.32 倍位移驱动胶囊体，实测移动约 160～180 厘米且结束时不会拉回。无敌帧为动作开始后 0.08～0.42 秒。
 - Boss 攻击数据的每个 `ImpactMarker` 保存伤害、理想闪避提前量及真实伤害窗口。
 - Boss 刀剑网格在窗口中持续扫掠玩家胶囊体；只有实际接触才产生判定或伤害。

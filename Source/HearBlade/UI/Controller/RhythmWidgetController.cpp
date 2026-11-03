@@ -7,8 +7,8 @@
 #include "Combat/Boss/BossBeatDirector.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
 #include "Combat/Tutorial/CombatTutorialComponent.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
@@ -61,7 +61,7 @@ void URhythmWidgetController::Shutdown()
 void URhythmWidgetController::Rebind()
 {
 	APawn* Pawn = Player.IsValid() ? Player->GetPawn() : nullptr;
-	auto* NewCombat = Pawn ? Pawn->FindComponentByClass<UPlayerRhythmCombatComponent>() : nullptr;
+	auto* NewCombat = Pawn ? Pawn->FindComponentByClass<UPlayerDefenseComponent>() : nullptr;
 	if (Combat.Get() != NewCombat)
 	{
 		Combat = NewCombat;
@@ -152,7 +152,7 @@ void URhythmWidgetController::UpdatePlayerPanel(float Delta)
 	M.HealthText = FText::FromString(FString::Printf(TEXT("HP %d / %d"), FMath::RoundToInt(State->Health),
 	                                                 FMath::RoundToInt(State->MaxHealth)));
 	M.ComboText = FText::FromString(FString::Printf(TEXT("%d COMBO"), State->ComboCount));
-	M.ModeText = FText::FromString(State->IsMouseDefenseWindow() ? TEXT("DEFEND  LMB COUNTER / RMB BLOCK")
+	M.ModeText = FText::FromString(State->IsDefenseInputWindowOpen() ? TEXT("DEFEND  LMB COUNTER / RMB BLOCK")
 	                                                             : TEXT("ATTACK  LMB LIGHT / RMB HEAVY"));
 	// 先清空短时反馈，只有仍在显示期限内的攻击结果才重新写入
 	M.AttackText = FText::GetEmpty();
@@ -161,7 +161,7 @@ void URhythmWidgetController::UpdatePlayerPanel(float Delta)
 	M.WorldTime = Now;
 	M.ComboCount = State->ComboCount;
 	M.FlashOpacity = 0.f;
-	if (auto* Attack = Pawn->FindComponentByClass<UPlayerBeatAttackComponent>())
+	if (auto* Attack = Pawn->FindComponentByClass<UPlayerAttackComponent>())
 	{
 		if (Attack->ResonanceState == EPlayerResonanceState::Ready)
 			M.ModeText = FText::FromString(TEXT("RESONANCE READY  [R / LT]"));
@@ -169,7 +169,7 @@ void URhythmWidgetController::UpdatePlayerPanel(float Delta)
 			M.ModeText = FText::FromString(TEXT("GET READY ... NEXT DOWNBEAT"));
 		if (Attack->IsResonanceActive())
 			M.ModeText = FText::FromString(FString::Printf(TEXT("RESONANCE  %02d BEATS"),
-			                                               FMath::CeilToInt(Attack->GetRemainingBeats())));
+			                                               FMath::CeilToInt(Attack->GetResonanceRemainingBeats())));
 		if (Now - Attack->LastJudgedWorldSeconds < 1.2)
 			M.AttackText =
 			    FText::FromString(Attack->InputSequence +

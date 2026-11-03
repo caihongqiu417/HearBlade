@@ -9,8 +9,8 @@ class UInputAction;
 class UInputComponent;
 class UInputMappingContext;
 class UEnhancedInputLocalPlayerSubsystem;
-class UPlayerRhythmCombatComponent;
-class UPlayerBeatAttackComponent;
+class UPlayerDefenseComponent;
+class UPlayerAttackComponent;
 class UBossCombatCameraComponent;
 struct FInputActionValue;
 
@@ -68,8 +68,8 @@ private:
 
     // 角色组件与已登记的输入
     UPROPERTY(Transient) TObjectPtr<AHearBladeCharacter> Character;
-    UPROPERTY(Transient) TObjectPtr<UPlayerRhythmCombatComponent> RhythmCombat;
-    UPROPERTY(Transient) TObjectPtr<UPlayerBeatAttackComponent> BeatAttack;
+    UPROPERTY(Transient) TObjectPtr<UPlayerDefenseComponent> DefenseComponent;
+    UPROPERTY(Transient) TObjectPtr<UPlayerAttackComponent> AttackComponent;
     UPROPERTY(Transient) TObjectPtr<UBossCombatCameraComponent> CombatCamera;
     TWeakObjectPtr<UInputComponent> BoundInput;
     TWeakObjectPtr<UEnhancedInputLocalPlayerSubsystem> InputSubsystem;

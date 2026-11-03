@@ -1,6 +1,6 @@
 // 管理地面范围攻击的预警、逃离空间检查、命中与收招状态
 #include "Combat/Boss/BeatSyncedComboComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
@@ -99,7 +99,7 @@ bool UBeatSyncedComboComponent::HasSafeAreaExit(const FVector& Center, float Rad
 		AvailableSeconds = Clock ? Clock->GetSecondsPerBeat() * 4. : 2.;
 	}
 	// 先预留反应时间，再估算步行与闪避能否到达安全区
-	const auto* Combat = Target->FindComponentByClass<UPlayerRhythmCombatComponent>();
+	const auto* Combat = Target->FindComponentByClass<UPlayerDefenseComponent>();
 	// 先给玩家留出反应时间，再估算剩余时间内走路和闪避能到达的距离
 	// 从预警时长中预留反应时间，再计算步行和闪避最多能移动多远
 	const double TravelBudget = FMath::Max(0., AvailableSeconds - .55) * Speed +
@@ -356,7 +356,7 @@ void UBeatSyncedComboComponent::ResolveGroundBurst(int32 ImpactIndex, double Aud
 	                              0., 1.);
 	const FVector AtImpact = FMath::Lerp(GroundBurstPreviousLocation, AttackTarget->GetActorLocation(), T);
 	const bool Inside = FVector::DistSquared2D(AtImpact, GroundBurstCenter) <= FMath::Square(Boundary);
-	if (auto* Player = AttackTarget->FindComponentByClass<UPlayerRhythmCombatComponent>())
+	if (auto* Player = AttackTarget->FindComponentByClass<UPlayerDefenseComponent>())
 	{
 		const double DodgeError = Player->GetLastDodgeInputAudioSeconds() - GroundBurstTargetAudio;
 		const bool bDodgedThrough = bGroundBurstDodgeThrough && Inside && DodgeError >= -.35 &&

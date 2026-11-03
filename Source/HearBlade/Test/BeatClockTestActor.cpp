@@ -3,7 +3,7 @@
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
 #include "Combat/Data/AttackData.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 // ============================================================
@@ -86,8 +86,8 @@ void ABeatClockTestActor::BeginPlay()
 	BeatClock->OnBeat.AddDynamic(this, &ABeatClockTestActor::HandleBeat);
 	if (APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0))
 	{
-		BoundCombat = Player->FindComponentByClass<UPlayerRhythmCombatComponent>();
-		if (auto* Attacks = Player->FindComponentByClass<UPlayerBeatAttackComponent>())
+		BoundCombat = Player->FindComponentByClass<UPlayerDefenseComponent>();
+		if (auto* Attacks = Player->FindComponentByClass<UPlayerAttackComponent>())
 			Attacks->OnResonanceChanged.AddDynamic(this, &ABeatClockTestActor::HandlePlayerResonance);
 		if (BoundCombat.IsValid())
 			BoundCombat->OnRhythmSuccessFeedback.AddDynamic(this, &ABeatClockTestActor::HandleRhythmFeedback);
@@ -276,7 +276,7 @@ void ABeatClockTestActor::HandleRhythmFeedback(const FRhythmSuccessFeedbackData&
 {
 	PendingComboTier = Feedback.bSuccess ? FMath::Clamp(Feedback.FeedbackTier, 0, 3) : 0;
 	if (Feedback.bSuccess &&
-	    Feedback.FeedbackTier > UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(Feedback.PreviousCombo))
+	    Feedback.FeedbackTier > UPlayerDefenseComponent::GetFeedbackTierForCombo(Feedback.PreviousCombo))
 	{
 		UE_LOG(LogTemp, Display, TEXT("ComboMusic: tier-up requested combo=%d tier=%d event=%lld"),
 		       Feedback.ComboCount, PendingComboTier, Feedback.EventId);
@@ -288,7 +288,7 @@ void ABeatClockTestActor::HandlePlayerResonance(EPlayerResonanceState State)
 {
 	bResonanceMusic = State == EPlayerResonanceState::Active;
 	if (BoundCombat.IsValid())
-		PendingComboTier = UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(BoundCombat->ComboCount);
+		PendingComboTier = UPlayerDefenseComponent::GetFeedbackTierForCombo(BoundCombat->ComboCount);
 	ApplyComboTierAtBar();
 	if (MusicComponent)
 		MusicComponent->AdjustVolume(.35f, bResonanceMusic ? FMath::Min(1.f, MusicMixVolume * 1.18f)

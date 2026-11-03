@@ -19,8 +19,8 @@ def tick(dt):
             if boss:seen |= boss.is_phase_transition_active()
             if seen and not boss:
                 pc=unreal.GameplayStatics.get_player_controller(world,0);pawn=unreal.GameplayStatics.get_player_character(world,0)
-                combat=pawn.get_component_by_class(unreal.PlayerRhythmCombatComponent)
-                result={'transition_seen':seen,'target_destroyed':True,'camera_returned':pc.get_view_target()==pawn,'block_accepted':combat.try_block_start()}
+                combat=pawn.get_component_by_class(unreal.PlayerDefenseComponent)
+                result={'transition_seen':seen,'target_destroyed':True,'camera_returned':pc.get_view_target()==pawn,'block_accepted':combat.request_block()}
                 assert all(result.values()),str(result)
                 done(result)
             elif elapsed>40:raise RuntimeError('Abort test timeout')

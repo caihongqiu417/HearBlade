@@ -3,7 +3,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/HUD.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "RhythmCombatHUD.generated.h"
 
 class UTexture2D;
@@ -53,26 +53,26 @@ class HEARBLADE_API ARhythmCombatHUD : public AHUD
 	};
 
 	// 绘制玩家生命、共鸣和攻击状态
-	void DrawPlayerPanel(const UPlayerRhythmCombatComponent* State, float Scale, double Now);
+	void DrawPlayerPanel(const UPlayerDefenseComponent* State, float Scale, double Now);
 	// 按音乐拍点绘制玩家攻击节奏提示
-	void DrawPlayerAttackPulse(const UPlayerRhythmCombatComponent* State, float Scale, double Now);
+	void DrawPlayerAttackPulse(const UPlayerDefenseComponent* State, float Scale, double Now);
 	// 绘制命中点的闪光、速度线与文字
 	void DrawImpactComic(float Scale, double Now);
 	// 首次游玩的教程卡片和短时提示，推进逻辑在教程组件中
 	void DrawTutorial(float Scale, double Now);
 	UPROPERTY() TMap<FName, TObjectPtr<UTexture2D>> TutorialArt;
 	// 绘制最近一次评级与时间偏差
-	void DrawJudgment(const UPlayerRhythmCombatComponent* State, float Scale, double Now);
+	void DrawJudgment(const UPlayerDefenseComponent* State, float Scale, double Now);
 	// 绘制失误或漏判的短时提示
 	void DrawFailureFeedback(float Scale, double Now);
 	// 把即将发生的攻击转换为轨道上的指令位置
-	void DrawAttackTimingCue(const UPlayerRhythmCombatComponent* State, float Scale);
+	void DrawAttackTimingCue(const UPlayerDefenseComponent* State, float Scale);
 	// 把反击提示投影到敌人附近
 	void DrawCounterWorldCue(float Scale);
 	// 刀形节拍轨道分别显示敌人防御指令、玩家攻击拍点和追击破绽
 
 
-	void DrawBladeScore(const UPlayerRhythmCombatComponent* State, UBeatSyncedComboComponent* Combo,
+	void DrawBladeScore(const UPlayerDefenseComponent* State, UBeatSyncedComboComponent* Combo,
 	                    const TArray<struct FUpcomingImpactCue>& Cues, float Scale);
 	// 加载刀形轨道所需资源，资源不齐时使用原轨道
 	bool LoadBladeScoreArt();
@@ -81,10 +81,10 @@ class HEARBLADE_API ARhythmCombatHUD : public AHUD
 	bool bBladeScoreDrawn = false;
 	FVector2D BladeAttackTextAnchor = FVector2D::ZeroVector;
 	// 根据输入偏差绘制判定框反馈
-	void DrawTimingGate(const UPlayerRhythmCombatComponent* State, float JudgeX, float MidY, float Scale,
+	void DrawTimingGate(const UPlayerDefenseComponent* State, float JudgeX, float MidY, float Scale,
 	                    float FadeIn, float AbsInputError);
 	// 绘制二阶段指令轨道与持续格挡范围
-	void DrawPhaseTwoTimingRail(const UPlayerRhythmCombatComponent* State, UBeatSyncedComboComponent* Boss,
+	void DrawPhaseTwoTimingRail(const UPlayerDefenseComponent* State, UBeatSyncedComboComponent* Boss,
 	                            float Scale);
 	double PhaseTwoRailFirstBeat = -1.;
 	// 在锁定目标头部附近绘制标记

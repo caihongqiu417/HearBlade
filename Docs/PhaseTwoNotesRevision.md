@@ -14,6 +14,6 @@
 
 素材已成功导入：`output/arena/import_phase2_notes.log`。
 
-当前验证限制：`RhythmCombatHUD.cpp` 编译成功；整项目链接失败，原因是另一个任务创建的 `PlayerBeatAttackComponent.h` 尚无配套实现，出现七个未解析符号。用户已确认另一个任务正在实现该功能。没有改动或暂时移除该任务文件，也没有使用旧 DLL 冒充新 UI 验证结果。
+当前验证限制：`RhythmCombatHUD.cpp` 编译成功；整项目链接失败，原因是另一个任务创建的 `PlayerAttackComponent.h` 尚无配套实现，出现七个未解析符号。用户已确认另一个任务正在实现该功能。没有改动或暂时移除该任务文件，也没有使用旧 DLL 冒充新 UI 验证结果。
 
 待另一个任务完成后：统一编译 HearBladeEditor，实际 PIE 检查一阶段原轨道、二阶段普通/范围图标、透明中心和转场淡入。本轮尚未完成实机视觉验收。

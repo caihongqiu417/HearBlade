@@ -1,6 +1,6 @@
 // 提供主角攻击、连招和空间移动的运行时诊断
-#include "Combat/Player/PlayerBeatAttackComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Combat/Tutorial/CombatTutorialComponent.h"
 #include "Combat/Boss/BeatSyncedComboComponent.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
@@ -23,10 +23,10 @@
 #include "UObject/UnrealType.h"
 
 // 在真实运行流程中检查连招路线、输入缓存和连续按键
-void UPlayerBeatAttackComponent::TickComboProbe()
+void UPlayerAttackComponent::TickComboProbe()
 {
 #if !UE_BUILD_SHIPPING
-	if (!Clock() || !Clock()->IsRunning() || !Combat.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
+	if (!Clock() || !Clock()->IsRunning() || !DefenseComponent.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
 		return;
 	const double Now = Clock()->GetAudioNowSeconds();
 	if (FParse::Param(FCommandLine::Get(), TEXT("ComboMotionCapture")) && IsAttacking() && AttackSerial <= 3)
@@ -48,7 +48,7 @@ void UPlayerBeatAttackComponent::TickComboProbe()
 	{
 		bProbeStarted = true;
 		ProbeStartWorld = GetWorld()->GetTimeSeconds();
-		Combat->ResetCombatState();
+		DefenseComponent->ResetCombatState();
 		// 连招诊断暂停敌人决策，避免受击打断被误判为连招衔接失败
 		if (auto* Tutorial = GetOwner()->FindComponentByClass<UCombatTutorialComponent>())
 			Tutorial->SetComponentTickEnabled(false);
@@ -101,7 +101,7 @@ void UPlayerBeatAttackComponent::TickComboProbe()
 		}
 		if (InputProbeStep < Route.Len() && Now >= ProbeNextInputBeat)
 		{
-			if (TryAttack(Route[InputProbeStep] == 'L' ? EPlayerAttackInput::Light
+			if (RequestAttack(Route[InputProbeStep] == 'L' ? EPlayerAttackInput::Light
 			                                           : EPlayerAttackInput::Heavy))
 			{
 				++InputProbeStep;
@@ -128,7 +128,7 @@ void UPlayerBeatAttackComponent::TickComboProbe()
 		// 模拟每秒二十次按键，统计实际起手次数
 		if (Now >= ProbeNextInputBeat)
 		{
-			TryAttack(EPlayerAttackInput::Light);
+			RequestAttack(EPlayerAttackInput::Light);
 			ProbeNextInputBeat = Now + .05;
 		}
 		if (Clock()->GetCurrentBeat() - ArmedBeat >= 10.)
@@ -157,18 +157,18 @@ void UPlayerBeatAttackComponent::TickComboProbe()
 }
 
 // 按命令行参数驱动攻击验证流程
-void UPlayerBeatAttackComponent::TickRuntimeProbe()
+void UPlayerAttackComponent::TickRuntimeProbe()
 {
 #if !UE_BUILD_SHIPPING
 	if (FParse::Param(FCommandLine::Get(), TEXT("PlayerRootMotionProbe")))
 	{
-		if (!Clock() || !Clock()->IsRunning() || !Combat.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
+		if (!Clock() || !Clock()->IsRunning() || !DefenseComponent.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
 			return;
 		if (!bProbeStarted)
 		{
 			bProbeStarted = true;
 			ProbeStartWorld = GetWorld()->GetTimeSeconds();
-			Combat->ResetCombatState();
+			DefenseComponent->ResetCombatState();
 			for (TActorIterator<ABossBeatDirector> It(GetWorld()); It; ++It)
 				if (It->BehaviorTreeComponent)
 					It->BehaviorTreeComponent->StopTree(EBTStopMode::Forced);
@@ -182,7 +182,7 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 					break;
 				}
 			RootProbeStart = GetOwner()->GetActorLocation();
-			bComboProbeFailed = !TryAttack(EPlayerAttackInput::Light);
+			bComboProbeFailed = !RequestAttack(EPlayerAttackInput::Light);
 		}
 		if (GetWorld()->GetTimeSeconds() - ProbeStartWorld > 1.8)
 		{
@@ -216,7 +216,7 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 			bProbeStarted = true;
 			ProbeStartWorld = GetWorld()->GetTimeSeconds();
 			ProbeStage = -1;
-			Combat->ResetCombatState();
+			DefenseComponent->ResetCombatState();
 			for (TActorIterator<ABossBeatDirector> It(GetWorld()); It; ++It)
 				if (It->BehaviorTreeComponent)
 					It->BehaviorTreeComponent->StopTree(EBTStopMode::Forced);
@@ -309,7 +309,7 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 		return;
 	}
 	if (!FParse::Param(FCommandLine::Get(), TEXT("PlayerAttackProbe")) || !Clock() || !Clock()->IsRunning() ||
-	    !Combat.IsValid())
+	    !DefenseComponent.IsValid())
 		return;
 	const double Beat = Clock()->GetCurrentBeat();
 	if (!bProbeStarted)
@@ -318,7 +318,7 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 			return;
 		bProbeStarted = true;
 		ProbeStartWorld = GetWorld()->GetTimeSeconds();
-		Combat->ResetCombatState();
+		DefenseComponent->ResetCombatState();
 		for (TActorIterator<ABossBeatDirector> It(GetWorld()); It; ++It)
 			if (It->BehaviorTreeComponent)
 				It->BehaviorTreeComponent->StopTree(EBTStopMode::Forced);
@@ -346,7 +346,7 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 	if (ProbeStage == 2 && !IsResonanceActive())
 	{
 		UE_LOG(LogTemp, Display, TEXT("PlayerAttackProbe: COMPLETE inputs=%d resonance=%.1f"), ProbeInputs,
-		       Combat->Resonance);
+		       DefenseComponent->Resonance);
 		ProbeStage = 3;
 	}
 	if (ProbeStage == 3 || GetWorld()->GetTimeSeconds() - ProbeStartWorld > 55.)
@@ -362,17 +362,17 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 		return;
 	if (ProbeStage == 0 && Beat >= ProbeNextInputBeat)
 	{
-		if (TryAttack(EPlayerAttackInput::Light))
+		if (RequestAttack(EPlayerAttackInput::Light))
 			++ProbeInputs;
 		ProbeNextInputBeat += .5;
-		if (ProbeInputs >= 30 || Combat->Resonance >= Combat->MaxResonance)
+		if (ProbeInputs >= 30 || DefenseComponent->Resonance >= DefenseComponent->MaxResonance)
 		{
 			UE_LOG(LogTemp, Display, TEXT("PlayerAttackProbe: ordinary inputs=%d damage=%.1f resonance=%.1f"),
-			       ProbeInputs, ProbeInitialBossHealth - ResonanceBoss->BossHealth, Combat->Resonance);
+			       ProbeInputs, ProbeInitialBossHealth - ResonanceBoss->BossHealth, DefenseComponent->Resonance);
 			if (ProbeInitialBossHealth == ResonanceBoss->BossHealth)
 				UE_LOG(LogTemp, Error, TEXT("PlayerAttackProbe: no ordinary hits"));
-			Combat->Resonance = Combat->MaxResonance;
-			TryActivateResonance();
+			DefenseComponent->Resonance = DefenseComponent->MaxResonance;
+			RequestResonance();
 			ProbeStage = 1;
 		}
 	}
@@ -391,7 +391,7 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 		Inputs.ReplaceInline(TEXT(" "), TEXT(""));
 		const auto Input = Inputs[ProbeInputs % Inputs.Len()] == TCHAR('H') ? EPlayerAttackInput::Heavy
 		                                                                    : EPlayerAttackInput::Light;
-		if (TryAttack(Input))
+		if (RequestAttack(Input))
 			++ProbeInputs;
 		ProbeNextInputBeat += Input == EPlayerAttackInput::Heavy ? 1. : .5;
 		if (ProbeInputs == 8)
@@ -401,7 +401,7 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 	if (ProbeStage == 2 && !IsResonanceActive())
 	{
 		UE_LOG(LogTemp, Display, TEXT("PlayerAttackProbe: COMPLETE inputs=%d resonance=%.1f damage=%.1f"),
-		       ProbeInputs, Combat->Resonance, ProbeInitialBossHealth - ResonanceBoss->BossHealth);
+		       ProbeInputs, DefenseComponent->Resonance, ProbeInitialBossHealth - ResonanceBoss->BossHealth);
 		ProbeStage = 3;
 	}
 	if (ProbeStage == 3 || GetWorld()->GetTimeSeconds() - ProbeStartWorld > 55.)
@@ -416,17 +416,17 @@ void UPlayerBeatAttackComponent::TickRuntimeProbe()
 }
 
 // 检查侧移后武器接触与攻击判定的变化
-void UPlayerBeatAttackComponent::TickSpatialSidestepProbe()
+void UPlayerAttackComponent::TickSpatialSidestepProbe()
 {
 #if !UE_BUILD_SHIPPING
-	if (!Clock() || !Clock()->IsRunning() || !Combat.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
+	if (!Clock() || !Clock()->IsRunning() || !DefenseComponent.IsValid() || GetWorld()->GetTimeSeconds() < 5.)
 		return;
 	// 测试先停止自主战斗并固定距离，再单独安排一次攻击
 	if (!bProbeStarted)
 	{
 		bProbeStarted = true;
 		ProbeStartWorld = GetWorld()->GetTimeSeconds();
-		Combat->ResetCombatState();
+		DefenseComponent->ResetCombatState();
 		for (TActorIterator<ABossBeatDirector> It(GetWorld()); It; ++It)
 			if (It->BehaviorTreeComponent)
 				It->BehaviorTreeComponent->StopTree(EBTStopMode::Forced);
@@ -473,8 +473,8 @@ void UPlayerBeatAttackComponent::TickSpatialSidestepProbe()
 			    {
 				    return O.Kind == EBossOpeningKind::Sidestep;
 			    });
-			const bool bNoMiss = Combat->GetLastJudgmentWorldSeconds() < ProbeStartWorld;
-			if (bSidestep && bNoMiss && Combat->Health >= Combat->MaxHealth)
+			const bool bNoMiss = DefenseComponent->GetLastJudgmentWorldSeconds() < ProbeStartWorld;
+			if (bSidestep && bNoMiss && DefenseComponent->Health >= DefenseComponent->MaxHealth)
 			{
 				UE_LOG(LogTemp, Display,
 				       TEXT("SpatialSidestepProbe: PASS nearby sidestep, no damage or MISS"));
@@ -482,7 +482,7 @@ void UPlayerBeatAttackComponent::TickSpatialSidestepProbe()
 			else
 			{
 				UE_LOG(LogTemp, Error, TEXT("SpatialSidestepProbe: FAIL opening=%d noMiss=%d health=%.0f"),
-				       bSidestep ? 1 : 0, bNoMiss ? 1 : 0, Combat->Health);
+				       bSidestep ? 1 : 0, bNoMiss ? 1 : 0, DefenseComponent->Health);
 			}
 			UKismetSystemLibrary::QuitGame(this, nullptr, EQuitPreference::Quit, false);
 		}
@@ -496,7 +496,7 @@ void UPlayerBeatAttackComponent::TickSpatialSidestepProbe()
 }
 
 // 按预设顺序输入指令，记录实际攻击状态
-void UPlayerBeatAttackComponent::TickInputProbe()
+void UPlayerAttackComponent::TickInputProbe()
 {
 	// 兼容旧测试入口，转到当前连招节奏测试
 	TickComboProbe();

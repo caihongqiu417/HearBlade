@@ -6,7 +6,7 @@
 #include "Combat/Player/PlayerWeaponComponent.h"
 #include "Combat/Player/PlayerLocomotionComponent.h"
 #include "Combat/Player/PlayerCombatAnimInstance.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/StaticMeshComponent.h"
@@ -20,7 +20,7 @@
 #include "GameFramework/PlayerController.h"
 #include "HearBlade.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Combat/Feedback/PerfectDodgeFeedbackComponent.h"
 
 AHearBladeCharacter::AHearBladeCharacter()
@@ -60,8 +60,9 @@ AHearBladeCharacter::AHearBladeCharacter()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	FollowCamera->bUsePawnControlRotation = false;
 	CombatCamera = CreateDefaultSubobject<UBossCombatCameraComponent>(TEXT("BossCombatCamera"));
-	RhythmCombat = CreateDefaultSubobject<UPlayerRhythmCombatComponent>(TEXT("RhythmCombat"));
-	BeatAttack = CreateDefaultSubobject<UPlayerBeatAttackComponent>(TEXT("BeatAttack"));
+	// 保留已保存的组件实例名，蓝图中的参数覆盖仍应用到同一个组件
+	DefenseComponent = CreateDefaultSubobject<UPlayerDefenseComponent>(TEXT("RhythmCombat"));
+	AttackComponent = CreateDefaultSubobject<UPlayerAttackComponent>(TEXT("BeatAttack"));
 	PerfectDodgeFeedback =
 	    CreateDefaultSubobject<UPerfectDodgeFeedbackComponent>(TEXT("PerfectDodgeFeedback"));
 	EquippedSword = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("EquippedSword"));
@@ -113,9 +114,9 @@ void AHearBladeCharacter::OnRep_Controller()
 void AHearBladeCharacter::DoMove(float Right, float Forward)
 {
 	CurrentMoveInput = FVector2D(Right, Forward);
-	if (RhythmCombat && RhythmCombat->IsPerformingAction())
+	if (DefenseComponent && DefenseComponent->IsMovementLocked())
 		return;
-	const float AttackMoveScale = BeatAttack ? BeatAttack->GetMovementScale() : 1.f;
+	const float AttackMoveScale = AttackComponent ? AttackComponent->GetAttackMovementScale() : 1.f;
 	Right *= AttackMoveScale;
 	Forward *= AttackMoveScale;
 	if (GetController() != nullptr)
@@ -139,7 +140,7 @@ void AHearBladeCharacter::DoMove(float Right, float Forward)
 // 将视角输入交给镜头控制
 void AHearBladeCharacter::DoLook(float Yaw, float Pitch)
 {
-	if (RhythmCombat && RhythmCombat->IsPhaseCinematic())
+	if (DefenseComponent && DefenseComponent->IsPhaseCinematic())
 		return;
 	if (CombatCamera && CombatCamera->IsLockedOn())
 	{
@@ -173,7 +174,7 @@ void AHearBladeCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
     PlayerInput->UpdateHeldActions();
-    if (RhythmCombat && RhythmCombat->Health <= 0.f) return;
+    if (DefenseComponent && DefenseComponent->Health <= 0.f) return;
 	CalibrateSwordGrip();
 	UpdateCombatFacing(DeltaSeconds);
 	UpdateSwordDirection(DeltaSeconds);
@@ -189,16 +190,16 @@ void AHearBladeCharacter::UpdateSwordDirection(float DeltaSeconds)
 // 战斗锁定时按当前动作调整角色朝向
 void AHearBladeCharacter::UpdateCombatFacing(float DeltaSeconds)
 {
-	if (BeatAttack && BeatAttack->IsPlayingAttackMotion())
+	if (AttackComponent && AttackComponent->IsPlayingAttackMotion())
 		return; // 攻击前摇由攻击组件控制朝向
-	if (RhythmCombat && RhythmCombat->IsPhaseCinematic())
+	if (DefenseComponent && DefenseComponent->IsPhaseCinematic())
 		return;
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	AActor* TargetActor = CombatCamera ? CombatCamera->GetCombatTarget() : nullptr;
 	if (!Movement)
 		return;
 	// 受击转身由战斗组件处理，锁定朝向不能同时覆盖它
-	if (RhythmCombat && RhythmCombat->IsHitReacting())
+	if (DefenseComponent && DefenseComponent->IsHitReacting())
 	{
 		Movement->bOrientRotationToMovement = false;
 		return;
@@ -251,7 +252,7 @@ FVector AHearBladeCharacter::GetWorldMoveIntent() const
 // 将移动意图交给战斗组件作为闪避方向
 void AHearBladeCharacter::DoDodge()
 {
-	if (!RhythmCombat)
+	if (!DefenseComponent)
 		return;
 	FVector2D Input = CurrentMoveInput;
 	if (auto* PC = Cast<APlayerController>(GetController()))
@@ -264,13 +265,13 @@ void AHearBladeCharacter::DoDodge()
 	                        .GetSafeNormal2D();
 	if (Direction.IsNearlyZero())
 		Direction = GetActorForwardVector();
-	RhythmCombat->TryDodge(Direction);
+	DefenseComponent->RequestDodge(Direction);
 }
 
 // 处理跳跃按下入口
 void AHearBladeCharacter::DoJumpStart()
 {
-	if (RhythmCombat && RhythmCombat->IsPhaseCinematic())
+	if (DefenseComponent && DefenseComponent->IsPhaseCinematic())
 		return;
 	// 开始跳跃
 	Jump();

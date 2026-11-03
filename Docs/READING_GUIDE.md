@@ -4,15 +4,15 @@
 
 HearBlade 的战斗由音乐时间、攻击数据、动作执行和接触判定共同组成。攻击需要在指定拍点到达命中姿势，同时根据目标位置调整朝向与位移。玩家的防御输入再与攻击要求、命中时间和实际接触共同决定结果。
 
-HearBladeCharacter 创建角色与相关组件，并将输入分配给攻击、防御等功能。PlayerBeatAttackComponent 管理轻重攻击、连招和动画推进；PlayerRhythmCombatComponent 管理生命、防御输入与应对结果。攻击过程和防御结算各自保存状态，避免所有逻辑集中在角色类中。
+HearBladeCharacter 创建角色与相关组件，并将输入分配给攻击、防御等功能。PlayerAttackComponent 管理轻重攻击、连招和动画推进；PlayerDefenseComponent 管理生命、防御输入与应对结果。攻击过程和防御结算各自保存状态，避免所有逻辑集中在角色类中。
 
 Combat 目录按职责划分。Data 定义攻击配置，Player 实现主角战斗，Boss 执行敌人连击与阶段变化，AI 组织行为选择，Camera、Feedback 和 Tutorial 分别处理镜头、反馈及教程。Audio 提供音乐时间，UI 展示玩法结果，编辑工具位于 Plugins/HearBladeBeatEditor。
 
 对应文件：
 
 - [Source/HearBlade/HearBladeCharacter.cpp](../Source/HearBlade/HearBladeCharacter.cpp)
-- [Source/HearBlade/Combat/Player/PlayerBeatAttackComponent.cpp](../Source/HearBlade/Combat/Player/PlayerBeatAttackComponent.cpp)
-- [Source/HearBlade/Combat/Player/PlayerRhythmCombatComponent.cpp](../Source/HearBlade/Combat/Player/PlayerRhythmCombatComponent.cpp)
+- [Source/HearBlade/Combat/Player/PlayerAttackComponent.cpp](../Source/HearBlade/Combat/Player/PlayerAttackComponent.cpp)
+- [Source/HearBlade/Combat/Player/PlayerDefenseComponent.cpp](../Source/HearBlade/Combat/Player/PlayerDefenseComponent.cpp)
 
 ## 音乐时间与攻击数据
 
@@ -30,7 +30,7 @@ AttackData 定义攻击片段、命中标记和应对类型，PlayerAttackSet �
 
 ## 主角攻击
 
-阅读主角攻击时，可以从 TryAttack 开始，再看 StartAttack 和 TickAttack。TryAttack 先检查角色能否行动、音乐是否运行，以及当前配置是否允许重攻击，再根据攻击状态判断立即执行还是进入等待。StartAttack 选择相应的连招节点，确定目标命中时间，并准备动画片段。玩家真实按键时间与动作执行时间分别保存，延迟执行不会覆盖原始输入时刻。出招期间按下下一次攻击，会保存第一次输入及其时间；继续按键只增加次数，不把时间改成最后一次按下的时刻。这样不能靠反复按键，把原先偏早的输入改成一次准时输入。收招尚未结束时，输入会暂存，等待能够开始攻击时重试。
+阅读主角攻击时，可以从 RequestAttack 开始，再看 StartAttack 和 TickAttack。RequestAttack 先检查角色能否行动、音乐是否运行，以及当前配置是否允许重攻击，再根据攻击状态判断立即执行还是进入等待。StartAttack 选择相应的连招节点，确定目标命中时间，并准备动画片段。玩家真实按键时间与动作执行时间分别保存，延迟执行不会覆盖原始输入时刻。出招期间按下下一次攻击，会保存第一次输入及其时间；继续按键只增加次数，不把时间改成最后一次按下的时刻。这样不能靠反复按键，把原先偏早的输入改成一次准时输入。收招尚未结束时，输入会暂存，等待能够开始攻击时重试。
 
 攻击开始后，组件根据音乐时间计算动画位置，使动作在目标时刻到达配置的命中姿势。准备段和收招段可以采用不同的时间安排，连招推进还需要保持命中附近的播放速度连续，避免两段衔接时出现突变。这里要区分重攻击和蓄力：bHeavyAttacksEnabled 的代码默认值为 true，但 WindupBeats 中的蓄力开关当前关闭。重攻击有自己的攻击节点，并不表示当前一定会进入蓄力流程。实际角色是否允许重攻击，还需要查看蓝图对默认值的覆盖。
 
@@ -40,9 +40,9 @@ AttackData 定义攻击片段、命中标记和应对类型，PlayerAttackSet �
 
 对应文件：
 
-- [Source/HearBlade/Combat/Player/PlayerBeatAttackComponent.cpp](../Source/HearBlade/Combat/Player/PlayerBeatAttackComponent.cpp)
+- [Source/HearBlade/Combat/Player/PlayerAttackComponent.cpp](../Source/HearBlade/Combat/Player/PlayerAttackComponent.cpp)
 - [Source/HearBlade/Combat/Data/PlayerAttackSet.h](../Source/HearBlade/Combat/Data/PlayerAttackSet.h)
-- [Source/HearBlade/Combat/Player/PlayerRhythmCombatComponent.cpp](../Source/HearBlade/Combat/Player/PlayerRhythmCombatComponent.cpp)
+- [Source/HearBlade/Combat/Player/PlayerDefenseComponent.cpp](../Source/HearBlade/Combat/Player/PlayerDefenseComponent.cpp)
 
 ## 敌人连击与目标修正
 
@@ -62,7 +62,7 @@ BossMotionWarpingComponent 将本帧根位移、动画区间和播放速度交�
 
 ## 防御判定与战斗反馈
 
-PlayerRhythmCombatComponent 接收闪避、格挡、反击及持续格挡等输入。ResolveResponse 根据本次攻击要求选择对应规则，并使用命中标识防止重复处理。持续格挡还包含开始、保持和结束状态，不能将每次接触都视为新的独立按键。
+PlayerDefenseComponent 接收闪避、格挡、反击及持续格挡等输入。ResolveDefenseResult 根据本次攻击要求选择对应规则，并使用命中标识防止重复处理。持续格挡还包含开始、保持和结束状态，不能将每次接触都视为新的独立按键。
 
 节奏评价比较真实输入时间与理想输入时间。理想时间由命中时刻及提前量确定，输入偏差用于评级；实际接触和防御状态则参与伤害处理。评价文字是结算后的结果，界面显示不参与反向决定防御是否成功。
 
@@ -72,7 +72,7 @@ CombatTutorialComponent 保存教程阶段，依据玩家完成的动作推进�
 
 对应文件：
 
-- [Source/HearBlade/Combat/Player/PlayerRhythmCombatComponent.cpp](../Source/HearBlade/Combat/Player/PlayerRhythmCombatComponent.cpp)
+- [Source/HearBlade/Combat/Player/PlayerDefenseComponent.cpp](../Source/HearBlade/Combat/Player/PlayerDefenseComponent.cpp)
 - [Source/HearBlade/Combat/Feedback/AttackReadabilityComponent.cpp](../Source/HearBlade/Combat/Feedback/AttackReadabilityComponent.cpp)
 - [Source/HearBlade/Combat/Camera/BossCombatCameraComponent.cpp](../Source/HearBlade/Combat/Camera/BossCombatCameraComponent.cpp)
 - [Source/HearBlade/Combat/Tutorial/CombatTutorialComponent.cpp](../Source/HearBlade/Combat/Tutorial/CombatTutorialComponent.cpp)

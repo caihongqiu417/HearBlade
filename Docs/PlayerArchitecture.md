@@ -8,19 +8,39 @@
 | --- | --- | --- |
 | AHearBladeCharacter | 创建组件、提供移动入口、安排身体更新顺序 | SetupPlayerInputComponent、DoMove、Tick |
 | UHearBladeInputComponent | 绑定输入、选择鼠标的攻击或防御操作、失去控制时清理输入 | Bind、MousePrimaryCombatPressed、UpdateHeldActions、Unbind |
-| UPlayerBeatAttackComponent | 轻重攻击、连招缓冲、攻击位移和命中结算 | TryAttack、TryActivateResonance |
-| UPlayerRhythmCombatComponent | 防御窗口、格挡、弹反、闪避与受击状态 | IsMouseDefenseWindow、TryBlockStart、TryCounter、TryDodge |
+| UPlayerAttackComponent | 轻重攻击、连招缓冲、攻击位移和命中结算 | RequestAttack、RequestResonance |
+| UPlayerDefenseComponent | 防御窗口、格挡、弹反、闪避与受击状态 | IsDefenseInputWindowOpen、RequestBlock、RequestParry、RequestDodge |
 | UPlayerWeaponComponent | 校准握持角度，更新剑的朝向 | Initialize、Calibrate、UpdateDirection |
 | UPlayerLocomotionComponent | 根据实际速度选择步行、跑步和追击姿态 | Initialize、MeasureSpeeds、Update |
 | UBossCombatCameraComponent | 锁定目标与战斗镜头 | ToggleLockOn、GetCombatTarget |
 
 这些组件属于同一个角色，各自保存完成职责所需的状态。输入组件保存按住了哪个键，武器组件保存校准后的握持角度，移动动画组件保存平滑后的采样位置。攻击是否允许、是否进入连招窗口，仍由战斗组件决定。
 
+## 攻击、防御与输入窗口
+
+`UPlayerAttackComponent` 负责出招，`UPlayerDefenseComponent` 负责防御和受击恢复。角色、输入和武器组件分别通过 `AttackComponent`、`DefenseComponent` 保存引用。蓝图中原有组件实例名保留为 `BeatAttack`、`RhythmCombat`，已保存的参数仍挂在原来的实例上。
+
+输入入口统一使用 `Request`，例如 `RequestAttack`、`RequestBlock`、`RequestParry`、`RequestDodge`。返回 `true` 表示请求已经接收，可能立即执行，也可能等待缓存；不表示已经命中或防御成功。`RequestResonance` 接收后等待下一小节启动共鸣。
+
+| 机制 | 代码位置 | 处理规则 |
+| --- | --- | --- |
+| 普通攻击缓存 | `RequestAttack`、`TickComponent` | 空闲但尚未恢复时，保留第一次输入，最多等待 1 秒游戏时间，重复按键不延长期限 |
+| 连招输入缓存 | `RequestAttack`、`TickAttack` | 当前攻击中保留第一次轻重选择，按原始音乐时间评级，到下一击起手时刻才执行 |
+| 接招截止 | `LatestCueAudio + ChainLateSeconds()` | 截止后拒绝连招输入，收招动画结束不等于连招窗口关闭 |
+| 攻击命中窗口 | `SweepBlade` | 在目标音乐时刻前后各 40 毫秒内检查武器轨迹，经过窗口还要实际接触并通过遮挡检查 |
+| 防御输入窗口 | `IsDefenseInputWindowOpen` | 根据附近敌人预警决定鼠标左右键用于攻还是防，不直接判定防御成功 |
+| 防御缓存 | `BufferDefenseInput`、`ProcessDefenseBuffer` | 只保留最新操作，按游戏时间过期；受击锁定时至少保留到解锁后 0.05 秒 |
+| 缓存期间松开格挡 | `ReleaseBlock`、`ProcessDefenseBuffer` | 保存原始松键时间，缓存执行后补上释放，避免一直举盾 |
+| 闪避无敌时间 | `IsInvulnerable` | 从原始按键的音乐时间计算，缓存等待不会额外延长无敌 |
+| 防御评级 | `ResolveDefenseResult`、`ConsumeClosestDefenseInput` | 从按键历史取出最接近理想时刻的一次，使用后移除，不能重复抵挡后续命中 |
+
+攻击的音乐时间用于安排起手、命中和接招，游戏时间用于缓存过期和受击恢复。实际命中、输入评级、动画播放是三个独立判断，不用“动画还在播放”代替是否可以接招或是否无敌。
+
 ## 按一次鼠标左键
 
 玩家取得角色控制权后，UE 调用角色的 `SetupPlayerInputComponent`。角色把引擎创建的输入组件交给 `PlayerInput->Bind`。`Bind` 登记 IA 的回调，并把战斗按键映射加入本地玩家的 Enhanced Input 子系统。
 
-鼠标左键触发 `MousePrimaryCombatPressed`。它先向节奏战斗组件询问当前是否处于鼠标防御窗口：窗口内调用 `TryCounter`，窗口外调用 `TryAttack(Light)`。输入组件只选择入口，攻击组件再决定立即开始攻击、保存到连招缓冲，还是拒绝这次操作。
+鼠标左键触发 `MousePrimaryCombatPressed`。它先向玩家防御组件询问当前是否处于鼠标防御窗口：窗口内调用 `RequestParry`，窗口外调用 `RequestAttack(Light)`。输入组件只选择入口，攻击组件再决定立即开始攻击、保存到连招缓冲，还是拒绝这次操作。
 
 右键同样区分窗口内格挡和窗口外重击。`bMouseSecondaryHeld` 表示右键仍按着，`bMouseSecondaryOwnsBlock` 表示这次右键已经启动了格挡。玩家提前按住右键时，`UpdateHeldActions` 会在窗口出现后尝试格挡；松开时只结束右键自己启动的格挡。
 
@@ -58,8 +78,8 @@
 | Input/HearBladeInputComponent.h / .cpp | 输入绑定、鼠标攻防选择与解绑 |
 | Combat/Player/PlayerWeaponComponent.h / .cpp | 握剑校准和武器朝向 |
 | Combat/Player/PlayerLocomotionComponent.h / .cpp | 步速测量与移动动画 |
-| Combat/Player/PlayerBeatAttackComponent.h / .cpp | 主角攻击与连招 |
-| Combat/Player/PlayerRhythmCombatComponent.h / .cpp | 节奏防御和角色战斗状态 |
+| Combat/Player/PlayerAttackComponent.h / .cpp | 主角攻击与连招 |
+| Combat/Player/PlayerDefenseComponent.h / .cpp | 节奏防御和角色战斗状态 |
 | Combat/Data/RhythmCombatInputSettings.h / .cpp | 战斗按键设置 |
 | UI/Controller/RhythmWidgetController.h / .cpp | 显示数据与死亡重开 |
 | UI/HUD/RhythmCombatHUD.h / .cpp | 界面创建和连接 |

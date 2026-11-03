@@ -1,7 +1,7 @@
 #include "Combat/Player/PlayerLocomotionComponent.h"
 #include "Combat/Player/PlayerCombatAnimInstance.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "Combat/Camera/BossCombatCameraComponent.h"
 #include "Animation/BlendSpace.h"
 #include "Animation/AnimSequence.h"
@@ -24,8 +24,8 @@ void UPlayerLocomotionComponent::Initialize(UBlendSpace* Locomotion, UBlendSpace
     KnightLocomotionBlendSpace = Locomotion;
     PursuitBlendSpace = Pursuit;
     CombatCamera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>();
-    RhythmCombat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>();
-    BeatAttack = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
+    DefenseComponent = GetOwner()->FindComponentByClass<UPlayerDefenseComponent>();
+    AttackComponent = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
     MeasureSpeeds();
 }
 
@@ -156,8 +156,8 @@ void UPlayerLocomotionComponent::Update(float DeltaSeconds, float LockedCombatWa
 
 	const bool bCombatLocked = CombatCamera && CombatCamera->IsLockedOn();
 	const AActor* Target = CombatCamera ? CombatCamera->GetCombatTarget() : nullptr;
-	const bool bBusy = (RhythmCombat && RhythmCombat->IsPerformingAction()) ||
-	                   (BeatAttack && BeatAttack->IsPlayingAttackMotion());
+	const bool bBusy = (DefenseComponent && DefenseComponent->IsMovementLocked()) ||
+	                   (AttackComponent && AttackComponent->IsPlayingAttackMotion());
 	const FVector ToTarget = Target ? Target->GetActorLocation() - Character->GetActorLocation() : FVector::ZeroVector;
 	// 进入追击和退出追击使用不同的距离、方向阈值，避免在边界反复切换
 	const FVector2D Input2D(Character->GetLastMovementInputVector().X, Character->GetLastMovementInputVector().Y);

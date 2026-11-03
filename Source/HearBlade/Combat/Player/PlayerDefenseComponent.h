@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Combat/Data/AttackData.h"
-#include "PlayerRhythmCombatComponent.generated.h"
+#include "PlayerDefenseComponent.generated.h"
 
 UENUM(BlueprintType)
 enum class ERhythmDodgeJudgment : uint8
@@ -60,16 +60,20 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPerfectDodge, const FPerfectDodge
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRhythmSuccessFeedback, const FRhythmSuccessFeedbackData&,
                                             Feedback);
 
-// 处理闪避、格挡、反击、受击与防御输入缓存
-// 使用原始按键时间评级，使用动作状态决定何时允许执行
-UCLASS(ClassGroup = (Combat), meta = (BlueprintSpawnableComponent))
+/**
+ * 玩家防御：闪避、格挡、弹反、生命、韧性与受击恢复
+ * Request 开头的方法接收按键，ProcessDefenseBuffer 在动作解锁后执行缓存
+ * 输入窗口决定按键分流，无敌时间决定能否躲过接触，评级窗口决定按得是否准确
+ * 敌人接触或挥空后调用 ResolveEnemyHit / ResolveEnemyMiss 结算结果
+ */
+UCLASS(ClassGroup = (Combat), meta = (BlueprintSpawnableComponent, DisplayName = "玩家防御"))
 
-class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
+class HEARBLADE_API UPlayerDefenseComponent : public UActorComponent
 {
 	GENERATED_BODY()
 
   public:
-	UPlayerRhythmCombatComponent();
+	UPlayerDefenseComponent();
 	// 根据玩家攻击评级增加共鸣，并记录本次收益
 	void AwardPlayerAttack(bool bPerfect, float BaseGain);
 	// 切换演出状态，进入时清理未完成的攻击与防御操作
@@ -160,85 +164,94 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 
 	// 保存评级结果，更新连击与共鸣，并通知反馈组件
 	UFUNCTION(BlueprintCallable, Category = "节奏闪避")
-	void SubmitDodgeJudgment(ERhythmDodgeJudgment Grade, float SignedErrorMs, bool bStrongBeat = false);
+	void SubmitDefenseJudgment(ERhythmDodgeJudgment Grade, float SignedErrorMs, bool bStrongBeat = false);
 
 	// 清空本轮防御、受击、评级和输入历史
 	UFUNCTION(BlueprintCallable, Category = "节奏闪避")
 	void ResetCombatState();
 
 	// 闪避与格挡操作
-	// 检查当前状态，决定立即闪避还是保留输入等待解锁
+	// 请求闪避，返回 true 表示已开始或已缓存；缓存不会重新计算按键时间
 	UFUNCTION(BlueprintCallable, Category = "节奏闪避")
-	bool TryDodge(FVector WorldDirection);
+	bool RequestDodge(FVector WorldDirection);
 
-	// 检查格挡条件，锁定期间先缓存按下操作
-	// 记录松键时刻，处理仍在缓存中的格挡以及持续格挡结算
-	UFUNCTION(BlueprintCallable, Category = "节奏防御") bool TryBlockStart();
-	// 检查反击条件，必要时缓存按键而不立即播放动作
-	UFUNCTION(BlueprintCallable, Category = "节奏防御") void EndBlock();
-
-	// 反击操作
-	UFUNCTION(BlueprintCallable, Category = "节奏防御") bool TryCounter();
+	// 请求格挡，返回 true 表示已举盾或已缓存
+	UFUNCTION(BlueprintCallable, Category = "玩家防御|输入", meta = (DisplayName = "请求格挡"))
+	bool RequestBlock();
+	// 松开格挡，尚未执行的格挡缓存也会记下这次松键，避免执行后一直举盾
+	UFUNCTION(BlueprintCallable, Category = "玩家防御|输入", meta = (DisplayName = "松开格挡"))
+	void ReleaseBlock();
+	// 请求弹反，返回 true 表示已开始或已缓存，成功与否由敌人命中时的评级决定
+	UFUNCTION(BlueprintCallable, Category = "玩家防御|输入", meta = (DisplayName = "请求弹反"))
+	bool RequestParry();
 	// 普通攻击不修改防御按键历史或反击状态
 	bool PrepareForOrdinaryAttack();
-	// 判断当前鼠标输入是否应该解释为防御
-	// 根据临近的敌人攻击生成鼠标防御提示
-	UFUNCTION(BlueprintPure, Category = "节奏防御") bool IsMouseDefenseWindow() const;
-	FString GetMouseDefensePrompt() const;
+	// 输入分流窗口：开启时左右键用于弹反和格挡，不代表已防住伤害
+	UFUNCTION(BlueprintPure, Category = "玩家防御|窗口", meta = (DisplayName = "防御输入窗口是否开启"))
+	bool IsDefenseInputWindowOpen() const;
+	// 根据附近敌人的攻击预警生成防御按键提示
+	FString GetDefenseInputPrompt() const;
 
 	double GetLastCounterInputAudioSeconds() const
 	{
 		return LastCounterInputAudioSeconds;
 	}
 
-	UFUNCTION(BlueprintPure, Category = "节奏防御") bool IsBlocking() const
+	UFUNCTION(BlueprintPure, Category = "节奏防御")
+	bool IsBlocking() const
 	{
 		return bBlocking;
 	}
 
 	// 短按不显示持续格挡外壳，持续按住后显示，并跟随持续格挡状态更新
 
-	UFUNCTION(BlueprintPure, Category = "节奏防御") bool IsSustainedHoldActive() const
+	UFUNCTION(BlueprintPure, Category = "节奏防御")
+	bool IsSustainedHoldActive() const
 	{
 		return bBlocking && !bActiveHoldBroken && GetWorld() &&
 		       GetWorld()->GetTimeSeconds() - BlockStartWorldSeconds >= HoldArmorActivationSeconds;
 	}
 
-	UFUNCTION(BlueprintPure, Category = "节奏防御") bool IsInDefensePose() const
+	UFUNCTION(BlueprintPure, Category = "节奏防御")
+	bool IsInDefensePose() const
 	{
 		return bPhaseCinematic || bBlocking || bBlockRecovering || bCountering;
 	}
 
-	UFUNCTION(BlueprintPure, Category = "节奏防御") bool IsPerformingAction() const
+	UFUNCTION(BlueprintPure, Category = "节奏防御")
+	bool IsMovementLocked() const
 	{
 		return bPhaseCinematic || bDodging || bBlocking || bCountering || bBlockRecovering || bPoiseBroken ||
 		       bHitReacting;
 	}
 
-	UFUNCTION(BlueprintPure, Category = "韧性") bool IsPoiseBroken() const
+	UFUNCTION(BlueprintPure, Category = "韧性")
+	bool IsPoiseBroken() const
 	{
 		return bPoiseBroken;
 	}
 
-	UFUNCTION(BlueprintPure, Category = "受击") bool IsHitReacting() const
+	UFUNCTION(BlueprintPure, Category = "受击")
+	bool IsHitReacting() const
 	{
 		return bHitReacting || bPoiseBroken;
 	}
 
-	UFUNCTION(BlueprintPure, Category = "韧性") float GetPoiseFraction() const
+	UFUNCTION(BlueprintPure, Category = "韧性")
+	float GetPoiseFraction() const
 	{
 		return MaxPoise > 0.0f ? Poise / MaxPoise : 0.0f;
 	}
 
 	// 接触结果与防御结算
 	// 实际刀刃检测接触玩家胶囊时调用
-	bool ResolveBossContact(double ContactAudioSeconds, double TargetBeat, float Damage,
+	bool ResolveEnemyHit(double ContactAudioSeconds, double TargetBeat, float Damage,
 	                        float IdealDodgeLeadSeconds, bool bStrongBeat, FVector BladeWorldLocation,
 	                        FVector AttackDirection, ERhythmResponseType RequiredResponse,
 	                        ERhythmHoldMarkerType HoldMarker, FName HoldGroup, FVector AttackerWorldLocation);
 
 	// 刀刃窗口结束但未接触玩家时，只结算躲避反馈，不扣生命
-	bool ResolveBossAvoidance(double ImpactAudioSeconds, double TargetBeat, float IdealDodgeLeadSeconds,
+	bool ResolveEnemyMiss(double ImpactAudioSeconds, double TargetBeat, float IdealDodgeLeadSeconds,
 	                          bool bStrongBeat, FVector BladeWorldLocation, FVector AttackDirection,
 	                          ERhythmResponseType RequiredResponse, ERhythmHoldMarkerType HoldMarker,
 	                          FName HoldGroup);
@@ -299,7 +312,8 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	}
 
 	// 根据连续成功次数返回反馈档位
-	UFUNCTION(BlueprintPure, Category = "节奏反馈") static int32 GetFeedbackTierForCombo(int32 Combo);
+	UFUNCTION(BlueprintPure, Category = "节奏反馈")
+	static int32 GetFeedbackTierForCombo(int32 Combo);
 
   protected:
 	// 缓存角色与反馈组件，准备防御资源和初始战斗状态
@@ -311,7 +325,7 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
   private:
 	double LastJudgmentWorldSeconds = -1000.0;
 	double LastResonanceGainWorldSeconds = -1000.0;
-	// 按键的音乐时间用于无敌与评级，动作开始的游戏时间用于动画和移动
+	// 两套时间：音乐时间记录原始按键，用于无敌与评级；游戏时间推进动画、位移和恢复
 	double LastDodgeInputAudioSeconds = -1000.0;
 	double DodgeStartWorldSeconds = -1000.0;
 	FVector DodgeDirection = FVector::ForwardVector;
@@ -366,15 +380,16 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	double AutomationReleaseAudioSeconds = -1000.0;
 	bool bAutomationWrongActionIssued = false;
 	int64 FeedbackEventSerial = 0;
-	enum class EBufferedRhythmAction : uint8
+	enum class EBufferedDefenseAction : uint8
 	{
 		None,
 		Dodge,
 		Block,
 		Counter
 	};
-	// 单槽防御缓存，新操作覆盖旧操作，闪避同时保存方向
-	EBufferedRhythmAction BufferedAction = EBufferedRhythmAction::None;
+	// 防御缓存只保留最新操作，与攻击缓存保留第一次按键的规则不同
+	// 闪避还保存方向；松开格挡时保留释放时间，执行后补上松键
+	EBufferedDefenseAction BufferedAction = EBufferedDefenseAction::None;
 	FVector BufferedDodgeDirection = FVector::ForwardVector;
 	// 音乐时间保存按键时刻，游戏时间用于计算等待是否超时
 	double BufferedInputAudioSeconds = -1000.0;
@@ -491,14 +506,14 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	// 取得本次输入用于节奏判定的音乐时间
 	double GetCurrentInputAudioSeconds() const;
 	// 保存待执行的防御类型、原始时间和闪避方向
-	void BufferInput(EBufferedRhythmAction Action, double InputAudioSeconds,
+	void BufferDefenseInput(EBufferedDefenseAction Action, double InputAudioSeconds,
 	                 FVector Direction = FVector::ZeroVector);
 
 	// 防御输入缓存处理
 	// 等待动作解锁后重试缓存输入，过期或失效时清除
-	void ProcessBufferedInput();
+	void ProcessDefenseBuffer();
 	// 取出最接近理想时刻的一次按键，避免同一输入重复参与判定
-	double ConsumeClosestInput(TArray<double>& History, double IdealAudioSeconds);
+	double ConsumeClosestDefenseInput(TArray<double>& History, double IdealAudioSeconds);
 	// 状态切换时结束闪避位移与动作
 	void CancelDodgeForTransition();
 	// 减少韧性，耗尽时进入破防
@@ -519,20 +534,20 @@ class HEARBLADE_API UPlayerRhythmCombatComponent : public UActorComponent
 	// 按接触位置和受击方向生成血液效果
 	void SpawnBloodFeedback(FVector ImpactLocation, FVector AttackDirection, bool bPoiseBreak) const;
 	// 破防锁定期间保留操作，并将有效期延长到允许执行之后
-	bool BufferWhilePoiseLocked(EBufferedRhythmAction Action, double InputAudioSeconds,
+	bool BufferWhileHitLocked(EBufferedDefenseAction Action, double InputAudioSeconds,
 	                            FVector Direction = FVector::ZeroVector);
 	// 记录原始按键时间，启动翻滚动画与带碰撞的位移
 	bool StartDodge(FVector WorldDirection, double InputAudioSeconds);
 	// 记录格挡按键时刻并进入举盾姿态
 	bool StartBlock(double InputAudioSeconds);
 	// 保留原始输入时刻，启动反击姿态
-	bool StartCounter(double InputAudioSeconds);
+	bool StartParry(double InputAudioSeconds);
 	// 按输入与理想时刻的误差划分完美、成功和失败
 	ERhythmDodgeJudgment JudgeTimedInput(double InputAudioSeconds, double IdealAudioSeconds) const;
 	// 使用反击窗口判断按键误差
-	ERhythmDodgeJudgment JudgeCounterInput(double InputAudioSeconds, double IdealAudioSeconds) const;
+	ERhythmDodgeJudgment JudgeParryInput(double InputAudioSeconds, double IdealAudioSeconds) const;
 	// 统一处理真实接触与未接触的防御判定，按命中键去重
-	bool ResolveResponse(double ImpactAudioSeconds, double TargetBeat, float Damage, float IdealLeadSeconds,
+	bool ResolveDefenseResult(double ImpactAudioSeconds, double TargetBeat, float Damage, float IdealLeadSeconds,
 	                     bool bStrongBeat, FVector BladeWorldLocation, FVector AttackDirection,
 	                     ERhythmResponseType RequiredResponse, ERhythmHoldMarkerType HoldMarker,
 	                     FName HoldGroup, bool bPhysicalContact,

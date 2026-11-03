@@ -2,7 +2,7 @@
 #pragma once
 
 #include "Components/ActorComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "PerfectDodgeFeedbackComponent.generated.h"
 
 class UMaterialInstanceDynamic;

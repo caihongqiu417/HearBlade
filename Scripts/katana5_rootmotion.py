@@ -1,6 +1,6 @@
 """Make sure the retargeted Katana 5-combo carries real root motion.
 
-The player attack code (PlayerBeatAttackComponent::TickAttack) already consumes
+The player attack code (PlayerAttackComponent::TickAttack) already consumes
 root motion: it extracts the root delta of each node's slice and moves the
 capsule with CharacterMovement (root is locked on the mesh). So "root motion"
 only needs the data: the retargeted clip's root bone must travel like the

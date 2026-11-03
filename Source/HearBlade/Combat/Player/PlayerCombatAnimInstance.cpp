@@ -1,8 +1,8 @@
 // 管理移动动画与全身动作混合，输入判定由战斗组件维护
 #include "Combat/Player/PlayerCombatAnimInstance.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "Animation/AnimInstanceProxy.h"
 #include "Animation/AnimMontage.h"
 #include "Animation/AnimSequence.h"
@@ -227,9 +227,9 @@ void UPlayerCombatAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	if (const APawn* Pawn = TryGetPawnOwner())
 	{
 		bMoving = Pawn->GetVelocity().SizeSquared2D() > 225.0f;
-		const UPlayerRhythmCombatComponent* Combat =
-		    Pawn->FindComponentByClass<UPlayerRhythmCombatComponent>();
-		const auto* Attacks = Pawn->FindComponentByClass<UPlayerBeatAttackComponent>();
+		const UPlayerDefenseComponent* Combat =
+		    Pawn->FindComponentByClass<UPlayerDefenseComponent>();
+		const auto* Attacks = Pawn->FindComponentByClass<UPlayerAttackComponent>();
 		if (Attacks && Attacks->IsAttacking())
 		{
 			SmoothedBeatPoseAlpha = 0.f;
@@ -237,7 +237,7 @@ void UPlayerCombatAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 			BeatPelvisTranslation = FVector::ZeroVector;
 			BeatSpineRotation = FRotator::ZeroRotator;
 		}
-		const bool bActionBusy = (Combat && Combat->IsPerformingAction()) ||
+		const bool bActionBusy = (Combat && Combat->IsMovementLocked()) ||
 		                         (Attacks && Attacks->IsAttacking()) ||
 		                         (VisualAction && Montage_IsPlaying(VisualAction));
 		if (!bActionBusy && !bDirectionalHitActive)

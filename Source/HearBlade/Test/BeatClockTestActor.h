@@ -4,7 +4,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "Audio/BeatClock/BeatClockSubsystem.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
 #include "Combat/Data/PlayerAttackSet.h"
 #include "BeatClockTestActor.generated.h"
 
@@ -138,7 +138,7 @@ class HEARBLADE_API ABeatClockTestActor : public AActor
 	void StartComboLayers(float SourceStartTime);
 	// 在小节边界应用音乐层档位，避免半途切换节奏
 	void ApplyComboTierAtBar();
-	TWeakObjectPtr<UPlayerRhythmCombatComponent> BoundCombat;
+	TWeakObjectPtr<UPlayerDefenseComponent> BoundCombat;
 	int32 PendingComboTier = 0;
 	int32 CurrentComboTier = 0;
 	bool bResonanceMusic = false;

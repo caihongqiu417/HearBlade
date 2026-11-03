@@ -19,7 +19,7 @@
 | 内容浏览器路径 | 作用 | 由谁使用 |
 | --- | --- | --- |
 | /Game/ThirdPerson/Blueprints/BP_ThirdPersonCharacter | 主角蓝图 | 角色组件配置 |
-| /Game/Combat/Player/DA_PlayerAttackSet | 主角轻重连招数据 | PlayerBeatAttackComponent |
+| /Game/Combat/Player/DA_PlayerAttackSet | 主角轻重连招数据 | PlayerAttackComponent |
 | /Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/DA_DragonKnight_Combo01_Beat | 敌人节拍攻击数据 | 行为树任务与连击组件 |
 | /Game/Enemies/DF_DRAGON_KNIGHT/BLUEPRINTS/BeatTest/BT_DragonKnight_BeatTest | 敌人行为树资源 | 实际使用关系需看当前关卡配置 |
 | /Game/UI/MVC/WBP_RhythmCombatHUD | 可编辑的 UMG 布局与事件图 | RhythmCombatHUD |
@@ -49,7 +49,7 @@ RhythmWidgetController 移到 UI/Controller，RhythmCombatWidget 移到 UI/View�
 | 文件夹 | 职责 | 先读 |
 | --- | --- | --- |
 | Data | 攻击、输入与表现配置。只定义数据，不推进战斗。 | [AttackData.h](../Source/HearBlade/Combat/Data/AttackData.h) |
-| Player | 主角攻击、节奏防御和动画推进。 | [PlayerBeatAttackComponent.cpp](../Source/HearBlade/Combat/Player/PlayerBeatAttackComponent.cpp) |
+| Player | 主角攻击、节奏防御和动画推进。 | [PlayerAttackComponent.cpp](../Source/HearBlade/Combat/Player/PlayerAttackComponent.cpp) |
 | Boss | 敌人连击、空间修正、阶段与特殊攻击。 | [BeatSyncedComboComponent.cpp](../Source/HearBlade/Combat/Boss/BeatSyncedComboComponent.cpp) |
 | AI | 行为树任务决定选择和等待攻击。 | [BTTask_BeatAttack.cpp](../Source/HearBlade/Combat/AI/BTTask_BeatAttack.cpp) |
 | Camera | 战斗锁定、镜头配置与镜头修改。 | [BossCombatCameraComponent.cpp](../Source/HearBlade/Combat/Camera/BossCombatCameraComponent.cpp) |

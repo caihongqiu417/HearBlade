@@ -5,7 +5,7 @@
 | 文件夹 | 职责 | 先读 |
 | --- | --- | --- |
 | Data | 攻击、输入与表现配置。只定义数据，不推进战斗。 | [AttackData.h](Data/AttackData.h) |
-| Player | 主角攻击、节奏防御和动画推进。 | [PlayerBeatAttackComponent.cpp](Player/PlayerBeatAttackComponent.cpp) |
+| Player | 主角攻击、节奏防御和动画推进。 | [PlayerAttackComponent.cpp](Player/PlayerAttackComponent.cpp) |
 | Boss | 敌人连击、空间修正、阶段与特殊攻击。 | [BeatSyncedComboComponent.cpp](Boss/BeatSyncedComboComponent.cpp) |
 | AI | 行为树任务决定选择和等待攻击。 | [BTTask_BeatAttack.cpp](AI/BTTask_BeatAttack.cpp) |
 | Camera | 战斗锁定、镜头配置与镜头修改。 | [BossCombatCameraComponent.cpp](Camera/BossCombatCameraComponent.cpp) |

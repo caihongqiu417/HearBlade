@@ -364,14 +364,14 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <td>Bind、MousePrimaryCombatPressed、UpdateHeldActions、Unbind</td>
 </tr>
 <tr>
-<td>UPlayerBeatAttackComponent</td>
+<td>UPlayerAttackComponent</td>
 <td>轻重攻击、连招缓冲、攻击位移和命中结算</td>
-<td>TryAttack、TryActivateResonance</td>
+<td>RequestAttack、RequestResonance</td>
 </tr>
 <tr>
-<td>UPlayerRhythmCombatComponent</td>
+<td>UPlayerDefenseComponent</td>
 <td>防御窗口、格挡、弹反、闪避与受击状态</td>
-<td>IsMouseDefenseWindow、TryBlockStart、TryCounter、TryDodge</td>
+<td>IsDefenseInputWindowOpen、RequestBlock、RequestParry、RequestDodge</td>
 </tr>
 <tr>
 <td>UPlayerWeaponComponent</td>
@@ -391,9 +391,69 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </tbody>
 </table>
 <p>这些组件属于同一个角色，各自保存完成职责所需的状态。输入组件保存按住了哪个键，武器组件保存校准后的握持角度，移动动画组件保存平滑后的采样位置。攻击是否允许、是否进入连招窗口，仍由战斗组件决定。</p>
+<h2>攻击、防御与输入窗口</h2>
+<p><code>UPlayerAttackComponent</code> 负责出招，<code>UPlayerDefenseComponent</code> 负责防御和受击恢复。角色、输入和武器组件分别通过 <code>AttackComponent</code>、<code>DefenseComponent</code> 保存引用。蓝图中原有组件实例名保留为 <code>BeatAttack</code>、<code>RhythmCombat</code>，已保存的参数仍挂在原来的实例上。</p>
+<p>输入入口统一使用 <code>Request</code>，例如 <code>RequestAttack</code>、<code>RequestBlock</code>、<code>RequestParry</code>、<code>RequestDodge</code>。返回 <code>true</code> 表示请求已经接收，可能立即执行，也可能等待缓存；不表示已经命中或防御成功。<code>RequestResonance</code> 接收后等待下一小节启动共鸣。</p>
+<table>
+<thead>
+<tr>
+<th>机制</th>
+<th>代码位置</th>
+<th>处理规则</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>普通攻击缓存</td>
+<td><code>RequestAttack</code>、<code>TickComponent</code></td>
+<td>空闲但尚未恢复时，保留第一次输入，最多等待 1 秒游戏时间，重复按键不延长期限</td>
+</tr>
+<tr>
+<td>连招输入缓存</td>
+<td><code>RequestAttack</code>、<code>TickAttack</code></td>
+<td>当前攻击中保留第一次轻重选择，按原始音乐时间评级，到下一击起手时刻才执行</td>
+</tr>
+<tr>
+<td>接招截止</td>
+<td><code>LatestCueAudio + ChainLateSeconds()</code></td>
+<td>截止后拒绝连招输入，收招动画结束不等于连招窗口关闭</td>
+</tr>
+<tr>
+<td>攻击命中窗口</td>
+<td><code>SweepBlade</code></td>
+<td>在目标音乐时刻前后各 40 毫秒内检查武器轨迹，经过窗口还要实际接触并通过遮挡检查</td>
+</tr>
+<tr>
+<td>防御输入窗口</td>
+<td><code>IsDefenseInputWindowOpen</code></td>
+<td>根据附近敌人预警决定鼠标左右键用于攻还是防，不直接判定防御成功</td>
+</tr>
+<tr>
+<td>防御缓存</td>
+<td><code>BufferDefenseInput</code>、<code>ProcessDefenseBuffer</code></td>
+<td>只保留最新操作，按游戏时间过期；受击锁定时至少保留到解锁后 0.05 秒</td>
+</tr>
+<tr>
+<td>缓存期间松开格挡</td>
+<td><code>ReleaseBlock</code>、<code>ProcessDefenseBuffer</code></td>
+<td>保存原始松键时间，缓存执行后补上释放，避免一直举盾</td>
+</tr>
+<tr>
+<td>闪避无敌时间</td>
+<td><code>IsInvulnerable</code></td>
+<td>从原始按键的音乐时间计算，缓存等待不会额外延长无敌</td>
+</tr>
+<tr>
+<td>防御评级</td>
+<td><code>ResolveDefenseResult</code>、<code>ConsumeClosestDefenseInput</code></td>
+<td>从按键历史取出最接近理想时刻的一次，使用后移除，不能重复抵挡后续命中</td>
+</tr>
+</tbody>
+</table>
+<p>攻击的音乐时间用于安排起手、命中和接招，游戏时间用于缓存过期和受击恢复。实际命中、输入评级、动画播放是三个独立判断，不用“动画还在播放”代替是否可以接招或是否无敌。</p>
 <h2>按一次鼠标左键</h2>
 <p>玩家取得角色控制权后，UE 调用角色的 <code>SetupPlayerInputComponent</code>。角色把引擎创建的输入组件交给 <code>PlayerInput-&gt;Bind</code>。<code>Bind</code> 登记 IA 的回调，并把战斗按键映射加入本地玩家的 Enhanced Input 子系统。</p>
-<p>鼠标左键触发 <code>MousePrimaryCombatPressed</code>。它先向节奏战斗组件询问当前是否处于鼠标防御窗口：窗口内调用 <code>TryCounter</code>，窗口外调用 <code>TryAttack(Light)</code>。输入组件只选择入口，攻击组件再决定立即开始攻击、保存到连招缓冲，还是拒绝这次操作。</p>
+<p>鼠标左键触发 <code>MousePrimaryCombatPressed</code>。它先向玩家防御组件询问当前是否处于鼠标防御窗口：窗口内调用 <code>RequestParry</code>，窗口外调用 <code>RequestAttack(Light)</code>。输入组件只选择入口，攻击组件再决定立即开始攻击、保存到连招缓冲，还是拒绝这次操作。</p>
 <p>右键同样区分窗口内格挡和窗口外重击。<code>bMouseSecondaryHeld</code> 表示右键仍按着，<code>bMouseSecondaryOwnsBlock</code> 表示这次右键已经启动了格挡。玩家提前按住右键时，<code>UpdateHeldActions</code> 会在窗口出现后尝试格挡；松开时只结束右键自己启动的格挡。</p>
 <p>失去角色控制权时，<code>UnPossessed</code> 调用 <code>Unbind</code>。它结束按住操作，清掉自己的回调和临时映射。回调使用登记时保存的句柄逐个删除，因此不会清空其他组件或蓝图添加的输入。再次控制角色时重新绑定，原有临时 IA 对象继续使用。</p>
 <p>基础移动和视角动作仍保存在角色蓝图的原字段中，避免丢失已经配置的资源引用。战斗 IA 沿用原来的运行时创建方式，按键读取 <code>URhythmCombatInputSettings</code>；这次没有把它们全部改成内容浏览器中的资源。</p>
@@ -434,11 +494,11 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <td>步速测量与移动动画</td>
 </tr>
 <tr>
-<td>Combat/Player/PlayerBeatAttackComponent.h / .cpp</td>
+<td>Combat/Player/PlayerAttackComponent.h / .cpp</td>
 <td>主角攻击与连招</td>
 </tr>
 <tr>
-<td>Combat/Player/PlayerRhythmCombatComponent.h / .cpp</td>
+<td>Combat/Player/PlayerDefenseComponent.h / .cpp</td>
 <td>节奏防御和角色战斗状态</td>
 </tr>
 <tr>
@@ -485,8 +545,8 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <span class="w">        </span><span class="k">return</span><span class="p">;</span>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">    </span><span class="c1">// 保存操作要调用的组件，按键触发时直接转交</span>
-<span class="w">    </span><span class="n">RhythmCombat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">FindComponentByClass</span><span class="o">&lt;</span><span class="n">UPlayerRhythmCombatComponent</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">    </span><span class="n">BeatAttack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">FindComponentByClass</span><span class="o">&lt;</span><span class="n">UPlayerBeatAttackComponent</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">RhythmCombat</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">FindComponentByClass</span><span class="o">&lt;</span><span class="n">UPlayerDefenseComponent</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="w">    </span><span class="n">BeatAttack</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">FindComponentByClass</span><span class="o">&lt;</span><span class="n">UPlayerAttackComponent</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="w">    </span><span class="n">CombatCamera</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Character</span><span class="o">-&gt;</span><span class="n">FindComponentByClass</span><span class="o">&lt;</span><span class="n">UBossCombatCameraComponent</span><span class="o">&gt;</span><span class="p">();</span>
 <span class="w">    </span><span class="n">BoundInput</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">Input</span><span class="p">;</span>
 <span class="w">    </span><span class="n">CreateCombatActions</span><span class="p">();</span>
@@ -538,7 +598,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 </pre></div>
 <p>左键先判断当前窗口，再选择弹反或轻攻击，动作能否执行由战斗组件检查</p><p class="source-note">源码：Input/HearBladeInputComponent.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">UHearBladeInputComponent::MousePrimaryCombatPressed</span><span class="p">()</span>
 <span class="p">{</span>
-<span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">Defense</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="o">-&gt;</span><span class="n">IsMouseDefenseWindow</span><span class="p">();</span>
+<span class="w">	</span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">Defense</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="o">-&gt;</span><span class="n">IsDefenseInputWindowOpen</span><span class="p">();</span>
 <span class="w">	</span><span class="n">UE_LOG</span><span class="p">(</span><span class="n">LogTemp</span><span class="p">,</span><span class="w"> </span><span class="n">Display</span><span class="p">,</span><span class="w"> </span><span class="n">TEXT</span><span class="p">(</span><span class="s">"MouseCombat: LMB -&gt; %s"</span><span class="p">),</span><span class="w"> </span><span class="n">Defense</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="n">TEXT</span><span class="p">(</span><span class="s">"COUNTER"</span><span class="p">)</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">TEXT</span><span class="p">(</span><span class="s">"LIGHT"</span><span class="p">));</span>
 <span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Defense</span><span class="p">)</span>
 <span class="w">		</span><span class="n">Counter</span><span class="p">();</span>
@@ -549,7 +609,7 @@ span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 
 <p>离开角色时按原绑定记录清理，只移除自己的回调和映射</p><p class="source-note">源码：Input/HearBladeInputComponent.cpp</p><div class="hb-source"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="nf">UHearBladeInputComponent::Unbind</span><span class="p">()</span>
 <span class="p">{</span>
 <span class="w">	</span><span class="c1">// 先结束按住操作，避免重新控制角色后仍保持格挡或跳跃</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">bBlockHeld</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">bMouseSecondaryOwnsBlock</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="p">)</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="o">-&gt;</span><span class="n">EndBlock</span><span class="p">();</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">((</span><span class="n">bBlockHeld</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">bMouseSecondaryOwnsBlock</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="p">)</span><span class="w"> </span><span class="n">RhythmCombat</span><span class="o">-&gt;</span><span class="n">ReleaseBlock</span><span class="p">();</span>
 <span class="w">    </span><span class="n">bBlockHeld</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bMouseSecondaryOwnsBlock</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">bMouseSecondaryHeld</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
 <span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">Character</span><span class="p">)</span>
 <span class="w">    </span><span class="p">{</span>

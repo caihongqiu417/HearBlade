@@ -1,6 +1,6 @@
 // 管理生命、防御输入、闪避与每次攻击的应对结果
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Combat/Feedback/TransientCombatFX.h"
 #include "Combat/Player/PlayerCombatAnimInstance.h"
@@ -23,7 +23,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
 
-UPlayerRhythmCombatComponent::UPlayerRhythmCombatComponent()
+UPlayerDefenseComponent::UPlayerDefenseComponent()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 	DodgeForwardAnimation =
@@ -63,7 +63,7 @@ UPlayerRhythmCombatComponent::UPlayerRhythmCombatComponent()
 }
 
 // 推进闪避和受击，恢复韧性，再尝试执行缓存的防御输入
-void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType,
+void UPlayerDefenseComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                                  FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -137,14 +137,14 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		else if (!bPoiseBroken && Poise < MaxPoise &&
 		         WorldNow - LastPoiseDamageWorldSeconds >= PoiseRecoveryDelaySeconds)
 			Poise = FMath::Min(MaxPoise, Poise + PoiseRecoveryPerSecond * DeltaTime);
-		const auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
+		const auto* Attacks = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
 		if (Resonance > 0.0f && Resonance < MaxResonance &&
 		    (!Attacks || Attacks->ResonanceState == EPlayerResonanceState::Filling) &&
 		    WorldNow - LastResonanceGainWorldSeconds >= ResonanceDecayDelaySeconds)
 			Resonance = FMath::Max(0.0f, Resonance - ResonanceDecayPerSecond * DeltaTime);
 	}
 	// 先更新受击和动作锁定，再尝试消费缓冲输入
-	ProcessBufferedInput();
+	ProcessDefenseBuffer();
 	if (bHUDPreviewMode && GetWorld() && HUDPreviewStep < 6 &&
 	    GetWorld()->GetTimeSeconds() >= NextHUDPreviewWorldSeconds)
 	{
@@ -152,7 +152,7 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 		    ERhythmDodgeJudgment::Perfect, ERhythmDodgeJudgment::Good, ERhythmDodgeJudgment::Bad,
 		    ERhythmDodgeJudgment::Perfect, ERhythmDodgeJudgment::Good, ERhythmDodgeJudgment::Miss};
 		bSubmittingHUDPreviewJudgment = true;
-		SubmitDodgeJudgment(PreviewGrades[HUDPreviewStep], -18.0f + HUDPreviewStep * 7.0f,
+		SubmitDefenseJudgment(PreviewGrades[HUDPreviewStep], -18.0f + HUDPreviewStep * 7.0f,
 		                    HUDPreviewStep % 4 == 0);
 		bSubmittingHUDPreviewJudgment = false;
 		++HUDPreviewStep;
@@ -162,8 +162,8 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 	    GetWorld()->GetTimeSeconds() >= NextPerfectFeedbackPreviewWorldSeconds)
 	{
 		const bool bStrong = PerfectFeedbackPreviewStep % 2 == 1;
-		TryDodge(GetOwner()->GetActorRightVector() * (bStrong ? -1.f : 1.f));
-		SubmitDodgeJudgment(ERhythmDodgeJudgment::Perfect, bStrong ? -9.f : 14.f, bStrong);
+		RequestDodge(GetOwner()->GetActorRightVector() * (bStrong ? -1.f : 1.f));
+		SubmitDefenseJudgment(ERhythmDodgeJudgment::Perfect, bStrong ? -9.f : 14.f, bStrong);
 		BroadcastPerfectFeedback(bStrong ? -9.f : 14.f, bStrong,
 		                         GetOwner()->GetActorLocation() +
 		                             GetOwner()->GetActorForwardVector() * 110.f + FVector(0, 0, 90),
@@ -178,7 +178,7 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 			if (bBlocking && AutomationReleaseAudioSeconds > 0.0 &&
 			    Clock->GetAudioNowSeconds() >= AutomationReleaseAudioSeconds)
 			{
-				EndBlock();
+				ReleaseBlock();
 				AutomationReleaseAudioSeconds = -1000.0;
 			}
 			for (TActorIterator<AActor> It(GetWorld()); It; ++It)
@@ -191,7 +191,7 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 				if (FParse::Param(FCommandLine::Get(), TEXT("GroundBurstPursuitTest")) &&
 				    Combo->IsGroundBurstRecovery())
 				{
-					if (auto* Character = Cast<ACharacter>(GetOwner()); Character && !IsPerformingAction())
+					if (auto* Character = Cast<ACharacter>(GetOwner()); Character && !IsMovementLocked())
 					{
 						const FVector Toward =
 						    (It->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal2D();
@@ -199,7 +199,7 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 						if (FVector::Dist2D(It->GetActorLocation(), GetOwner()->GetActorLocation()) > 250.f)
 							Character->AddMovementInput(Toward, 1.f, true);
 						else
-							TryCounter();
+							RequestParry();
 					}
 					continue;
 				}
@@ -236,7 +236,7 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 							if (FParse::Param(FCommandLine::Get(), TEXT("GroundBurstWalkDodgeTest")) &&
 							    Until <= DodgeDurationSeconds + .1 && Until > .1 && Distance > 20.f &&
 							    LastDodgeInputAudioSeconds < Cue.ImpactAudioSeconds - 1.)
-								TryDodge((Character->GetActorLocation() - Center).GetSafeNormal2D());
+								RequestDodge((Character->GetActorLocation() - Center).GetSafeNormal2D());
 							const double Travel = Distance / Speed +
 							                      .5 * Speed / FMath::Max(1.f, Movement->MaxAcceleration) +
 							                      .08;
@@ -259,7 +259,7 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 				    Cue.HoldMarker == ERhythmHoldMarkerType::End && bBlocking && bNewImpact &&
 				    SecondsUntilImpact <= .040 && SecondsUntilImpact >= -.010)
 				{
-					EndBlock();
+					ReleaseBlock();
 					LastAutomatedImpactAudioSeconds = Cue.ImpactAudioSeconds;
 					UE_LOG(LogTemp, Display, TEXT("RhythmCombatAutomation: hold release leadMs=%.1f"),
 					       SecondsUntilImpact * 1000.0);
@@ -280,7 +280,7 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 				{
 					if (bAutomationFailureTestMode && !bAutomationWrongActionIssued)
 					{
-						bIssued = TryBlockStart();
+						bIssued = RequestBlock();
 						if (bIssued)
 						{
 							bAutomationWrongActionIssued = true;
@@ -293,21 +293,21 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 					}
 					const FVector ToBoss =
 					    (It->GetActorLocation() - GetOwner()->GetActorLocation()).GetSafeNormal2D();
-					bIssued = TryDodge(FVector::CrossProduct(FVector::UpVector, ToBoss));
+					bIssued = RequestDodge(FVector::CrossProduct(FVector::UpVector, ToBoss));
 					break;
 				}
 				case ERhythmResponseType::Block:
-					bIssued = TryBlockStart();
+					bIssued = RequestBlock();
 					if (bIssued)
 						AutomationReleaseAudioSeconds = Cue.ImpactAudioSeconds + .035;
 					break;
 				case ERhythmResponseType::Counter:
-					bIssued = TryCounter();
+					bIssued = RequestParry();
 					break;
 				case ERhythmResponseType::HoldBlock:
 					if (Cue.HoldMarker == ERhythmHoldMarkerType::Start)
 					{
-						bIssued = TryBlockStart();
+						bIssued = RequestBlock();
 						if (bIssued && bAutomationFailureTestMode)
 						{
 							AutomationReleaseAudioSeconds = Cue.ImpactAudioSeconds + .12;
@@ -380,7 +380,7 @@ void UPlayerRhythmCombatComponent::TickComponent(float DeltaTime, ELevelTick Tic
 }
 
 // 缓存角色与反馈组件，准备防御资源和初始战斗状态
-void UPlayerRhythmCombatComponent::BeginPlay()
+void UPlayerDefenseComponent::BeginPlay()
 {
 	Super::BeginPlay();
 	auto LoadHit = [](const TCHAR* Name)
@@ -427,7 +427,7 @@ void UPlayerRhythmCombatComponent::BeginPlay()
 // 生命与伤害
 
 // 扣除生命并限制数值范围
-void UPlayerRhythmCombatComponent::ApplyCombatDamage(float Damage)
+void UPlayerDefenseComponent::ApplyCombatDamage(float Damage)
 {
 	if (Damage <= 0.0f || Health <= 0.0f)
 		return;
@@ -439,7 +439,7 @@ void UPlayerRhythmCombatComponent::ApplyCombatDamage(float Damage)
 }
 
 // 恢复生命，不超过生命上限
-void UPlayerRhythmCombatComponent::RestoreHealth(float Amount)
+void UPlayerDefenseComponent::RestoreHealth(float Amount)
 {
 	if (Amount <= 0.0f)
 		return;
@@ -448,7 +448,7 @@ void UPlayerRhythmCombatComponent::RestoreHealth(float Amount)
 }
 
 // 结算范围攻击伤害，并按爆发位置产生受击反应
-void UPlayerRhythmCombatComponent::ApplyGroundBurstDamage(float Damage, const FVector& Center)
+void UPlayerDefenseComponent::ApplyGroundBurstDamage(float Damage, const FVector& Center)
 {
 	if (Health <= 0.f || Damage <= 0.f)
 		return;
@@ -459,7 +459,7 @@ void UPlayerRhythmCombatComponent::ApplyGroundBurstDamage(float Damage, const FV
 }
 
 // 记录踩拍逃离奖励并增加共鸣
-void UPlayerRhythmCombatComponent::AwardRhythmicEscape(float Amount, float ErrorSeconds)
+void UPlayerDefenseComponent::AwardRhythmicEscape(float Amount, float ErrorSeconds)
 {
 	if (Health <= 0.f || !GetWorld() || !GetOwner())
 		return;
@@ -491,7 +491,7 @@ void UPlayerRhythmCombatComponent::AwardRhythmicEscape(float Amount, float Error
 // 防御评级与连击
 
 // 保存评级结果，更新连击与共鸣，并通知反馈组件
-void UPlayerRhythmCombatComponent::SubmitDodgeJudgment(ERhythmDodgeJudgment Grade, float SignedErrorMs,
+void UPlayerDefenseComponent::SubmitDefenseJudgment(ERhythmDodgeJudgment Grade, float SignedErrorMs,
                                                        bool bStrongBeat)
 {
 	if (bHUDPreviewMode && HUDPreviewStep >= 6 && !bSubmittingHUDPreviewJudgment)
@@ -529,15 +529,15 @@ void UPlayerRhythmCombatComponent::SubmitDodgeJudgment(ERhythmDodgeJudgment Grad
 }
 
 // 根据连续成功次数返回反馈档位
-int32 UPlayerRhythmCombatComponent::GetFeedbackTierForCombo(int32 Combo)
+int32 UPlayerDefenseComponent::GetFeedbackTierForCombo(int32 Combo)
 {
 	return Combo >= 16 ? 3 : Combo >= 8 ? 2 : Combo >= 4 ? 1 : 0;
 }
 
 // 清空本轮防御、受击、评级和输入历史
-void UPlayerRhythmCombatComponent::ResetCombatState()
+void UPlayerDefenseComponent::ResetCombatState()
 {
-	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>())
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerAttackComponent>())
 		Attacks->Reset();
 	Health = MaxHealth;
 	Resonance = 0.0f;
@@ -549,7 +549,7 @@ void UPlayerRhythmCombatComponent::ResetCombatState()
 	ActiveHoldGroup = NAME_None;
 	bActiveHoldBroken = false;
 	ReportedHoldBreakGroups.Reset();
-	BufferedAction = EBufferedRhythmAction::None;
+	BufferedAction = EBufferedDefenseAction::None;
 	bPoiseBroken = false;
 	FinishHitReaction();
 	Poise = MaxPoise;
@@ -561,32 +561,32 @@ void UPlayerRhythmCombatComponent::ResetCombatState()
 // 闪避请求与动作
 
 // 检查当前状态，决定立即闪避还是保留输入等待解锁
-bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
+bool UPlayerDefenseComponent::RequestDodge(FVector WorldDirection)
 {
 	if (Health <= 0.f)
 		return false;
-	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
-	    Attacks && !Attacks->CancelForDefense(true))
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
+	    Attacks && !Attacks->TryCancelAttackForDefense(true))
 		return false;
 	if (bPhaseCinematic)
 		return false;
 	if (!GetWorld() || !GetOwner())
 		return false;
 	const double InputAudioSeconds = GetCurrentInputAudioSeconds();
-	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Dodge, InputAudioSeconds, WorldDirection))
+	if (BufferWhileHitLocked(EBufferedDefenseAction::Dodge, InputAudioSeconds, WorldDirection))
 		return true;
 	if (bHitReacting)
 		FinishHitReaction();
 	if (bPoiseBroken)
 		EndPoiseBreak();
 	if (bBlocking)
-		EndBlock();
+		ReleaseBlock();
 	if (bCountering)
 	{
 		const double Elapsed = GetWorld()->GetTimeSeconds() - CounterStartWorldSeconds;
 		if (Elapsed < CounterCancelStartSeconds)
 		{
-			BufferInput(EBufferedRhythmAction::Dodge, InputAudioSeconds, WorldDirection);
+			BufferDefenseInput(EBufferedDefenseAction::Dodge, InputAudioSeconds, WorldDirection);
 			return true;
 		}
 		bCountering = false;
@@ -596,7 +596,7 @@ bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 		const double Elapsed = GetWorld()->GetTimeSeconds() - DodgeStartWorldSeconds;
 		if (Elapsed < DodgeChainStartSeconds)
 		{
-			BufferInput(EBufferedRhythmAction::Dodge, InputAudioSeconds, WorldDirection);
+			BufferDefenseInput(EBufferedDefenseAction::Dodge, InputAudioSeconds, WorldDirection);
 			return true;
 		}
 		UE_LOG(LogTemp, Verbose, TEXT("RhythmDodgeMotion: chained after %.3fs"), Elapsed);
@@ -605,17 +605,17 @@ bool UPlayerRhythmCombatComponent::TryDodge(FVector WorldDirection)
 }
 
 // 记录原始按键时间，启动翻滚动画与带碰撞的位移
-bool UPlayerRhythmCombatComponent::StartDodge(FVector WorldDirection, double InputAudioSeconds)
+bool UPlayerDefenseComponent::StartDodge(FVector WorldDirection, double InputAudioSeconds)
 {
 	if (!GetWorld() || !GetOwner())
 		return false;
-	if (auto* Attack = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
-	    Attack && !Attack->CancelForDefense(true))
+	if (auto* Attack = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
+	    Attack && !Attack->TryCancelAttackForDefense(true))
 		return false;
 	if (bPoiseBroken)
 		EndPoiseBreak();
 	// 翻滚动画已有音效，这里不再叠加另一声起手音效
-	BufferedAction = EBufferedRhythmAction::None;
+	BufferedAction = EBufferedDefenseAction::None;
 	bBlockRecovering = false;
 	bBlockReleasePending = false;
 	WorldDirection.Z = 0.0f;
@@ -654,12 +654,12 @@ bool UPlayerRhythmCombatComponent::StartDodge(FVector WorldDirection, double Inp
 }
 
 // 统一播放防御动画，并设置循环和动作衔接时间
-void UPlayerRhythmCombatComponent::PlayDefenseAnimation(UAnimSequence* Animation, bool bLooping,
+void UPlayerDefenseComponent::PlayDefenseAnimation(UAnimSequence* Animation, bool bLooping,
                                                         float DesiredDuration)
 {
 	// 防御已接受输入后，先停止攻击组件写动画位置，再启动防御动画
-	if (auto* Attack = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>())
-		Attack->NotifyInterrupted();
+	if (auto* Attack = GetOwner()->FindComponentByClass<UPlayerAttackComponent>())
+		Attack->InterruptAttack();
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (!Animation || !Character || !Character->GetMesh())
 		return;
@@ -675,12 +675,12 @@ void UPlayerRhythmCombatComponent::PlayDefenseAnimation(UAnimSequence* Animation
 // 格挡开始与结束
 
 // 检查格挡条件，锁定期间先缓存按下操作
-bool UPlayerRhythmCombatComponent::TryBlockStart()
+bool UPlayerDefenseComponent::RequestBlock()
 {
 	if (Health <= 0.f || bPhaseCinematic)
 		return false;
-	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
-	    Attacks && !Attacks->CancelForDefense(false))
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
+	    Attacks && !Attacks->TryCancelAttackForDefense(false))
 		return false;
 	if (bPhaseCinematic)
 		return false;
@@ -692,7 +692,7 @@ bool UPlayerRhythmCombatComponent::TryBlockStart()
 	BlockInputHistory.Add(InputAudioSeconds);
 	if (BlockInputHistory.Num() > 16)
 		BlockInputHistory.RemoveAt(0);
-	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Block, InputAudioSeconds))
+	if (BufferWhileHitLocked(EBufferedDefenseAction::Block, InputAudioSeconds))
 		return true;
 	if (bHitReacting)
 		FinishHitReaction();
@@ -703,7 +703,7 @@ bool UPlayerRhythmCombatComponent::TryBlockStart()
 		const double Elapsed = GetWorld()->GetTimeSeconds() - DodgeStartWorldSeconds;
 		if (Elapsed < DodgeChainStartSeconds)
 		{
-			BufferInput(EBufferedRhythmAction::Block, InputAudioSeconds);
+			BufferDefenseInput(EBufferedDefenseAction::Block, InputAudioSeconds);
 			return true;
 		}
 		CancelDodgeForTransition();
@@ -713,7 +713,7 @@ bool UPlayerRhythmCombatComponent::TryBlockStart()
 		const double Elapsed = GetWorld()->GetTimeSeconds() - CounterStartWorldSeconds;
 		if (Elapsed < CounterCancelStartSeconds)
 		{
-			BufferInput(EBufferedRhythmAction::Block, InputAudioSeconds);
+			BufferDefenseInput(EBufferedDefenseAction::Block, InputAudioSeconds);
 			return true;
 		}
 		bCountering = false;
@@ -722,12 +722,12 @@ bool UPlayerRhythmCombatComponent::TryBlockStart()
 }
 
 // 记录格挡按键时刻并进入举盾姿态
-bool UPlayerRhythmCombatComponent::StartBlock(double InputAudioSeconds)
+bool UPlayerDefenseComponent::StartBlock(double InputAudioSeconds)
 {
-	if (auto* Attack = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
-	    Attack && !Attack->CancelForDefense(false))
+	if (auto* Attack = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
+	    Attack && !Attack->TryCancelAttackForDefense(false))
 		return false;
-	BufferedAction = EBufferedRhythmAction::None;
+	BufferedAction = EBufferedDefenseAction::None;
 	bBlocking = true;
 	bBlockRecovering = false;
 	bBlockReleasePending = false;
@@ -742,7 +742,7 @@ bool UPlayerRhythmCombatComponent::StartBlock(double InputAudioSeconds)
 }
 
 // 记录松键时刻，处理仍在缓存中的格挡以及持续格挡结算
-void UPlayerRhythmCombatComponent::EndBlock()
+void UPlayerDefenseComponent::ReleaseBlock()
 {
 	if (bPhaseCinematic)
 		return;
@@ -750,7 +750,7 @@ void UPlayerRhythmCombatComponent::EndBlock()
 		return;
 	// 格挡还在缓存中就松键时，连同松开时间一起保存
 	// 执行缓存时补上松开，避免短按变成长时间举盾
-	if (!bBlocking && BufferedAction == EBufferedRhythmAction::Block)
+	if (!bBlocking && BufferedAction == EBufferedDefenseAction::Block)
 	{
 		bBufferedBlockReleased = true;
 		BufferedBlockReleaseAudioSeconds = GetCurrentInputAudioSeconds();
@@ -779,7 +779,7 @@ void UPlayerRhythmCombatComponent::EndBlock()
 // 攻击与防御切换
 
 // 结束允许被攻击替换的防御姿态，为普通攻击腾出动作控制
-bool UPlayerRhythmCombatComponent::PrepareForOrdinaryAttack()
+bool UPlayerDefenseComponent::PrepareForOrdinaryAttack()
 {
 	if (!GetWorld() || Health <= 0.f || bPhaseCinematic || bDodging || bCountering || bPoiseBroken ||
 	    bHitReacting)
@@ -789,21 +789,21 @@ bool UPlayerRhythmCombatComponent::PrepareForOrdinaryAttack()
 	bBlocking = false;
 	bBlockRecovering = false;
 	bBlockReleasePending = false;
-	BufferedAction = EBufferedRhythmAction::None;
+	BufferedAction = EBufferedDefenseAction::None;
 	bBufferedBlockReleased = false;
 	if (auto* Camera = GetOwner()->FindComponentByClass<UBossCombatCameraComponent>())
 		Camera->StopHoldFeedback(.06f);
 	return true;
 }
 
-// 判断当前鼠标输入是否应该解释为防御
-bool UPlayerRhythmCombatComponent::IsMouseDefenseWindow() const
+// 查询输入分流窗口，真正的防御成功要等 ResolveDefenseResult 检查按键和接触结果
+bool UPlayerDefenseComponent::IsDefenseInputWindowOpen() const
 {
-	return !GetMouseDefensePrompt().IsEmpty();
+	return !GetDefenseInputPrompt().IsEmpty();
 }
 
 // 根据临近的敌人攻击生成鼠标防御提示
-FString UPlayerRhythmCombatComponent::GetMouseDefensePrompt() const
+FString UPlayerDefenseComponent::GetDefenseInputPrompt() const
 {
 	if (!GetWorld() || Health <= 0.f || bPhaseCinematic)
 		return FString();
@@ -849,12 +849,12 @@ FString UPlayerRhythmCombatComponent::GetMouseDefensePrompt() const
 // 反击输入
 
 // 检查反击条件，必要时缓存按键而不立即播放动作
-bool UPlayerRhythmCombatComponent::TryCounter()
+bool UPlayerDefenseComponent::RequestParry()
 {
 	if (Health <= 0.f || bPhaseCinematic)
 		return false;
-	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
-	    Attacks && !Attacks->CancelForDefense(false))
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
+	    Attacks && !Attacks->TryCancelAttackForDefense(false))
 		return false;
 	if (bPhaseCinematic)
 		return false;
@@ -865,7 +865,7 @@ bool UPlayerRhythmCombatComponent::TryCounter()
 	CounterInputHistory.Add(InputAudioSeconds);
 	if (CounterInputHistory.Num() > 16)
 		CounterInputHistory.RemoveAt(0);
-	if (BufferWhilePoiseLocked(EBufferedRhythmAction::Counter, InputAudioSeconds))
+	if (BufferWhileHitLocked(EBufferedDefenseAction::Counter, InputAudioSeconds))
 		return true;
 	if (bHitReacting)
 		FinishHitReaction();
@@ -875,7 +875,7 @@ bool UPlayerRhythmCombatComponent::TryCounter()
 	// 保留玩家实际按下弹反的时间，避免动画交接改变节奏评级
 	if (bBlocking)
 	{
-		EndBlock();
+		ReleaseBlock();
 		bBlockRecovering = false;
 	}
 	if (bDodging)
@@ -883,7 +883,7 @@ bool UPlayerRhythmCombatComponent::TryCounter()
 		const double Elapsed = GetWorld()->GetTimeSeconds() - DodgeStartWorldSeconds;
 		if (Elapsed < DodgeChainStartSeconds)
 		{
-			BufferInput(EBufferedRhythmAction::Counter, InputAudioSeconds);
+			BufferDefenseInput(EBufferedDefenseAction::Counter, InputAudioSeconds);
 			return true;
 		}
 		CancelDodgeForTransition();
@@ -893,21 +893,21 @@ bool UPlayerRhythmCombatComponent::TryCounter()
 		const double Elapsed = GetWorld()->GetTimeSeconds() - CounterStartWorldSeconds;
 		if (Elapsed < CounterCancelStartSeconds)
 		{
-			BufferInput(EBufferedRhythmAction::Counter, InputAudioSeconds);
+			BufferDefenseInput(EBufferedDefenseAction::Counter, InputAudioSeconds);
 			return true;
 		}
 		bCountering = false;
 	}
-	return StartCounter(InputAudioSeconds);
+	return StartParry(InputAudioSeconds);
 }
 
 // 保留原始输入时刻，启动反击姿态
-bool UPlayerRhythmCombatComponent::StartCounter(double InputAudioSeconds)
+bool UPlayerDefenseComponent::StartParry(double InputAudioSeconds)
 {
-	if (auto* Attack = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
-	    Attack && !Attack->CancelForDefense(false))
+	if (auto* Attack = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
+	    Attack && !Attack->TryCancelAttackForDefense(false))
 		return false;
-	BufferedAction = EBufferedRhythmAction::None;
+	BufferedAction = EBufferedDefenseAction::None;
 	bCountering = true;
 	bRecoveryStrikePending = false; // 追击伤害统一由武器接触检测处理
 	bBlockRecovering = false;
@@ -921,7 +921,7 @@ bool UPlayerRhythmCombatComponent::StartCounter(double InputAudioSeconds)
 }
 
 // 取得本次输入用于节奏判定的音乐时间
-double UPlayerRhythmCombatComponent::GetCurrentInputAudioSeconds() const
+double UPlayerDefenseComponent::GetCurrentInputAudioSeconds() const
 {
 	if (!GetWorld())
 		return -1000.0;
@@ -933,7 +933,7 @@ double UPlayerRhythmCombatComponent::GetCurrentInputAudioSeconds() const
 // 防御输入缓存
 
 // 保存待执行的防御类型、原始时间和闪避方向
-void UPlayerRhythmCombatComponent::BufferInput(EBufferedRhythmAction Action, double InputAudioSeconds,
+void UPlayerDefenseComponent::BufferDefenseInput(EBufferedDefenseAction Action, double InputAudioSeconds,
                                                FVector Direction)
 {
 	// 防御缓存只保留一个操作，新的操作覆盖旧操作
@@ -942,14 +942,14 @@ void UPlayerRhythmCombatComponent::BufferInput(EBufferedRhythmAction Action, dou
 	bBufferedBlockReleased = false;
 	BufferedInputAudioSeconds = InputAudioSeconds;
 	BufferedInputWorldSeconds = GetWorld() ? GetWorld()->GetTimeSeconds() : -1000.0;
-	if (Action == EBufferedRhythmAction::Dodge)
+	if (Action == EBufferedDefenseAction::Dodge)
 		BufferedDodgeDirection = Direction;
 	UE_LOG(LogTemp, Verbose, TEXT("RhythmInputBuffer: queued action=%d audio=%.3f"),
 	       static_cast<int32>(Action), InputAudioSeconds);
 }
 
 // 状态切换时结束闪避位移与动作
-void UPlayerRhythmCombatComponent::CancelDodgeForTransition()
+void UPlayerDefenseComponent::CancelDodgeForTransition()
 {
 	if (!bDodging)
 		return;
@@ -962,7 +962,7 @@ void UPlayerRhythmCombatComponent::CancelDodgeForTransition()
 }
 
 // 破防锁定期间保留操作，并将有效期延长到允许执行之后
-bool UPlayerRhythmCombatComponent::BufferWhilePoiseLocked(EBufferedRhythmAction Action,
+bool UPlayerDefenseComponent::BufferWhileHitLocked(EBufferedDefenseAction Action,
                                                           double InputAudioSeconds, FVector Direction)
 {
 	if (!GetWorld())
@@ -972,14 +972,14 @@ bool UPlayerRhythmCombatComponent::BufferWhilePoiseLocked(EBufferedRhythmAction 
 	const bool bHitLocked = bHitReacting && Now < HitInputUnlockWorldSeconds;
 	if (!bPoiseLocked && !bHitLocked)
 		return false;
-	BufferInput(Action, InputAudioSeconds, Direction);
+	BufferDefenseInput(Action, InputAudioSeconds, Direction);
 	return true;
 }
 
 // 韧性与受击恢复
 
 // 减少韧性，耗尽时进入破防
-void UPlayerRhythmCombatComponent::ApplyPoiseDamage(float Amount, FVector ImpactLocation,
+void UPlayerDefenseComponent::ApplyPoiseDamage(float Amount, FVector ImpactLocation,
                                                     FVector AttackDirection, FVector AttackerWorldLocation)
 {
 	if (Amount <= 0.0f || bPoiseBroken || !GetWorld())
@@ -992,7 +992,7 @@ void UPlayerRhythmCombatComponent::ApplyPoiseDamage(float Amount, FVector Impact
 }
 
 // 按接触位置和受击方向生成血液效果
-void UPlayerRhythmCombatComponent::SpawnBloodFeedback(FVector ImpactLocation, FVector AttackDirection,
+void UPlayerDefenseComponent::SpawnBloodFeedback(FVector ImpactLocation, FVector AttackDirection,
                                                       bool bPoiseBreak) const
 {
 	if (!GetWorld() || !GetOwner())
@@ -1014,7 +1014,7 @@ void UPlayerRhythmCombatComponent::SpawnBloodFeedback(FVector ImpactLocation, FV
 }
 
 // 清理冲突动作，启动破防硬直和输入锁定
-void UPlayerRhythmCombatComponent::StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection,
+void UPlayerDefenseComponent::StartPoiseBreak(FVector ImpactLocation, FVector AttackDirection,
                                                    FVector AttackerWorldLocation)
 {
 	if (!GetWorld() || !GetOwner())
@@ -1037,7 +1037,7 @@ void UPlayerRhythmCombatComponent::StartPoiseBreak(FVector ImpactLocation, FVect
 }
 
 // 结束破防锁定并恢复允许执行动作的状态
-void UPlayerRhythmCombatComponent::EndPoiseBreak()
+void UPlayerDefenseComponent::EndPoiseBreak()
 {
 	if (!bPoiseBroken)
 		return;
@@ -1053,11 +1053,11 @@ void UPlayerRhythmCombatComponent::EndPoiseBreak()
 }
 
 // 根据攻击方向启动受击姿态，单独设置输入解锁时间
-void UPlayerRhythmCombatComponent::StartHitReaction(FVector ImpactLocation, FVector AttackDirection,
+void UPlayerDefenseComponent::StartHitReaction(FVector ImpactLocation, FVector AttackDirection,
                                                     bool bHeavy, FVector AttackerWorldLocation)
 {
-	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>())
-		Attacks->NotifyInterrupted();
+	if (auto* Attacks = GetOwner()->FindComponentByClass<UPlayerAttackComponent>())
+		Attacks->InterruptAttack();
 	ACharacter* Character = Cast<ACharacter>(GetOwner());
 	if (!GetWorld() || !Character || !Character->GetMesh())
 		return;
@@ -1079,7 +1079,8 @@ void UPlayerRhythmCombatComponent::StartHitReaction(FVector ImpactLocation, FVec
 	HitReactionEndWorldSeconds = Now + HitTurnSeconds + Duration;
 	// 输入解锁与受击动画结束分开计时
 	HitInputUnlockWorldSeconds = Now + (bHeavy ? PoiseBreakInputLockSeconds : LightHitInputLockSeconds);
-	BufferedAction = EBufferedRhythmAction::None;
+	// 新一次受击打断旧动作，也清除受击前尚未执行的防御输入
+	BufferedAction = EBufferedDefenseAction::None;
 	bBufferedBlockReleased = false;
 	bDodging = false;
 	bBlocking = false;
@@ -1102,7 +1103,7 @@ void UPlayerRhythmCombatComponent::StartHitReaction(FVector ImpactLocation, FVec
 }
 
 // 结束受击动作并恢复移动状态
-void UPlayerRhythmCombatComponent::FinishHitReaction()
+void UPlayerDefenseComponent::FinishHitReaction()
 {
 	if (!bHitReacting)
 		return;
@@ -1118,17 +1119,18 @@ void UPlayerRhythmCombatComponent::FinishHitReaction()
 // 消费缓存与时机评级
 
 // 等待动作解锁后重试缓存输入，过期或失效时清除
-void UPlayerRhythmCombatComponent::ProcessBufferedInput()
+void UPlayerDefenseComponent::ProcessDefenseBuffer()
 {
 	if (Health <= 0.f)
 	{
-		BufferedAction = EBufferedRhythmAction::None;
+		BufferedAction = EBufferedDefenseAction::None;
 		return;
 	}
-	if (BufferedAction == EBufferedRhythmAction::None || !GetWorld())
+	if (BufferedAction == EBufferedDefenseAction::None || !GetWorld())
 		return;
 	const double Now = GetWorld()->GetTimeSeconds();
-	// 受击或破防锁定会延长缓冲有效期，让提前按下的操作有机会在解锁后执行
+	// 普通缓存按 InputBufferSeconds 过期，受击或破防时至少保留到解锁后 0.05 秒
+	// 延长的只是等待执行时间，原始音乐时间不变，不能因此获得更好的评级
 	double BufferDeadline = BufferedInputWorldSeconds + InputBufferSeconds;
 	if (bHitReacting)
 		BufferDeadline = FMath::Max(BufferDeadline, HitInputUnlockWorldSeconds + .05);
@@ -1139,7 +1141,7 @@ void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 	{
 		UE_LOG(LogTemp, Verbose, TEXT("RhythmInputBuffer: expired action=%d"),
 		       static_cast<int32>(BufferedAction));
-		BufferedAction = EBufferedRhythmAction::None;
+		BufferedAction = EBufferedDefenseAction::None;
 		return;
 	}
 	// 动作尚未到允许取消的时刻就继续等待，不重新记录按键时间
@@ -1157,14 +1159,14 @@ void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 		FinishHitReaction();
 
 	// 执行前复制待处理数据，后续清空缓存不会丢失原始按键和松键时间
-	const EBufferedRhythmAction Action = BufferedAction;
+	const EBufferedDefenseAction Action = BufferedAction;
 	// 执行可以延后，节奏评级仍使用玩家实际按键时的音乐时间
 	const double OriginalInputAudioSeconds = BufferedInputAudioSeconds;
 	const FVector OriginalDirection = BufferedDodgeDirection;
 	const bool bReleasedBlock = bBufferedBlockReleased;
 	const double OriginalReleaseAudioSeconds = BufferedBlockReleaseAudioSeconds;
 	// 调用动作前清除缓冲，避免动作回调再次消费同一输入
-	BufferedAction = EBufferedRhythmAction::None;
+	BufferedAction = EBufferedDefenseAction::None;
 	if (bDodging)
 		CancelDodgeForTransition();
 	if (bCountering)
@@ -1172,25 +1174,25 @@ void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 	bool bStarted = false;
 	switch (Action)
 	{
-	case EBufferedRhythmAction::Dodge:
+	case EBufferedDefenseAction::Dodge:
 		bStarted = StartDodge(OriginalDirection, OriginalInputAudioSeconds);
 		break;
-	case EBufferedRhythmAction::Block:
+	case EBufferedDefenseAction::Block:
 		bStarted = !bBlocking && StartBlock(OriginalInputAudioSeconds);
 		// 缓冲期间已经松键时，补发松开状态，防止格挡一直保持
 		if (bStarted && bReleasedBlock)
 		{
-			EndBlock();
+			ReleaseBlock();
 			LastBlockReleaseAudioSeconds = OriginalReleaseAudioSeconds;
 		}
 		break;
-	case EBufferedRhythmAction::Counter:
+	case EBufferedDefenseAction::Counter:
 		if (bBlocking)
 		{
-			EndBlock();
+			ReleaseBlock();
 			bBlockRecovering = false;
 		}
-		bStarted = StartCounter(OriginalInputAudioSeconds);
+		bStarted = StartParry(OriginalInputAudioSeconds);
 		break;
 	default:
 		break;
@@ -1202,9 +1204,10 @@ void UPlayerRhythmCombatComponent::ProcessBufferedInput()
 }
 
 // 取出最接近理想时刻的一次按键，避免同一输入重复参与判定
-double UPlayerRhythmCombatComponent::ConsumeClosestInput(TArray<double>& History, double IdealAudioSeconds)
+double UPlayerDefenseComponent::ConsumeClosestDefenseInput(TArray<double>& History, double IdealAudioSeconds)
 {
-	// 先丢弃明显过早的按键，再从剩余历史中选择时间最接近的一次
+	// 按键历史用于逐次评级，与等待执行动作的单槽缓存分开
+	// 先丢弃过早输入，再挑选最接近理想时刻的一次，最后移除已使用的记录
 	History.RemoveAll(
 	    [&](double Time)
 	    {
@@ -1230,7 +1233,7 @@ double UPlayerRhythmCombatComponent::ConsumeClosestInput(TArray<double>& History
 }
 
 // 按输入与理想时刻的误差划分完美、成功和失败
-ERhythmDodgeJudgment UPlayerRhythmCombatComponent::JudgeTimedInput(double InputAudioSeconds,
+ERhythmDodgeJudgment UPlayerDefenseComponent::JudgeTimedInput(double InputAudioSeconds,
                                                                    double IdealAudioSeconds) const
 {
 	const float ErrorMs = static_cast<float>(FMath::Abs(InputAudioSeconds - IdealAudioSeconds) * 1000.0);
@@ -1242,7 +1245,7 @@ ERhythmDodgeJudgment UPlayerRhythmCombatComponent::JudgeTimedInput(double InputA
 }
 
 // 使用反击窗口判断按键误差
-ERhythmDodgeJudgment UPlayerRhythmCombatComponent::JudgeCounterInput(double InputAudioSeconds,
+ERhythmDodgeJudgment UPlayerDefenseComponent::JudgeParryInput(double InputAudioSeconds,
                                                                      double IdealAudioSeconds) const
 {
 	// 反击使用与界面相同的评级窗口，避免画面提示和实际判定不一致
@@ -1250,7 +1253,7 @@ ERhythmDodgeJudgment UPlayerRhythmCombatComponent::JudgeCounterInput(double Inpu
 }
 
 // 判断当前是否处于闪避无敌时间内
-bool UPlayerRhythmCombatComponent::IsInvulnerable() const
+bool UPlayerDefenseComponent::IsInvulnerable() const
 {
 	if (!bDodging || !GetWorld())
 		return false;
@@ -1268,7 +1271,7 @@ bool UPlayerRhythmCombatComponent::IsInvulnerable() const
 // 实际接触与防御结果
 
 // 真实刀刃接触时，进入防御与伤害结算
-bool UPlayerRhythmCombatComponent::ResolveBossContact(double ContactAudioSeconds, double TargetBeat,
+bool UPlayerDefenseComponent::ResolveEnemyHit(double ContactAudioSeconds, double TargetBeat,
                                                       float Damage, float IdealDodgeLeadSeconds,
                                                       bool bStrongBeat, FVector BladeWorldLocation,
                                                       FVector AttackDirection,
@@ -1276,26 +1279,26 @@ bool UPlayerRhythmCombatComponent::ResolveBossContact(double ContactAudioSeconds
                                                       ERhythmHoldMarkerType HoldMarker, FName HoldGroup,
                                                       FVector AttackerWorldLocation)
 {
-	return ResolveResponse(ContactAudioSeconds, TargetBeat, Damage, IdealDodgeLeadSeconds, bStrongBeat,
+	return ResolveDefenseResult(ContactAudioSeconds, TargetBeat, Damage, IdealDodgeLeadSeconds, bStrongBeat,
 	                       BladeWorldLocation, AttackDirection, RequiredResponse, HoldMarker, HoldGroup, true,
 	                       AttackerWorldLocation);
 }
 
 // 刀刃未接触时，进入躲避或练习判定
-bool UPlayerRhythmCombatComponent::ResolveBossAvoidance(double ImpactAudioSeconds, double TargetBeat,
+bool UPlayerDefenseComponent::ResolveEnemyMiss(double ImpactAudioSeconds, double TargetBeat,
                                                         float IdealDodgeLeadSeconds, bool bStrongBeat,
                                                         FVector BladeWorldLocation, FVector AttackDirection,
                                                         ERhythmResponseType RequiredResponse,
                                                         ERhythmHoldMarkerType HoldMarker, FName HoldGroup)
 {
-	return ResolveResponse(ImpactAudioSeconds, TargetBeat, 0.0f, IdealDodgeLeadSeconds, bStrongBeat,
+	return ResolveDefenseResult(ImpactAudioSeconds, TargetBeat, 0.0f, IdealDodgeLeadSeconds, bStrongBeat,
 	                       BladeWorldLocation, AttackDirection, RequiredResponse, HoldMarker, HoldGroup,
 	                       false);
 }
 
 // 应对结算：先用命中时间去重，再按要求选择闪避、格挡、反击或持续格挡
 // 理想输入时间等于命中时间减去提前量；输入偏差用于评级，物理接触与防御状态决定后续伤害分支
-bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, double TargetBeat, float Damage,
+bool UPlayerDefenseComponent::ResolveDefenseResult(double ImpactAudioSeconds, double TargetBeat, float Damage,
                                                    float IdealLeadSeconds, bool bStrongBeat,
                                                    FVector BladeWorldLocation, FVector AttackDirection,
                                                    ERhythmResponseType RequiredResponse,
@@ -1353,15 +1356,15 @@ bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, do
 		break;
 	// 普通格挡与弹反按键需要逐次消费，不能用一次按键抵挡后续所有命中
 	case ERhythmResponseType::Block:
-		InputTime = ConsumeClosestInput(BlockInputHistory, IdealInput);
+		InputTime = ConsumeClosestDefenseInput(BlockInputHistory, IdealInput);
 		Grade = InputTime > -900.0 ? JudgeTimedInput(InputTime, IdealInput) : ERhythmDodgeJudgment::Miss;
 		bDefended = Grade == ERhythmDodgeJudgment::Perfect || Grade == ERhythmDodgeJudgment::Good;
 		if (Grade == ERhythmDodgeJudgment::Bad)
 			DamageMultiplier = .35f;
 		break;
 	case ERhythmResponseType::Counter:
-		InputTime = ConsumeClosestInput(CounterInputHistory, IdealInput);
-		Grade = JudgeCounterInput(InputTime, IdealInput);
+		InputTime = ConsumeClosestDefenseInput(CounterInputHistory, IdealInput);
+		Grade = JudgeParryInput(InputTime, IdealInput);
 		bDefended = Grade == ERhythmDodgeJudgment::Perfect || Grade == ERhythmDodgeJudgment::Good;
 		if (Grade == ERhythmDodgeJudgment::Bad)
 			DamageMultiplier = .60f;
@@ -1421,7 +1424,7 @@ bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, do
 	const int32 PreviousCombo = ComboCount;
 	if (!bDuplicateHoldBreak)
 	{
-		SubmitDodgeJudgment(Grade, ErrorMs, bStrongBeat);
+		SubmitDefenseJudgment(Grade, ErrorMs, bStrongBeat);
 		if (Grade == ERhythmDodgeJudgment::HoldBreak && !HoldGroup.IsNone())
 			ReportedHoldBreakGroups.Add(HoldGroup);
 	}
@@ -1485,7 +1488,7 @@ bool UPlayerRhythmCombatComponent::ResolveResponse(double ImpactAudioSeconds, do
 // 防御反馈与事件通知
 
 // 按实际防御结果播放声音与反馈，不替换已开始的新动作
-void UPlayerRhythmCombatComponent::PlayResponseFeedback(ERhythmResponseType Response,
+void UPlayerDefenseComponent::PlayResponseFeedback(ERhythmResponseType Response,
                                                         ERhythmDodgeJudgment Grade, FVector WorldLocation,
                                                         FVector AttackDirection, bool bStrongBeat)
 {
@@ -1519,7 +1522,7 @@ void UPlayerRhythmCombatComponent::PlayResponseFeedback(ERhythmResponseType Resp
 }
 
 // 组装完美防御数据并广播给表现组件
-void UPlayerRhythmCombatComponent::BroadcastPerfectFeedback(float ErrorMs, bool bStrongBeat,
+void UPlayerDefenseComponent::BroadcastPerfectFeedback(float ErrorMs, bool bStrongBeat,
                                                             FVector BladeWorldLocation,
                                                             FVector AttackDirection)
 {

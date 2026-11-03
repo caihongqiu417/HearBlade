@@ -1,6 +1,6 @@
 #include "Combat/Player/PlayerWeaponComponent.h"
-#include "Combat/Player/PlayerRhythmCombatComponent.h"
-#include "Combat/Player/PlayerBeatAttackComponent.h"
+#include "Combat/Player/PlayerDefenseComponent.h"
+#include "Combat/Player/PlayerAttackComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "GameFramework/Character.h"
@@ -15,8 +15,8 @@ void UPlayerWeaponComponent::Initialize(UStaticMeshComponent* Sword)
 {
     Character = Cast<ACharacter>(GetOwner());
     EquippedSword = Sword;
-    RhythmCombat = GetOwner()->FindComponentByClass<UPlayerRhythmCombatComponent>();
-    BeatAttack = GetOwner()->FindComponentByClass<UPlayerBeatAttackComponent>();
+    DefenseComponent = GetOwner()->FindComponentByClass<UPlayerDefenseComponent>();
+    AttackComponent = GetOwner()->FindComponentByClass<UPlayerAttackComponent>();
     SwordCalibrationFrames = 0;
     bSwordGripCalibrated = false;
     SwordGripRotationOffset = FQuat::Identity;
@@ -31,15 +31,15 @@ void UPlayerWeaponComponent::UpdateDirection(float DeltaSeconds, float SwordDire
 	const FQuat CurrentRotation = EquippedSword->GetComponentQuat();
 	FQuat TargetRotation = CurrentRotation;
 	float InterpSpeed = SwordDirectionInterpSpeed;
-	if (((RhythmCombat && RhythmCombat->IsInDefensePose()) ||
-	     (BeatAttack && BeatAttack->IsPlayingAttackMotion())) &&
+	if (((DefenseComponent && DefenseComponent->IsInDefensePose()) ||
+	     (AttackComponent && AttackComponent->IsPlayingAttackMotion())) &&
 	    Character->GetMesh())
 	{
 		// 攻击和防御时按右手动画更新握剑角度，保留校准得到的偏移
 		const FQuat HandRotation = Character->GetMesh()->GetSocketTransform(TEXT("hand_r"), RTS_World).GetRotation();
 		TargetRotation = (HandRotation * SwordGripRotationOffset).GetNormalized();
 		InterpSpeed *= 1.65f;
-		if (BeatAttack && BeatAttack->IsPlayingAttackMotion())
+		if (AttackComponent && AttackComponent->IsPlayingAttackMotion())
 		{
 			EquippedSword->SetWorldRotation(TargetRotation);
 			return;
